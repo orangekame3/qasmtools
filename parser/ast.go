@@ -349,6 +349,29 @@ func (p *ParenthesizedExpression) String() string {
 	return "ParenthesizedExpression"
 }
 
+// TimingExpression represents timing expressions like 100ns
+type TimingExpression struct {
+	BaseNode
+	Value Expression `json:"value"`
+	Unit  string     `json:"unit"` // "ns", "us", "ms", etc.
+}
+
+func (t *TimingExpression) ExpressionNode() {}
+func (t *TimingExpression) String() string {
+	return "TimingExpression"
+}
+
+// DelayExpression represents delay expressions like delay[100ns]
+type DelayExpression struct {
+	BaseNode
+	Timing Expression `json:"timing"`
+}
+
+func (d *DelayExpression) ExpressionNode() {}
+func (d *DelayExpression) String() string {
+	return "DelayExpression"
+}
+
 // TypeInfo represents type information for AST nodes
 type TypeInfo struct {
 	Kind        string   `json:"kind"`                  // "qubit", "bit", "int", "float", "bool"

@@ -39,6 +39,7 @@ func DefaultParseOptions() *ParseOptions {
 // Parser represents the main OpenQASM 3.0 parser
 type Parser struct {
 	options *ParseOptions
+	stream  antlr.TokenStream
 }
 
 // NewParser creates a new parser with default options
@@ -56,6 +57,11 @@ func NewParserWithOptions(opts *ParseOptions) *Parser {
 	return &Parser{
 		options: opts,
 	}
+}
+
+// GetTokenStream returns the current token stream
+func (p *Parser) GetTokenStream() antlr.TokenStream {
+	return p.stream
 }
 
 // ParseString parses QASM code from a string
@@ -126,6 +132,7 @@ func (p *Parser) ParseWithErrors(content string) *ParseResult {
 
 	// Create token stream
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+	p.stream = stream
 
 	// Create parser (this will be replaced with generated code)
 	parser := p.createParser(stream)
@@ -165,10 +172,12 @@ func (p *Parser) ParseWithErrors(content string) *ParseResult {
 		allErrors = allErrors[:p.options.MaxErrors]
 	}
 
-	return &ParseResult{
+	result := &ParseResult{
 		Program: program,
 		Errors:  allErrors,
 	}
+
+	return result
 }
 
 // preprocessContent handles common formatting issues
