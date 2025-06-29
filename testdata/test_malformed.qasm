@@ -1,0 +1,1 @@
+OPENQASM 3.0;include"stdgates.qasm";qubit[2]q;hq[0];cxq[0],q[1];measureq->c;
