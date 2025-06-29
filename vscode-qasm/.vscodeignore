@@ -5,7 +5,11 @@ vsc-extension-quickstart.md
 .git/**
 **/*.map
 **/*.ts
-node_modules/**
+# Include all node_modules for now to avoid dependency issues
+# node_modules/**
+# !node_modules/vscode-languageclient/**
+# !node_modules/vscode-languageserver-protocol/**
+# !node_modules/minimatch/**
 .vsix
 test.qasm
 

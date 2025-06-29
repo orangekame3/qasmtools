@@ -10,6 +10,8 @@ vars:
   BUILD_DATE:
     sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
   ANTLR_VERSION: 4.13.1
+  VSCODE_VERSION:
+    sh: cd vscode-qasm && node -p "require('./package.json').version" 2>/dev/null || echo "0.1.4"
 
 env:
   CGO_ENABLED: 0
@@ -19,6 +21,48 @@ tasks:
     desc: Show available tasks
     cmds:
       - task --list
+
+  # Quick aliases for common development tasks
+  dev:
+    desc: 🚀 Quick development mode (alias for vscode:dev)
+    cmds:
+      - task vscode:dev
+
+  debug:
+    desc: 🐛 Quick debug setup (alias for vscode:debug:extension)  
+    cmds:
+      - task vscode:debug:extension
+
+  hot:
+    desc: 🔥 Hot reload (alias for vscode:hot-reload)
+    cmds:
+      - task vscode:hot-reload
+
+  help:dev:
+    desc: 📚 Show development workflow help
+    silent: true
+    cmds:
+      - echo "🛠️  Development Workflow Help"
+      - echo ""
+      - echo "📋 Quick Commands (no version concerns):"
+      - echo "   task dev      - Build & install extension (version-agnostic)"
+      - echo "   task debug    - Setup extension debugging (F5 ready)"
+      - echo "   task hot      - Quick rebuild for minor changes"
+      - echo ""
+      - echo "🐛 Debug Modes:"
+      - echo "   task vscode:debug:extension  - Debug extension code (JavaScript)"
+      - echo "   task vscode:debug:lsp        - Debug LSP server (Go)"
+      - echo "   task vscode:debug:full       - Debug both together"
+      - echo ""
+      - echo "🔄 Development Cycle:"
+      - echo "   1. Make changes"
+      - echo "   2. Run 'task hot' (quick rebuild)"
+      - echo "   3. If debugging - Reload extension host window"
+      - echo "   4. If installed - Run 'task dev' to reinstall"
+      - echo ""
+      - echo "🚨 Troubleshooting:"
+      - echo "   task vscode:troubleshoot  - Diagnose common issues"
+      - echo "   task vscode:logs          - How to view logs"
 
   # Parser Generation
   gen:
@@ -322,15 +366,12 @@ tasks:
       - npx vsce package
 
   vscode:install:
-    desc: Install VSCode extension locally
-    deps: [build]
+    desc: Install VSCode extension locally  
+    deps: [vscode:package]
     dir: vscode-qasm
     cmds:
-      - mkdir -p bin
-      - cp ../bin/qasmlsp bin/
-      - npm install
-      - npx vsce package
-      - code --install-extension vscode-qasm-0.1.0.vsix
+      - code --uninstall-extension orangekame3.vscode-qasm || true
+      - code --install-extension vscode-qasm-{{.VSCODE_VERSION}}.vsix --force
 
   vscode:publish:
     desc: Publish VSCode extension to marketplace
@@ -374,6 +415,142 @@ tasks:
     cmds:
       - npx vsce ls --tree
 
+  # VSCode Extension Debug Tasks (Version-agnostic)
+  vscode:debug:extension:
+    desc: Debug VSCode extension only (activate extension debugging)
+    deps: [build]
+    dir: vscode-qasm
+    cmds:
+      - mkdir -p bin
+      - cp ../bin/qasmlsp bin/
+      - npm run build
+      - echo "🚀 Extension ready for debugging"
+      - echo "📋 Next steps:"
+      - echo "   1. Press F5"
+      - echo "   2. Select 'Launch Extension'"
+      - echo "   3. New VSCode window will open with extension loaded"
+
+  vscode:debug:lsp:
+    desc: Debug LSP server only (for LSP server debugging)
+    deps: [build]
+    cmds:
+      - echo "🚀 LSP server built and ready for debugging"
+      - echo "📋 Next steps:"
+      - echo "   1. Press F5"
+      - echo "   2. Select 'Debug LSP Server'"
+      - echo "   3. Open another VSCode window"
+      - echo "   4. Open/create a .qasm file to trigger LSP communication"
+
+  vscode:debug:full:
+    desc: Setup for full debugging (Extension + LSP Server)
+    deps: [vscode:debug:extension]
+    cmds:
+      - echo "🚀 Full debug setup complete"
+      - echo "📋 Debug options:"
+      - echo "   Option A - Combined debugging:"
+      - echo "     1. Press F5"
+      - echo "     2. Select 'Extension + LSP Server'"
+      - echo ""
+      - echo "   Option B - Separate debugging:"
+      - echo "     1. 'Launch Extension' for extension code"
+      - echo "     2. 'Debug LSP Server' for LSP code"
+
+  vscode:dev:
+    desc: Quick development mode (build + install without version concerns)
+    deps: [build]
+    dir: vscode-qasm
+    cmds:
+      - mkdir -p bin
+      - cp ../bin/qasmlsp bin/
+      - npm run build
+      - npm run package
+      - |
+        # Find the generated .vsix file (version-agnostic)
+        VSIX_FILE=$(ls vscode-qasm-*.vsix 2>/dev/null | head -1)
+        if [ -n "$VSIX_FILE" ]; then
+          echo "📦 Found extension package: $VSIX_FILE"
+          code --uninstall-extension orangekame3.vscode-qasm >/dev/null 2>&1 || true
+          code --install-extension "$VSIX_FILE" --force
+          echo "✅ Extension installed successfully"
+          echo "🔄 Restart VSCode to see changes"
+        else
+          echo "❌ No .vsix file found"
+          exit 1
+        fi
+
+  vscode:hot-reload:
+    desc: Hot reload for rapid development (minimal steps)
+    deps: [build]
+    dir: vscode-qasm
+    cmds:
+      - cp ../bin/qasmlsp bin/ 2>/dev/null || true
+      - npm run build --silent
+      - echo "🔥 Hot reload complete"
+      - echo "💡 If using F5 debug mode, just reload the extension host window"
+      - echo "💡 If using installed extension, run 'task vscode:dev' to reinstall"
+
+  vscode:test:format:
+    desc: Quick test formatting functionality
+    deps: [vscode:install]
+    cmds:
+      - echo "Testing QASM formatting functionality..."
+      - |
+        cat > test_format_temp.qasm << 'EOF'
+        OPENQASM 3.0;
+        include "stdgates.inc";
+        qubit[2]q;bit[2]c;
+        h q[0];cx q[0],q[1];
+        c[0]=measure q[0];c[1]=measure q[1];
+        EOF
+      - echo "1. Open test_format_temp.qasm in VSCode"
+      - echo "2. Press Shift+Alt+F (or Shift+Option+F on Mac) to format"
+      - echo "3. Check 'View → Output → QASM Extension' for logs"
+      - echo "4. Verify formatting was applied correctly"
+
+  vscode:logs:
+    desc: Show VSCode extension logs
+    silent: true
+    cmds:
+      - echo "To view extension logs:"
+      - echo "1. Open VSCode"
+      - echo "2. Go to 'View → Output'"
+      - echo "3. Select 'QASM Extension' from dropdown"
+      - echo "4. Look for activation and formatting logs"
+
+  vscode:quick-cycle:
+    desc: Quick development cycle (build → package → install)
+    deps: [build]
+    dir: vscode-qasm
+    cmds:
+      - mkdir -p bin
+      - cp ../bin/qasmlsp bin/
+      - npm run build
+      - npm run package
+      - code --uninstall-extension orangekame3.vscode-qasm || true
+      - code --install-extension vscode-qasm-{{.VSCODE_VERSION}}.vsix --force
+      - echo "Extension updated! Restart VSCode to see changes"
+
+  vscode:troubleshoot:
+    desc: Troubleshoot VSCode extension issues
+    silent: true
+    cmds:
+      - echo "=== VSCode Extension Troubleshooting ==="
+      - echo ""
+      - echo "1. Check if extension is installed:"
+      - code --list-extensions | grep -i qasm || echo "   ❌ Extension not found"
+      - echo ""
+      - echo "2. Check extension logs:"
+      - echo "   - Open VSCode → View → Output → QASM Extension"
+      - echo ""
+      - echo "3. Check Developer Tools for errors:"
+      - echo "   - Help → Toggle Developer Tools → Console tab"
+      - echo ""
+      - echo "4. Verify LSP server binary:"
+      - ls -la vscode-qasm/bin/qasmlsp 2>/dev/null && echo "   ✅ LSP binary exists" || echo "   ❌ LSP binary missing"
+      - echo ""
+      - echo "5. Test with sample file:"
+      - echo "   task vscode:test:format"
+
   # Release tasks
   release:prepare:
     desc: Prepare release (build all, package extension)
@@ -398,13 +575,55 @@ tasks:
           --title "Release {{.VERSION}}" \
           --notes "Release {{.VERSION}}" \
           bin/qasm-* \
-          vscode-qasm/vscode-qasm-*.vsix
+          vscode-qasm/vscode-qasm-{{.VSCODE_VERSION}}.vsix
 
-  # Version info
+  # Version management
   version:
     desc: Show version information
+    silent: true
     cmds:
-      - echo "Version{{":"}} {{.VERSION}}"
-      - echo "Commit{{":"}} {{.COMMIT}}"
+      - echo "=== Version Information ==="
+      - echo "CLI Version{{":"}} {{.VERSION}}"
+      - echo "VSCode Extension Version{{":"}} {{.VSCODE_VERSION}}"
+      - echo "Git Commit{{":"}} {{.COMMIT}}"
       - echo "Build Date{{":"}} {{.BUILD_DATE}}"
       - echo "Go Version{{":"}} $(go version)"
+      - echo "Node Version{{":"}} $(node --version 2>/dev/null || echo 'not found')"
+      - echo "NPM Version{{":"}} $(npm --version 2>/dev/null || echo 'not found')"
+
+  version:bump:patch:
+    desc: "Bump VSCode extension patch version (e.g., 0.1.4 → 0.1.5)"
+    dir: vscode-qasm
+    cmds:
+      - npm version patch --no-git-tag-version
+      - echo "VSCode extension version bumped to $(node -p "require('./package.json').version")"
+      - echo "Don't forget to git commit the version change!"
+
+  version:bump:minor:
+    desc: "Bump VSCode extension minor version (e.g., 0.1.4 → 0.2.0)"
+    dir: vscode-qasm
+    cmds:
+      - npm version minor --no-git-tag-version
+      - echo "VSCode extension version bumped to $(node -p "require('./package.json').version")"
+      - echo "Don't forget to git commit the version change!"
+
+  version:bump:major:
+    desc: "Bump VSCode extension major version (e.g., 0.1.4 → 1.0.0)"
+    dir: vscode-qasm
+    cmds:
+      - npm version major --no-git-tag-version
+      - echo "VSCode extension version bumped to $(node -p "require('./package.json').version")"
+      - echo "Don't forget to git commit the version change!"
+
+  version:set:
+    desc: "Set specific version for VSCode extension (usage: task version:set NEW_VERSION=1.2.3)"
+    dir: vscode-qasm
+    cmds:
+      - |
+        if [ -z "{{.NEW_VERSION}}" ]; then
+          echo "Usage: task version:set NEW_VERSION=1.2.3"
+          exit 1
+        fi
+      - npm version {{.NEW_VERSION}} --no-git-tag-version
+      - echo "VSCode extension version set to {{.NEW_VERSION}}"
+      - echo "Don't forget to git commit the version change!"
