@@ -128,6 +128,7 @@ flowchart TD
 ```
 
 The diagram shows how QASM code flows through the system:
+
 1. Input code enters through the cmd/qasm package
 2. The parser package handles parsing and AST generation
 3. Comments are extracted and maintained separately
