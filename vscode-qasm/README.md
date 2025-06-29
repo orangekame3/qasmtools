@@ -1,6 +1,6 @@
 # OpenQASM 3.0 Language Support for Visual Studio Code
 
-![vscode-qasm icon](vscode-qasm.png)
+![vscode-qasm icon](https://github.com/orangekame3/qasmtools/blob/main/vscode-qasm/vscode-qasm.png)
 
 This extension provides language support for OpenQASM 3.0 in Visual Studio Code.
 
