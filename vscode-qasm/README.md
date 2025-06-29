@@ -9,10 +9,10 @@ This extension provides language support for OpenQASM 3.0 in Visual Studio Code.
 - **Syntax Highlighting**: Full semantic highlighting for QASM keywords, operators, gates, measurements, and more
 - **Language Server**: Integrated LSP server for advanced language features
 - **Comment Support**: Line and block comments
+- **Code Formatting**: Basic formatting support
 
 Coming Soon:
 
-- Code formatting
 - Linting support
 - Auto-completion
 - Smart indentation

@@ -107,8 +107,11 @@ func (f *Formatter) formatProgram(program *parser.Program) string {
 			currentType := f.getStatementTypeFromStmt(stmt)
 
 			// Add empty line between different types of statements
+			// Only add if the last line is not already empty
 			if f.shouldAddEmptyLine(lastStatementType, currentType) {
-				lines = append(lines, "")
+				if len(lines) == 0 || lines[len(lines)-1] != "" {
+					lines = append(lines, "")
+				}
 			}
 
 			lines = append(lines, formatted)
@@ -819,8 +822,11 @@ func (f *Formatter) formatWithTextBasedFallback(content string) string {
 		}
 
 		// Add empty line between different types of statements (but not inside blocks)
+		// Only add if the last line is not already empty
 		if f.shouldAddEmptyLine(lastStatementType, currentType) && indentLevel == 0 {
-			formattedLines = append(formattedLines, "")
+			if len(formattedLines) == 0 || formattedLines[len(formattedLines)-1] != "" {
+				formattedLines = append(formattedLines, "")
+			}
 		}
 
 		// Handle single-line comments - preserve them as-is without processing

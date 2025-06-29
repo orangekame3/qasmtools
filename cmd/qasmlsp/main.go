@@ -95,15 +95,24 @@ func textDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 	log.Info("Document changed", "uri", params.TextDocument.URI, "version", params.TextDocument.Version, "changes", len(params.ContentChanges))
 
 	if len(params.ContentChanges) > 0 {
+		// Look for full document changes first
 		for i, changeInterface := range params.ContentChanges {
 			if change, ok := changeInterface.(protocol.TextDocumentContentChangeEvent); ok {
-				log.Info("Processing change", "index", i, "text_length", len(change.Text))
-				// For full document changes (no range specified)
-				documents[params.TextDocument.URI] = change.Text
-				log.Info("Document content updated", "uri", params.TextDocument.URI, "new_length", len(change.Text))
-				break // Use the first full change
+				log.Info("Processing change", "index", i, "text_length", len(change.Text), "has_range", change.Range != nil)
+				
+				// Check if this is a full document change (no range specified)
+				if change.Range == nil {
+					// Full document replacement - this is what we want for format results
+					documents[params.TextDocument.URI] = change.Text
+					log.Info("Full document replacement applied", "new_length", len(change.Text))
+					return nil
+				}
 			}
 		}
+		
+		// If we only have incremental changes from formatting, don't update the cache
+		// The formatter has already updated the cache, so incremental changes might be inconsistent
+		log.Info("Only incremental changes detected - skipping document cache update to preserve formatter consistency")
 	}
 	return nil
 }
@@ -274,9 +283,9 @@ func textDocumentFormatting(context *glsp.Context, params *protocol.DocumentForm
 	log.Info("Text edit prepared", "start_line", edit.Range.Start.Line, "start_char", edit.Range.Start.Character,
 		"end_line", edit.Range.End.Line, "end_char", edit.Range.End.Character, "newtext_length", len(edit.NewText))
 
-	// Do NOT update the document cache here - let didChange handle it
-	// This prevents conflicts with VSCode's document synchronization
-	log.Info("Returning formatting result without updating cache")
+	// Update the document cache with the formatted content to ensure consistency
+	documents[params.TextDocument.URI] = formatted
+	log.Info("Updated document cache with formatted content", "length", len(formatted))
 
 	log.Info("=== FORMATTING REQUEST END ===")
 
