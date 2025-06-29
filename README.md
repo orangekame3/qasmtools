@@ -1,4 +1,9 @@
-# qasmtools
+# QASM Tools
+
+![QASM Tools Logo](img/qasmtools.png)
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/orangekame3/qasmtools)](https://goreportcard.com/report/github.com/orangekame3/qasmtools)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0/)
 
 `qasmtools` is a command-line interface (CLI) tool written in Go for parsing and formatting OpenQASM 3.0 files. It provides functionalities to process QASM files, making them more readable and consistent.
 
