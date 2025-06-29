@@ -140,19 +140,19 @@ func (h *Highlighter) Highlight(input string) (string, error) {
 
 	// Create the lexer
 	lexer := qasm_gen.Newqasm3Lexer(inputStream)
-	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+	stream := antlr.NewCommonTokenStream(lexer, antlr.LexerDefaultTokenChannel)
 
 	// Clear previous tokens
 	h.tokens = make([]TokenInfo, 0)
 
-	// Walk through all tokens
-	for {
-		t := stream.LT(1)
-		if t.GetTokenType() == antlr.TokenEOF {
-			break
+	// Get all tokens including hidden ones (comments)
+	stream.Fill()
+	tokens := stream.GetAllTokens()
+
+	for _, t := range tokens {
+		if t.GetTokenType() != antlr.TokenEOF {
+			h.processToken(t)
 		}
-		h.processToken(t)
-		stream.Consume()
 	}
 
 	return h.ColoredString(), nil
@@ -292,7 +292,7 @@ func (h *Highlighter) getTokenType(t antlr.Token) TokenType {
 		return TokenMeasurement
 
 	// Numbers
-	case 92, 93, 96: // DecimalIntegerLiteral, HexIntegerLiteral, FloatLiteral
+	case 92, 93, 96, 104: // DecimalIntegerLiteral, HexIntegerLiteral, FloatLiteral, RealLiteral
 		return TokenNumber
 
 	// Strings

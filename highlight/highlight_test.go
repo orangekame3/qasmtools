@@ -134,6 +134,7 @@ measure q -> c;`
 	if !strings.Contains(output, string(Blue)) ||
 		!strings.Contains(output, string(Cyan)) ||
 		!strings.Contains(output, string(Yellow)) {
-		t.Error("Output does not contain expected custom colors")
+		t.Errorf("Output does not contain expected custom colors. Output: %q", output)
+		t.Errorf("Looking for Blue: %q, Cyan: %q, Yellow: %q", string(Blue), string(Cyan), string(Yellow))
 	}
 }
