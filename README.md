@@ -90,8 +90,23 @@ qasm parse input.qasm
 ## Examples
 
 Check out the `examples/` directory for sample QASM files and usage examples:
-- `examples/bell_state.qasm`: Implementation of a Bell state
-- `examples/grover.qasm`: Implementation of Grover's algorithm
-- `examples/ast_visitor/`: Example of using the AST visitor
-- `examples/error_handling/`: Example of error handling
-- `examples/parse_simple/`: Simple parsing example
+
+　- `examples/bell_state.qasm`: Implementation of a Bell state
+　- `examples/grover.qasm`: Implementation of Grover's algorithm
+　- `examples/ast_visitor/`: Example of using the AST visitor
+　- `examples/error_handling/`: Example of error handling
+　- `examples/parse_simple/`: Simple parsing example
+
+## Development
+
+For development guidelines, please refer to [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to update tests as appropriate and follow the existing code style.

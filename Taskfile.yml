@@ -1,0 +1,317 @@
+version: '3'
+
+vars:
+  BINARY_NAME: qasm
+  BUILD_DIR: bin
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "v0.1.0-dev"
+  COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+  BUILD_DATE:
+    sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
+  ANTLR_VERSION: 4.13.1
+
+env:
+  CGO_ENABLED: 0
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # Parser Generation
+  gen:
+    desc: Generate parser code from ANTLR grammar files
+    cmds:
+      - mkdir -p parser/grammar
+      - curl -s -o parser/grammar/qasm3Lexer.g4 https://raw.githubusercontent.com/openqasm/openqasm/refs/heads/main/source/grammar/qasm3Lexer.g4
+      - curl -s -o parser/grammar/qasm3Parser.g4 https://raw.githubusercontent.com/openqasm/openqasm/refs/heads/main/source/grammar/qasm3Parser.g4
+      - rm -rf parser/gen
+      - mkdir -p parser/gen
+      - cd parser/grammar && antlr4 -Dlanguage=Go -package parser qasm3Lexer.g4
+      - cd parser/grammar && antlr4 -Dlanguage=Go -visitor -listener -package parser qasm3Parser.g4
+      - mv parser/grammar/*.go parser/gen/
+      - rm parser/gen/*.interp parser/gen/*.tokens
+      - task: fix-antlr-imports
+
+  fix-antlr-imports:
+    desc: Fix ANTLR import paths for compatibility
+    internal: true
+    cmds:
+      - |
+        find parser/gen -name "*.go" -type f -exec sed -i.bak 's|github.com/antlr/antlr4/runtime/Go/antlr|github.com/antlr4-go/antlr/v4|g' {} \;
+      - find parser/gen -name "*.bak" -delete
+
+  # Build tasks
+  build:
+    desc: Build the application
+    deps: [gen]
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}} -X github.com/orangekame3/qasmtools/cmd.Commit={{.COMMIT}} -X github.com/orangekame3/qasmtools/cmd.BuildDate={{.BUILD_DATE}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}} ./cmd/qasm
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.BUILD_DIR}}/{{.BINARY_NAME}}"
+
+  build:all:
+    desc: Build for all platforms
+    deps: [gen]
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - task: build:linux
+      - task: build:darwin
+      - task: build:windows
+
+  build:linux:
+    desc: Build for Linux (amd64)
+    env:
+      GOOS: linux
+      GOARCH: amd64
+    cmds:
+      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-linux-amd64 ./cmd/qasm
+
+  build:darwin:
+    desc: Build for macOS (amd64 and arm64)
+    cmds:
+      - task: build:darwin:amd64
+      - task: build:darwin:arm64
+
+  build:darwin:amd64:
+    env:
+      GOOS: darwin
+      GOARCH: amd64
+    cmds:
+      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-amd64 ./cmd/qasm
+
+  build:darwin:arm64:
+    env:
+      GOOS: darwin
+      GOARCH: arm64
+    cmds:
+      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-arm64 ./cmd/qasm
+
+  build:windows:
+    desc: Build for Windows (amd64)
+    env:
+      GOOS: windows
+      GOARCH: amd64
+    cmds:
+      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-windows-amd64.exe ./cmd/qasm
+
+  # Development tasks
+  dev:
+    desc: Run in development mode with live reload
+    deps: [build]
+    cmds:
+      - ./{{.BUILD_DIR}}/{{.BINARY_NAME}} {{.CLI_ARGS}}
+
+  install:
+    desc: Install the binary to $GOPATH/bin
+    cmds:
+      - go install -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" ./cmd/qasm
+
+  # Testing tasks
+  test:
+    desc: Run tests
+    deps: [gen]
+    cmds:
+      - go test -v ./...
+
+  test:coverage:
+    desc: Run tests with coverage
+    deps: [gen]
+    cmds:
+      - go test -v -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+
+  test:race:
+    desc: Run tests with race detection
+    deps: [gen]
+    cmds:
+      - go test -v -race ./...
+
+  bench:
+    desc: Run benchmarks
+    deps: [gen]
+    cmds:
+      - go test -v -bench=. -benchmem ./...
+
+  # Code quality tasks
+  lint:
+    desc: Run linters
+    cmds:
+      - go fmt $(go list ./... | grep -v 'gen')
+      - go vet $(go list ./... | grep -v 'gen')
+      - task: lint:golangci
+
+  lint:golangci:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run
+    status:
+      - command -v golangci-lint >/dev/null 2>&1
+
+  lint:install:
+    desc: Install golangci-lint
+    cmds:
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+  fmt:
+    desc: Format code
+    cmds:
+      - go fmt ./...
+      - gofumpt -w .
+    status:
+      - command -v gofumpt >/dev/null 2>&1
+
+  fmt:install:
+    desc: Install gofumpt
+    cmds:
+      - go install mvdan.cc/gofumpt@latest
+
+  # Dependency management
+  deps:
+    desc: Download dependencies
+    cmds:
+      - go mod download
+
+  deps:tidy:
+    desc: Tidy dependencies
+    cmds:
+      - go mod tidy
+
+  deps:verify:
+    desc: Verify dependencies
+    cmds:
+      - go mod verify
+
+  deps:update:
+    desc: Update dependencies
+    cmds:
+      - go get -u ./...
+      - go mod tidy
+
+  # Example tasks
+  example:create:
+    desc: Create example QASM files
+    cmds:
+      - mkdir -p examples
+      - |
+        cat > examples/bell_state.qasm << 'EOF'
+        OPENQASM 3.0;
+        include "stdgates.qasm";
+
+        qubit[2] q;
+        bit[2] c;
+
+        h q[0];
+        cx q[0], q[1];
+        measure q -> c;
+        EOF
+      - |
+        cat > examples/grover.qasm << 'EOF'
+        OPENQASM 3.0;
+        include "stdgates.qasm";
+
+        qubit[3] q;
+        bit[3] c;
+
+        // Initialize superposition
+        h q[0];
+        h q[1];
+        h q[2];
+
+        // Oracle
+        cz q[0], q[2];
+        cz q[1], q[2];
+
+        // Diffuser
+        h q[0];
+        h q[1];
+        h q[2];
+        x q[0];
+        x q[1];
+        x q[2];
+        ccx q[0], q[1], q[2];
+        x q[0];
+        x q[1];
+        x q[2];
+        h q[0];
+        h q[1];
+        h q[2];
+
+        measure q -> c;
+        EOF
+
+  # Security tasks
+  security:
+    desc: Run security checks
+    cmds:
+      - |
+        if command -v gosec &> /dev/null; then
+          gosec ./...
+        else
+          echo "gosec not found. Install with: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest"
+        fi
+      - |
+        if command -v govulncheck &> /dev/null; then
+          govulncheck ./...
+        else
+          echo "govulncheck not found. Install with: go install golang.org/x/vuln/cmd/govulncheck@latest"
+        fi
+
+  # CI/CD tasks
+  ci:
+    desc: Run CI pipeline locally
+    cmds:
+      - task: deps:verify
+      - task: lint
+      - task: test:race
+      - task: test:coverage
+      - task: build:all
+      - task: security
+
+  # Git hooks
+  pre-commit:
+    desc: Run pre-commit checks
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: test
+
+  # Development environment setup
+  setup:
+    desc: Setup development environment
+    cmds:
+      - task: deps
+      - task: lint:install
+      - task: fmt:install
+      - task: example:create
+      - echo "Development environment setup complete!"
+
+  # Cleanup tasks
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+      - rm -rf parser/gen
+      - rm -f coverage.out coverage.html
+
+  clean:all:
+    desc: Clean all generated files
+    cmds:
+      - task: clean
+      - go clean -cache -testcache -modcache
+
+  # Version info
+  version:
+    desc: Show version information
+    cmds:
+      - echo "Version{{":"}} {{.VERSION}}"
+      - echo "Commit{{":"}} {{.COMMIT}}"
+      - echo "Build Date{{":"}} {{.BUILD_DATE}}"
+      - echo "Go Version{{":"}} $(go version)"

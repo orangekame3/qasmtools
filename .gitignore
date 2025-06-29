@@ -4,8 +4,7 @@
 *.dll
 *.so
 *.dylib
-qasmfmt
-/bin/
+bin/
 
 # Test binary, built with `go test -c`
 *.test
@@ -14,34 +13,19 @@ qasmfmt
 *.out
 coverage.html
 
+# Generated files
+parser/gen/
+parser/grammar/*.g4
+
 # Dependency directories
 vendor/
 
-# Go workspace file
-go.work
-
-# IDE files
-.vscode/
+# IDE specific files
 .idea/
+.vscode/
 *.swp
 *.swo
-*~
-
-# OS generated files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
-# Temporary files
-*.tmp
-*.temp
-
-# Debug files
-debug_*.qasm
-temp_*.qasm
-.task/*
-.antlr/*
+# Task specific
+.task/
