@@ -1,0 +1,736 @@
+{
+	"tokens": [
+		{
+			"type": "keyword",
+			"content": "OPENQASM",
+			"line": 1,
+			"column": 0
+		},
+		{
+			"type": "number",
+			"content": "3.0",
+			"line": 1,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 1,
+			"column": 12
+		},
+		{
+			"type": "comment",
+			"content": "// Builtin gates",
+			"line": 3,
+			"column": 0
+		},
+		{
+			"type": "builtin_gate",
+			"content": "U",
+			"line": 4,
+			"column": 0
+		},
+		{
+			"type": "punctuation",
+			"content": "(",
+			"line": 4,
+			"column": 1
+		},
+		{
+			"type": "builtin_constant",
+			"content": "pi",
+			"line": 4,
+			"column": 2
+		},
+		{
+			"type": "operator",
+			"content": "/",
+			"line": 4,
+			"column": 4
+		},
+		{
+			"type": "number",
+			"content": "2",
+			"line": 4,
+			"column": 5
+		},
+		{
+			"type": "punctuation",
+			"content": ",",
+			"line": 4,
+			"column": 6
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 4,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": ",",
+			"line": 4,
+			"column": 9
+		},
+		{
+			"type": "builtin_constant",
+			"content": "pi",
+			"line": 4,
+			"column": 11
+		},
+		{
+			"type": "punctuation",
+			"content": ")",
+			"line": 4,
+			"column": 13
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 4,
+			"column": 15
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 4,
+			"column": 16
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 4,
+			"column": 17
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 4,
+			"column": 18
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 4,
+			"column": 19
+		},
+		{
+			"type": "builtin_gate",
+			"content": "CX",
+			"line": 5,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 5,
+			"column": 3
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 5,
+			"column": 4
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 5,
+			"column": 5
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 5,
+			"column": 6
+		},
+		{
+			"type": "punctuation",
+			"content": ",",
+			"line": 5,
+			"column": 7
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 5,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 5,
+			"column": 10
+		},
+		{
+			"type": "number",
+			"content": "1",
+			"line": 5,
+			"column": 11
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 5,
+			"column": 12
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 5,
+			"column": 13
+		},
+		{
+			"type": "comment",
+			"content": "// Builtin quantum operations",
+			"line": 7,
+			"column": 0
+		},
+		{
+			"type": "builtin_quantum",
+			"content": "reset",
+			"line": 8,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 8,
+			"column": 6
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 8,
+			"column": 7
+		},
+		{
+			"type": "builtin_quantum",
+			"content": "barrier",
+			"line": 9,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 9,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 9,
+			"column": 9
+		},
+		{
+			"type": "measurement",
+			"content": "measure",
+			"line": 10,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 10,
+			"column": 8
+		},
+		{
+			"type": "operator",
+			"content": "->",
+			"line": 10,
+			"column": 10
+		},
+		{
+			"type": "identifier",
+			"content": "c",
+			"line": 10,
+			"column": 13
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 10,
+			"column": 14
+		},
+		{
+			"type": "comment",
+			"content": "// Builtin classical functions",
+			"line": 12,
+			"column": 0
+		},
+		{
+			"type": "keyword",
+			"content": "let",
+			"line": 13,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "angle",
+			"line": 13,
+			"column": 4
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 13,
+			"column": 10
+		},
+		{
+			"type": "builtin_constant",
+			"content": "pi",
+			"line": 13,
+			"column": 12
+		},
+		{
+			"type": "operator",
+			"content": "/",
+			"line": 13,
+			"column": 14
+		},
+		{
+			"type": "number",
+			"content": "2",
+			"line": 13,
+			"column": 15
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 13,
+			"column": 16
+		},
+		{
+			"type": "keyword",
+			"content": "let",
+			"line": 14,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "x",
+			"line": 14,
+			"column": 4
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 14,
+			"column": 6
+		},
+		{
+			"type": "builtin_classical",
+			"content": "sin",
+			"line": 14,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": "(",
+			"line": 14,
+			"column": 11
+		},
+		{
+			"type": "identifier",
+			"content": "angle",
+			"line": 14,
+			"column": 12
+		},
+		{
+			"type": "punctuation",
+			"content": ")",
+			"line": 14,
+			"column": 17
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 14,
+			"column": 18
+		},
+		{
+			"type": "keyword",
+			"content": "let",
+			"line": 15,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "y",
+			"line": 15,
+			"column": 4
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 15,
+			"column": 6
+		},
+		{
+			"type": "builtin_classical",
+			"content": "cos",
+			"line": 15,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": "(",
+			"line": 15,
+			"column": 11
+		},
+		{
+			"type": "identifier",
+			"content": "angle",
+			"line": 15,
+			"column": 12
+		},
+		{
+			"type": "punctuation",
+			"content": ")",
+			"line": 15,
+			"column": 17
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 15,
+			"column": 18
+		},
+		{
+			"type": "keyword",
+			"content": "let",
+			"line": 16,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "z",
+			"line": 16,
+			"column": 4
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 16,
+			"column": 6
+		},
+		{
+			"type": "builtin_classical",
+			"content": "sqrt",
+			"line": 16,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": "(",
+			"line": 16,
+			"column": 12
+		},
+		{
+			"type": "identifier",
+			"content": "x",
+			"line": 16,
+			"column": 13
+		},
+		{
+			"type": "operator",
+			"content": "*",
+			"line": 16,
+			"column": 14
+		},
+		{
+			"type": "identifier",
+			"content": "x",
+			"line": 16,
+			"column": 15
+		},
+		{
+			"type": "operator",
+			"content": "+",
+			"line": 16,
+			"column": 17
+		},
+		{
+			"type": "identifier",
+			"content": "y",
+			"line": 16,
+			"column": 19
+		},
+		{
+			"type": "operator",
+			"content": "*",
+			"line": 16,
+			"column": 20
+		},
+		{
+			"type": "identifier",
+			"content": "y",
+			"line": 16,
+			"column": 21
+		},
+		{
+			"type": "punctuation",
+			"content": ")",
+			"line": 16,
+			"column": 22
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 16,
+			"column": 23
+		},
+		{
+			"type": "comment",
+			"content": "// Builtin constants",
+			"line": 18,
+			"column": 0
+		},
+		{
+			"type": "access_control",
+			"content": "const",
+			"line": 19,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "real_pi",
+			"line": 19,
+			"column": 6
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 19,
+			"column": 14
+		},
+		{
+			"type": "builtin_constant",
+			"content": "pi",
+			"line": 19,
+			"column": 16
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 19,
+			"column": 18
+		},
+		{
+			"type": "access_control",
+			"content": "const",
+			"line": 20,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "real_tau",
+			"line": 20,
+			"column": 6
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 20,
+			"column": 15
+		},
+		{
+			"type": "builtin_constant",
+			"content": "tau",
+			"line": 20,
+			"column": 17
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 20,
+			"column": 20
+		},
+		{
+			"type": "access_control",
+			"content": "const",
+			"line": 21,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "real_euler",
+			"line": 21,
+			"column": 6
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 21,
+			"column": 17
+		},
+		{
+			"type": "builtin_constant",
+			"content": "euler",
+			"line": 21,
+			"column": 19
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 21,
+			"column": 24
+		},
+		{
+			"type": "comment",
+			"content": "// Hardware qubits",
+			"line": 23,
+			"column": 0
+		},
+		{
+			"type": "hardware_qubit",
+			"content": "$0",
+			"line": 24,
+			"column": 0
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 24,
+			"column": 3
+		},
+		{
+			"type": "builtin_gate",
+			"content": "U",
+			"line": 24,
+			"column": 5
+		},
+		{
+			"type": "punctuation",
+			"content": "(",
+			"line": 24,
+			"column": 6
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 24,
+			"column": 7
+		},
+		{
+			"type": "punctuation",
+			"content": ",",
+			"line": 24,
+			"column": 8
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 24,
+			"column": 10
+		},
+		{
+			"type": "punctuation",
+			"content": ",",
+			"line": 24,
+			"column": 11
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 24,
+			"column": 13
+		},
+		{
+			"type": "punctuation",
+			"content": ")",
+			"line": 24,
+			"column": 14
+		},
+		{
+			"type": "hardware_qubit",
+			"content": "$1",
+			"line": 24,
+			"column": 16
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 24,
+			"column": 18
+		},
+		{
+			"type": "comment",
+			"content": "// Access control",
+			"line": 26,
+			"column": 0
+		},
+		{
+			"type": "access_control",
+			"content": "const",
+			"line": 27,
+			"column": 0
+		},
+		{
+			"type": "register",
+			"content": "int",
+			"line": 27,
+			"column": 6
+		},
+		{
+			"type": "identifier",
+			"content": "x",
+			"line": 27,
+			"column": 10
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 27,
+			"column": 12
+		},
+		{
+			"type": "number",
+			"content": "1",
+			"line": 27,
+			"column": 14
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 27,
+			"column": 15
+		},
+		{
+			"type": "access_control",
+			"content": "mutable",
+			"line": 28,
+			"column": 0
+		},
+		{
+			"type": "register",
+			"content": "float",
+			"line": 28,
+			"column": 8
+		},
+		{
+			"type": "identifier",
+			"content": "y",
+			"line": 28,
+			"column": 14
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 28,
+			"column": 16
+		},
+		{
+			"type": "number",
+			"content": "2.0",
+			"line": 28,
+			"column": 18
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 28,
+			"column": 21
+		}
+	]
+}
