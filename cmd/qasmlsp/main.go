@@ -1,6 +1,8 @@
 package main
 
 import (
+	"sort"
+
 	"github.com/tliron/commonlog"
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
@@ -20,19 +22,20 @@ var (
 )
 
 func main() {
-	commonlog.Configure(1, nil)
+	commonlog.Configure(2, nil)
+	log.Info("qasmlsp server starting")
 
 	handler = protocol.Handler{
 		Initialize:                     initialize,
 		Initialized:                    initialized,
 		Shutdown:                       shutdown,
-		SetTrace:                       setTrace,
 		TextDocumentDidOpen:            textDocumentDidOpen,
 		TextDocumentDidChange:          textDocumentDidChange,
 		TextDocumentSemanticTokensFull: textDocumentSemanticTokensFull,
 	}
 
-	server := server.NewServer(&handler, lsName, false)
+	server := server.NewServer(&handler, lsName, true)
+	log.Info("Starting QASM Language Server")
 	server.RunStdio()
 }
 
@@ -77,6 +80,7 @@ func setTrace(context *glsp.Context, params *protocol.SetTraceParams) error {
 func textDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
 	log.Info("Document opened", "uri", params.TextDocument.URI)
 	documents[params.TextDocument.URI] = params.TextDocument.Text
+	log.Info("Document content stored", "uri", params.TextDocument.URI, "content_length", len(params.TextDocument.Text))
 	return nil
 }
 
@@ -111,15 +115,14 @@ func computeSemanticTokens(content string) (*protocol.SemanticTokens, error) {
 
 	tokens := h.GetTokens()
 
-	// Sort tokens by line and column
-	for i := 0; i < len(tokens)-1; i++ {
-		for j := i + 1; j < len(tokens); j++ {
-			if tokens[i].Line > tokens[j].Line ||
-				(tokens[i].Line == tokens[j].Line && tokens[i].Column > tokens[j].Column) {
-				tokens[i], tokens[j] = tokens[j], tokens[i]
-			}
+	sort.Slice(tokens, func(i, j int) bool {
+		if tokens[i].Line != tokens[j].Line {
+			return tokens[i].Line < tokens[j].Line
 		}
-	}
+		return tokens[i].Column < tokens[j].Column
+	})
+
+	log.Info("Tokens:", "tokens", h.GetTokens())
 
 	data := make([]uint32, 0, len(tokens)*5)
 	var prevLine uint32 = 0
@@ -130,7 +133,6 @@ func computeSemanticTokens(content string) (*protocol.SemanticTokens, error) {
 			continue // Skip invalid tokens
 		}
 
-		// Calculate delta line and delta start
 		currentLine := uint32(token.Line - 1) // Convert to 0-based
 		deltaLine := currentLine - prevLine
 
@@ -141,13 +143,11 @@ func computeSemanticTokens(content string) (*protocol.SemanticTokens, error) {
 			deltaStart = uint32(token.Column)
 		}
 
-		// Get token type index
 		tokenTypeIndex, exists := tokenTypeMap[token.TypeName]
 		if !exists {
 			tokenTypeIndex = tokenTypeMap["identifier"] // Default fallback
 		}
 
-		// Add token data (5 values per token)
 		data = append(data,
 			deltaLine,
 			deltaStart,
@@ -157,11 +157,7 @@ func computeSemanticTokens(content string) (*protocol.SemanticTokens, error) {
 		)
 
 		prevLine = currentLine
-		if deltaLine == 0 {
-			prevChar = uint32(token.Column) + uint32(token.Length)
-		} else {
-			prevChar = uint32(token.Column) + uint32(token.Length)
-		}
+		prevChar = uint32(token.Column)
 	}
 
 	return &protocol.SemanticTokens{
