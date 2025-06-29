@@ -1,20 +1,22 @@
 const vscode = require('vscode');
 const { LanguageClient } = require('vscode-languageclient/node');
-const path = require('path');
+const net = require('net');
 
 let client;
 
 function activate(context) {
-    // LSPサーバーの実行ファイルのパス
-    const serverPath = context.asAbsolutePath(path.join('bin', 'qasmlsp'));
-
-    // LSPサーバーの起動オプション
+    const serverPath = context.asAbsolutePath('bin/qasmlsp');
     const serverOptions = {
-        command: serverPath,
-        transport: 'stdio',
+        run: {
+            command: serverPath,
+            args: []
+        },
+        debug: {
+            command: serverPath,
+            args: []
+        }
     };
 
-    // LSPクライアントの設定
     const clientOptions = {
         documentSelector: [{ scheme: 'file', language: 'qasm' }],
         synchronize: {
@@ -22,15 +24,13 @@ function activate(context) {
         }
     };
 
-    // LSPクライアントの作成と起動
     client = new LanguageClient(
         'qasm',
-        'QASM Language Server',
+        'QASM Language Server (Debug)',
         serverOptions,
         clientOptions
     );
 
-    // クライアントの起動
     client.start();
 }
 

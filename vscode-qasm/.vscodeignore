@@ -1,0 +1,16 @@
+.vscode/**
+.vscode-test/**
+.gitignore
+vsc-extension-quickstart.md
+.git/**
+**/*.map
+**/*.ts
+node_modules/**
+.vsix
+test.qasm
+
+# Make sure to keep these files
+!bin/qasmlsp
+!extension.js
+!language-configuration.json
+!syntaxes/**

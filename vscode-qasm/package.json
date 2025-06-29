@@ -1,9 +1,10 @@
 {
 	"name": "vscode-qasm",
-	"displayName": "QASM Language Support",
-	"description": "Language support for QASM (Quantum Assembly Language) with syntax highlighting and language server",
-	"version": "0.1.0",
-	"publisher": "qasmtools",
+	"displayName": "OpenQASM 3.0 Language Support",
+	"description": "Language support for OpenQASM 3.0 (Open Quantum Assembly Language) with syntax highlighting and language server",
+	"version": "0.1.2",
+	"publisher": "orangekame3",
+	"icon": "icons/vscode-qasm.png",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/orangekame3/qasmtools"
@@ -27,23 +28,26 @@
 		"onLanguage:qasm"
 	],
 	"main": "./extension.js",
-	"files": [
-		"extension.js",
-		"language-configuration.json",
-		"bin/qasmlsp"
-	],
 	"contributes": {
 		"languages": [
 			{
 				"id": "qasm",
 				"aliases": [
 					"QASM",
-					"qasm"
+					"qasm",
+					"OpenQASM"
 				],
 				"extensions": [
 					".qasm"
 				],
 				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "qasm",
+				"scopeName": "source.qasm",
+				"path": "./syntaxes/qasm.tmLanguage.json"
 			}
 		],
 		"semanticTokenTypes": [
@@ -100,9 +104,11 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "echo 'No compilation needed for JS'",
-		"package": "vsce package",
-		"publish": "vsce publish"
+		"vscode:prepublish": "node build.js",
+		"postinstall": "node build.js",
+		"build": "node build.js",
+		"package": "npm run build && vsce package",
+		"publish": "npm run build && vsce publish"
 	},
 	"dependencies": {
 		"vscode-languageclient": "^8.0.0"

@@ -1,0 +1,89 @@
+{
+	"name": "OpenQASM",
+	"scopeName": "source.qasm",
+	"fileTypes": [
+		"qasm"
+	],
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#gates"
+		}
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.double-slash.qasm",
+					"match": "//.*$"
+				},
+				{
+					"name": "comment.block.qasm",
+					"begin": "/\\*",
+					"end": "\\*/"
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.qasm",
+					"match": "\\b(OPENQASM|include|qubit|bit|reset|measure|barrier|if|else|for|while|return|break|continue|end)\\b"
+				},
+				{
+					"name": "storage.type.qasm",
+					"match": "\\b(def|gate|opaque|extern)\\b"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.qasm",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.qasm",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [
+				{
+					"name": "constant.numeric.qasm",
+					"match": "\\b[0-9]+(\\.([0-9]+)?)?([eE][+-]?[0-9]+)?\\b"
+				}
+			]
+		},
+		"operators": {
+			"patterns": [
+				{
+					"name": "keyword.operator.qasm",
+					"match": "->|\\+|-|\\*|/|=|==|!=|<|>|<=|>=|&&|\\|\\||!"
+				}
+			]
+		},
+		"gates": {
+			"patterns": [
+				{
+					"name": "support.function.qasm",
+					"match": "\\b(h|x|y|z|s|sdg|t|tdg|rx|ry|rz|u1|u2|u3|cx|cz|swap|ccx)\\b"
+				}
+			]
+		}
+	}
+}

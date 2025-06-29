@@ -1,4 +1,6 @@
-# QASM Language Support for VSCode
+# OpenQASM 3.0 Language Support for Visual Studio Code
+
+![vscode-qasm icon](vscode-qasm.png)
 
 This extension provides language support for OpenQASM 3.0 in Visual Studio Code.
 
@@ -6,9 +8,15 @@ This extension provides language support for OpenQASM 3.0 in Visual Studio Code.
 
 - **Syntax Highlighting**: Full semantic highlighting for QASM keywords, operators, gates, measurements, and more
 - **Language Server**: Integrated LSP server for advanced language features
-- **Auto-completion**: Bracket and quote auto-closing
 - **Comment Support**: Line and block comments
-- **Indentation Rules**: Smart indentation for quantum circuits
+
+Coming Soon:
+
+- Code formatting
+- Linting support
+- Auto-completion
+- Smart indentation
+- Additional language server features
 
 ## Supported Token Types
 

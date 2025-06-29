@@ -323,9 +323,13 @@ tasks:
 
   vscode:install:
     desc: Install VSCode extension locally
-    deps: [vscode:package]
+    deps: [build]
     dir: vscode-qasm
     cmds:
+      - mkdir -p bin
+      - cp ../bin/qasmlsp bin/
+      - npm install
+      - npx vsce package
       - code --install-extension vscode-qasm-0.1.0.vsix
 
   vscode:publish:
