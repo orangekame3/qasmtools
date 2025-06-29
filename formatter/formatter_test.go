@@ -1,153 +1,53 @@
 package formatter
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
+func readFile(t *testing.T, path string) string {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed to read file %s: %v", path, err)
+	}
+	return string(content)
+}
+
 func TestFormatQASM(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name: "version and include statements",
-			input: `OPENQASM 3.0;
-include"stdgates.qasm";`,
-			expected: `OPENQASM 3.0;
-include "stdgates.qasm";
-`,
-		},
-		{
-			name: "indentation in blocks",
-			input: `OPENQASM 3.0;
-gate h q {
-x q;
-}`,
-			expected: `OPENQASM 3.0;
-
-gate h q {
-  x q;
-}
-`,
-		},
-		{
-			name: "spacing around binary operators",
-			input: `bit[2]c=0;
-int[32] x=5+3*2;`,
-			expected: `bit[2] c = 0;
-int[32] x = 5 + 3 * 2;
-`,
-		},
-		{
-			name: "no spaces in brackets",
-			input: `qubit[ 2 ] q;
-h q[ 0 ];`,
-			expected: `qubit[2] q;
-h q[0];
-`,
-		},
-		{
-			name: "comments preservation",
-			input: `// This is a header comment
-OPENQASM 3.0;
-// Include standard gates
-include "stdgates.qasm"; // Standard gates
-/* Multi-line
-   comment */
-qubit[2] q;  // Qubit declaration`,
-			expected: `// This is a header comment
-OPENQASM 3.0;
-// Include standard gates
-include "stdgates.qasm"; // Standard gates
-
-/* Multi-line
-   comment */
-qubit[2] q; // Qubit declaration
-`,
-		},
-		{
-			name: "timing expressions",
-			input: `delay[100ns] q;
-delay[  50  ns  ] q;`,
-			expected: `delay[100ns] q;
-delay[50ns] q;
-`,
-		},
-		{
-			name: "empty lines between major blocks",
-			input: `OPENQASM 3.0;
-include "stdgates.qasm";
-qubit[2] q;
-bit c;
-gate custom a, b {
-  cx a, b;
-}
-h q[0];
-measure q[0] -> c;`,
-			expected: `OPENQASM 3.0;
-include "stdgates.qasm";
-
-qubit[2] q;
-bit c;
-
-gate custom a, b {
-  cx a, b;
-}
-
-h q[0];
-measure q[0] -> c;
-`,
-		},
-		{
-			name: "if statement formatting",
-			input: `if(c==1){
-h q;
-}else{
-x q;
-}`,
-			expected: `if (c == 1) {
-  h q;
-} else {
-  x q;
-}
-`,
-		},
-		{
-			name: "gate call with parameters",
-			input: `rz(pi/2)q[0];
-cphase(pi/4)q[0],q[1];`,
-			expected: `rz(pi/2) q[0];
-cphase(pi/4) q[0], q[1];
-`,
-		},
-		{
-			name: "measurement formatting",
-			input: `measureq[0]->c[0];
-measure q->c;`,
-			expected: `measure q[0] -> c[0];
-measure q -> c;
-`,
-		},
+	files, err := os.ReadDir("../testdata/formatter/input")
+	if err != nil {
+		t.Fatalf("failed to read test data directory: %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			formatted, err := FormatQASM(tt.input)
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".qasm") {
+			continue
+		}
+
+		testName := strings.TrimSuffix(file.Name(), ".qasm")
+		t.Run(testName, func(t *testing.T) {
+			inputPath := filepath.Join("../testdata/formatter/input", file.Name())
+			expectedPath := filepath.Join("../testdata/formatter/expected", file.Name())
+
+			input := readFile(t, inputPath)
+			expected := readFile(t, expectedPath)
+
+			formatted, err := FormatQASM(input)
 			if err != nil {
 				t.Errorf("FormatQASM() error = %v", err)
 				return
 			}
 
 			// Compare line by line for better error messages
-			expectedLines := strings.Split(tt.expected, "\n")
+			expectedLines := strings.Split(expected, "\n")
 			actualLines := strings.Split(formatted, "\n")
 
 			// Check if number of lines match
 			if len(expectedLines) != len(actualLines) {
 				t.Errorf("Line count mismatch:\nexpected %d lines:\n%s\ngot %d lines:\n%s",
-					len(expectedLines), tt.expected, len(actualLines), formatted)
+					len(expectedLines), expected, len(actualLines), formatted)
 				return
 			}
 
