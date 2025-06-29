@@ -1,0 +1,115 @@
+{
+	"name": "vscode-qasm",
+	"displayName": "QASM Language Support",
+	"description": "Language support for QASM (Quantum Assembly Language)",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.60.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"activationEvents": [
+		"onLanguage:qasm"
+	],
+	"main": "./extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "qasm",
+				"aliases": [
+					"QASM",
+					"qasm"
+				],
+				"extensions": [
+					".qasm"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"semanticTokenTypes": [
+			{
+				"id": "keyword",
+				"superType": "keyword",
+				"description": "QASM keywords"
+			},
+			{
+				"id": "operator",
+				"superType": "operator",
+				"description": "QASM operators"
+			},
+			{
+				"id": "identifier",
+				"superType": "variable",
+				"description": "QASM identifiers"
+			},
+			{
+				"id": "number",
+				"superType": "number",
+				"description": "QASM numbers"
+			},
+			{
+				"id": "string",
+				"superType": "string",
+				"description": "QASM strings"
+			},
+			{
+				"id": "comment",
+				"superType": "comment",
+				"description": "QASM comments"
+			},
+			{
+				"id": "gate",
+				"superType": "function",
+				"description": "QASM gates"
+			},
+			{
+				"id": "measurement",
+				"superType": "function",
+				"description": "QASM measurements"
+			},
+			{
+				"id": "register",
+				"superType": "type",
+				"description": "QASM registers"
+			},
+			{
+				"id": "builtin_gate",
+				"superType": "function",
+				"description": "QASM builtin gates"
+			},
+			{
+				"id": "builtin_quantum",
+				"superType": "function",
+				"description": "QASM builtin quantum operations"
+			},
+			{
+				"id": "builtin_classical",
+				"superType": "function",
+				"description": "QASM builtin classical functions"
+			},
+			{
+				"id": "builtin_constant",
+				"superType": "variable",
+				"description": "QASM builtin constants"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^8.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^16.11.7",
+		"@types/vscode": "^1.60.0",
+		"typescript": "^4.5.5"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "commonjs"
+}
