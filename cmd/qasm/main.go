@@ -5,17 +5,24 @@ import (
 	"os"
 
 	"github.com/orangekame3/qasmtools/formatter"
-	"github.com/orangekame3/qasmtools/parser"
+	"github.com/orangekame3/qasmtools/highlight"
 	"github.com/spf13/cobra"
 )
 
 func main() {
-	rootCmd := &cobra.Command{
-		Use:   "qasm",
-		Short: "QASM tools for formatting and parsing QASM files",
-		Long:  `A collection of tools for working with QASM files, including formatting and parsing capabilities.`,
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
+}
 
+var rootCmd = &cobra.Command{
+	Use:   "qasm",
+	Short: "QASM tools",
+	Long:  `A collection of tools for working with QASM files.`,
+}
+
+func init() {
 	// Add fmt subcommand
 	fmtCmd := &cobra.Command{
 		Use:   "fmt [files...]",
@@ -45,25 +52,32 @@ func main() {
 	fmtCmd.Flags().BoolP("verbose", "v", false, "verbose output")
 	fmtCmd.Flags().Bool("diff", false, "display diffs instead of rewriting files")
 
-	// Add parse subcommand
-	parseCmd := &cobra.Command{
-		Use:   "parse [file]",
-		Short: "Parse QASM files",
-		Long:  `Parse a QASM file and validate its syntax.`,
+	// Add highlight subcommand
+	highlightCmd := &cobra.Command{
+		Use:   "highlight [file]",
+		Short: "Highlight QASM file",
+		Long:  `Display QASM file with syntax highlighting.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("a file is required")
+			file, err := cmd.Flags().GetString("file")
+			if err != nil {
+				return err
 			}
-			return handleParseCommand(args[0])
+
+			if file == "" && len(args) == 0 {
+				return fmt.Errorf("a file is required (use -f flag or provide as argument)")
+			}
+
+			if file != "" {
+				return runHighlight(file)
+			}
+			return runHighlight(args[0])
 		},
 	}
 
-	rootCmd.AddCommand(fmtCmd, parseCmd)
+	// Add flags to highlight command
+	highlightCmd.Flags().StringP("file", "f", "", "file to highlight")
 
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	rootCmd.AddCommand(fmtCmd, highlightCmd)
 }
 
 func getConfigFromFlags(cmd *cobra.Command) (*formatter.Config, error) {
@@ -215,19 +229,19 @@ func checkFileWithConfig(filename string, config *formatter.Config) (bool, error
 	return string(content) == formatted, nil
 }
 
-func handleParseCommand(filename string) error {
+func runHighlight(filename string) error {
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		return fmt.Errorf("error reading input file: %w", err)
+		return fmt.Errorf("failed to read file: %v", err)
 	}
 
-	p := parser.NewParser()
-	program, err := p.ParseString(string(content))
+	h := highlight.New()
+	colored, err := h.Highlight(string(content))
 	if err != nil {
-		return fmt.Errorf("error parsing QASM: %w", err)
+		return fmt.Errorf("failed to highlight: %v", err)
 	}
 
-	fmt.Printf("Successfully parsed %s. Program: %+v\n", filename, program)
+	fmt.Print(colored)
 	return nil
 }
 

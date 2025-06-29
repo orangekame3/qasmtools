@@ -1,0 +1,142 @@
+{
+	"tokens": [
+		{
+			"type": "keyword",
+			"content": "OPENQASM",
+			"line": 1,
+			"column": 0
+		},
+		{
+			"type": "number",
+			"content": "3.0",
+			"line": 1,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 1,
+			"column": 12
+		},
+		{
+			"type": "keyword",
+			"content": "include",
+			"line": 2,
+			"column": 0
+		},
+		{
+			"type": "string",
+			"content": "\"stdgates.inc\"",
+			"line": 2,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 2,
+			"column": 21
+		},
+		{
+			"type": "comment",
+			"content": "// This is a comment",
+			"line": 4,
+			"column": 0
+		},
+		{
+			"type": "gate",
+			"content": "gate",
+			"line": 5,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "h",
+			"line": 5,
+			"column": 5
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 5,
+			"column": 7
+		},
+		{
+			"type": "punctuation",
+			"content": "{",
+			"line": 5,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": "}",
+			"line": 5,
+			"column": 11
+		},
+		{
+			"type": "identifier",
+			"content": "qubit",
+			"line": 7,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 7,
+			"column": 6
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 7,
+			"column": 7
+		},
+		{
+			"type": "identifier",
+			"content": "h",
+			"line": 8,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 8,
+			"column": 2
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 8,
+			"column": 3
+		},
+		{
+			"type": "measurement",
+			"content": "measure",
+			"line": 9,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 9,
+			"column": 8
+		},
+		{
+			"type": "operator",
+			"content": "->",
+			"line": 9,
+			"column": 10
+		},
+		{
+			"type": "identifier",
+			"content": "c",
+			"line": 9,
+			"column": 13
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 9,
+			"column": 14
+		}
+	]
+}

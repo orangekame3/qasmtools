@@ -1,0 +1,502 @@
+{
+	"tokens": [
+		{
+			"type": "keyword",
+			"content": "OPENQASM",
+			"line": 1,
+			"column": 0
+		},
+		{
+			"type": "number",
+			"content": "3.0",
+			"line": 1,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 1,
+			"column": 12
+		},
+		{
+			"type": "comment",
+			"content": "// Register declarations",
+			"line": 3,
+			"column": 0
+		},
+		{
+			"type": "keyword",
+			"content": "qubit",
+			"line": 4,
+			"column": 0
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 4,
+			"column": 5
+		},
+		{
+			"type": "number",
+			"content": "5",
+			"line": 4,
+			"column": 6
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 4,
+			"column": 7
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 4,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 4,
+			"column": 10
+		},
+		{
+			"type": "keyword",
+			"content": "bit",
+			"line": 5,
+			"column": 0
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 5,
+			"column": 3
+		},
+		{
+			"type": "number",
+			"content": "5",
+			"line": 5,
+			"column": 4
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 5,
+			"column": 5
+		},
+		{
+			"type": "identifier",
+			"content": "c",
+			"line": 5,
+			"column": 7
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 5,
+			"column": 8
+		},
+		{
+			"type": "keyword",
+			"content": "qreg",
+			"line": 6,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "r",
+			"line": 6,
+			"column": 5
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 6,
+			"column": 6
+		},
+		{
+			"type": "number",
+			"content": "10",
+			"line": 6,
+			"column": 7
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 6,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 6,
+			"column": 10
+		},
+		{
+			"type": "keyword",
+			"content": "creg",
+			"line": 7,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "m",
+			"line": 7,
+			"column": 5
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 7,
+			"column": 6
+		},
+		{
+			"type": "number",
+			"content": "10",
+			"line": 7,
+			"column": 7
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 7,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 7,
+			"column": 10
+		},
+		{
+			"type": "comment",
+			"content": "// Quantum operations with registers",
+			"line": 9,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "h",
+			"line": 10,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 10,
+			"column": 2
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 10,
+			"column": 3
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 10,
+			"column": 4
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 10,
+			"column": 5
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 10,
+			"column": 6
+		},
+		{
+			"type": "identifier",
+			"content": "cx",
+			"line": 11,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 11,
+			"column": 3
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 11,
+			"column": 4
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 11,
+			"column": 5
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 11,
+			"column": 6
+		},
+		{
+			"type": "punctuation",
+			"content": ",",
+			"line": 11,
+			"column": 7
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 11,
+			"column": 9
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 11,
+			"column": 10
+		},
+		{
+			"type": "number",
+			"content": "1",
+			"line": 11,
+			"column": 11
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 11,
+			"column": 12
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 11,
+			"column": 13
+		},
+		{
+			"type": "keyword",
+			"content": "reset",
+			"line": 12,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 12,
+			"column": 6
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 12,
+			"column": 7
+		},
+		{
+			"type": "comment",
+			"content": "// Measurements with registers",
+			"line": 14,
+			"column": 0
+		},
+		{
+			"type": "measurement",
+			"content": "measure",
+			"line": 15,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 15,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 15,
+			"column": 9
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 15,
+			"column": 10
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 15,
+			"column": 11
+		},
+		{
+			"type": "operator",
+			"content": "->",
+			"line": 15,
+			"column": 13
+		},
+		{
+			"type": "identifier",
+			"content": "c",
+			"line": 15,
+			"column": 16
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 15,
+			"column": 17
+		},
+		{
+			"type": "number",
+			"content": "0",
+			"line": 15,
+			"column": 18
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 15,
+			"column": 19
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 15,
+			"column": 20
+		},
+		{
+			"type": "measurement",
+			"content": "measure",
+			"line": 16,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 16,
+			"column": 8
+		},
+		{
+			"type": "operator",
+			"content": "->",
+			"line": 16,
+			"column": 10
+		},
+		{
+			"type": "identifier",
+			"content": "c",
+			"line": 16,
+			"column": 13
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 16,
+			"column": 14
+		},
+		{
+			"type": "comment",
+			"content": "// Array indexing",
+			"line": 18,
+			"column": 0
+		},
+		{
+			"type": "keyword",
+			"content": "let",
+			"line": 19,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "x",
+			"line": 19,
+			"column": 4
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 19,
+			"column": 6
+		},
+		{
+			"type": "identifier",
+			"content": "q",
+			"line": 19,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 19,
+			"column": 9
+		},
+		{
+			"type": "number",
+			"content": "2",
+			"line": 19,
+			"column": 10
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 19,
+			"column": 11
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 19,
+			"column": 12
+		},
+		{
+			"type": "keyword",
+			"content": "let",
+			"line": 20,
+			"column": 0
+		},
+		{
+			"type": "identifier",
+			"content": "y",
+			"line": 20,
+			"column": 4
+		},
+		{
+			"type": "operator",
+			"content": "=",
+			"line": 20,
+			"column": 6
+		},
+		{
+			"type": "identifier",
+			"content": "c",
+			"line": 20,
+			"column": 8
+		},
+		{
+			"type": "punctuation",
+			"content": "[",
+			"line": 20,
+			"column": 9
+		},
+		{
+			"type": "number",
+			"content": "3",
+			"line": 20,
+			"column": 10
+		},
+		{
+			"type": "punctuation",
+			"content": "]",
+			"line": 20,
+			"column": 11
+		},
+		{
+			"type": "punctuation",
+			"content": ";",
+			"line": 20,
+			"column": 12
+		}
+	]
+}
