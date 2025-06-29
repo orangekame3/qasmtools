@@ -494,6 +494,9 @@ func (f *Formatter) preprocessMalformedQASM(content string) string {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	content = strings.ReplaceAll(content, "\r", "\n")
 
+	// Split compound statements (multiple statements on one line) into separate lines first
+	content = f.splitCompoundStatements(content)
+
 	// Split into lines
 	lines := strings.Split(content, "\n")
 	var processed []string
@@ -527,25 +530,58 @@ func (f *Formatter) preprocessMalformedQASM(content string) string {
 
 // splitCompoundStatements splits lines with multiple statements into separate lines
 func (f *Formatter) splitCompoundStatements(content string) string {
-	// Split on semicolons but preserve the semicolon with each statement
-	parts := strings.Split(content, ";")
-	var statements []string
-
-	for i, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
+	lines := strings.Split(content, "\n")
+	var processedLines []string
+	
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			processedLines = append(processedLines, line)
 			continue
 		}
-
-		// Add semicolon back except for the last empty part
-		if i < len(parts)-1 || strings.TrimSpace(parts[len(parts)-1]) != "" {
-			part += ";"
+		
+		// Skip lines that are only comments
+		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") {
+			processedLines = append(processedLines, line)
+			continue
 		}
-
-		statements = append(statements, part)
+		
+		// Count semicolons to determine if this line has multiple statements
+		semicolonCount := strings.Count(line, ";")
+		
+		// If there's only 0 or 1 semicolon, keep the line as-is
+		if semicolonCount <= 1 {
+			processedLines = append(processedLines, line)
+			continue
+		}
+		
+		// Split compound statements on lines with multiple semicolons
+		var statements []string
+		parts := strings.Split(line, ";")
+		
+		for i, part := range parts {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			
+			// Check if this part starts with a comment - if so, attach it to the previous statement
+			if strings.HasPrefix(part, "//") && len(statements) > 0 {
+				// This is a trailing comment, attach it to the previous statement
+				statements[len(statements)-1] += "; " + part
+			} else {
+				// This is a regular statement, add semicolon back if not the last empty part
+				if i < len(parts)-1 || strings.TrimSpace(parts[len(parts)-1]) != "" {
+					part += ";"
+				}
+				statements = append(statements, part)
+			}
+		}
+		
+		processedLines = append(processedLines, statements...)
 	}
 
-	return strings.Join(statements, "\n")
+	return strings.Join(processedLines, "\n")
 }
 
 // fixMalformedLine fixes common malformed patterns in a single line

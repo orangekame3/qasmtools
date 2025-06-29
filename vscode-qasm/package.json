@@ -25,7 +25,7 @@
 		"openqasm"
 	],
 	"activationEvents": [
-		"onLanguage:qasm"
+		"*"
 	],
 	"main": "./extension.js",
 	"contributes": {
@@ -35,12 +35,18 @@
 				"aliases": [
 					"QASM",
 					"qasm",
-					"OpenQASM"
+					"OpenQASM",
+					"OpenQASM 3.0"
 				],
 				"extensions": [
-					".qasm"
+					".qasm",
+					".qasm3"
 				],
-				"configuration": "./language-configuration.json"
+				"configuration": "./language-configuration.json",
+				"mimetypes": [
+					"text/x-qasm"
+				],
+				"filenames": []
 			}
 		],
 		"grammars": [
@@ -101,23 +107,37 @@
 				"superType": "variable",
 				"description": "QASM hardware qubits"
 			}
-		]
+		],
+		"commands": [
+			{
+				"command": "qasm.format",
+				"title": "Format QASM Document"
+			}
+		],
+		"configurationDefaults": {
+			"[qasm]": {
+				"editor.defaultFormatter": "orangekame3.vscode-qasm"
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "node build.js",
 		"postinstall": "node build.js",
 		"build": "node build.js",
+		"vscode:install": "npm run build && code --install-extension vscode-qasm-0.1.4.vsix",
 		"package": "npm run build && vsce package",
 		"publish": "npm run build && vsce publish"
 	},
 	"dependencies": {
-		"vscode-languageclient": "^8.0.0"
+		"minimatch": "^10.0.3",
+		"vscode-languageclient": "^8.0.0",
+		"vscode-languageserver-protocol": "^3.17.5"
 	},
 	"devDependencies": {
 		"@types/node": "^16.11.7",
 		"@types/vscode": "^1.60.0",
-		"typescript": "^4.5.5",
-		"@vscode/vsce": "^2.19.0"
+		"@vscode/vsce": "^2.19.0",
+		"typescript": "^4.5.5"
 	},
 	"author": "orangekame3",
 	"license": "Apache-2.0",
