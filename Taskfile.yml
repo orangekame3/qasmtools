@@ -25,14 +25,14 @@ tasks:
     desc: Generate parser code from ANTLR grammar files
     cmds:
       - mkdir -p parser/grammar
-      - curl -s -o parser/grammar/qasm3Lexer.g4 https://raw.githubusercontent.com/openqasm/openqasm/refs/heads/main/source/grammar/qasm3Lexer.g4
-      - curl -s -o parser/grammar/qasm3Parser.g4 https://raw.githubusercontent.com/openqasm/openqasm/refs/heads/main/source/grammar/qasm3Parser.g4
+      - curl -s -o parser/grammar/qasm3Lexer.g4 https://raw.githubusercontent.com/orangekame3/openqasm/refs/heads/feature/comment-preservation/source/grammar/qasm3Lexer.g4
+      - curl -s -o parser/grammar/qasm3Parser.g4 https://raw.githubusercontent.com/orangekame3/openqasm/refs/heads/feature/comment-preservation/source/grammar/qasm3Parser.g4
       - rm -rf parser/gen
       - mkdir -p parser/gen
       - cd parser/grammar && antlr4 -Dlanguage=Go -package parser qasm3Lexer.g4
       - cd parser/grammar && antlr4 -Dlanguage=Go -visitor -listener -package parser qasm3Parser.g4
       - mv parser/grammar/*.go parser/gen/
-      - rm parser/gen/*.interp parser/gen/*.tokens
+      - rm -f parser/gen/*.interp parser/gen/*.tokens 2>/dev/null || true
       - task: fix-antlr-imports
 
   fix-antlr-imports:

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/orangekame3/qasmparser/parser"
+	"github.com/orangekame3/qasmtools/parser"
 )
 
 // PrintVisitor demonstrates the visitor pattern by printing AST node information
