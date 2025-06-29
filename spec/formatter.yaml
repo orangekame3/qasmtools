@@ -1,0 +1,54 @@
+# OpenQASM 3 Formatter Specification
+
+language: OpenQASM 3.0
+style_reference: https://github.com/openqasm/openqasm/tree/main/examples
+
+formatting_rules:
+  version_declaration:
+    - Place 'OPENQASM 3.0;' at the very top.
+    - Follow immediately with include statements (one per line).
+
+  indentation:
+    - Use 2 spaces per indent level.
+
+  spacing:
+    - Add spaces around binary operators (=, +, -, *, /, ^, etc.).
+    - No spaces inside brackets [], parentheses (), or braces {}.
+    - Function or gate call parameters have no space between function name and parentheses.
+
+  statements:
+    - Terminate all statements with a semicolon.
+    - One statement per line.
+    - Do not combine multiple statements on one line.
+
+  blocks:
+    - Opening brace { stays on the same line.
+    - Closing brace } goes on a new line with matching indentation.
+    - Body content inside blocks is indented.
+
+  declarations:
+    - Each declaration should be on its own line.
+    - Place array size (e.g., qubit[3]) immediately after type with no space.
+
+  control_flow:
+    - Add space after keywords like `if`, `while`, `for`, `switch`.
+    - Wrap conditions in parentheses.
+    - Each control-flow block follows standard indentation and bracing rules.
+
+  delay_and_timing:
+    - Timing unit expressions like `100ns` are written compactly.
+    - Use square brackets tightly in e.g. `delay[100ns]`.
+
+  comments:
+    - Preserve all comments.
+    - Inline comments use `//` with one space before.
+    - Multiline comments `/* */` are preserved as-is.
+
+  whitespace:
+    - Insert one empty line between major blocks (functions, gates, for-loops).
+    - Do not insert empty lines between variable declarations unless grouping is intentional.
+
+  file_end:
+    - Ensure the file ends with a newline character.
+
+examples_source: examples/*.qasm from official OpenQASM repository

@@ -12,6 +12,7 @@ import (
 type Formatter struct {
 	indentSize int
 	newline    bool
+	comments   []parser.Comment
 }
 
 func NewFormatter() *Formatter {
@@ -61,9 +62,17 @@ func (f *Formatter) Format(content string) (string, error) {
 	// First try to fix common malformed patterns before parsing
 	preprocessed := f.preprocessMalformedQASM(content)
 
+	// Extract comments before parsing
+	commentExtractor := parser.NewCommentExtractor(preprocessed)
+
 	// Use the new parser library
 	p := parser.NewParser()
 	result := p.ParseWithErrors(preprocessed)
+
+	// Extract comments and associate them with the program
+	if result.Program != nil {
+		commentExtractor.AssociateCommentsWithStatements(result.Program)
+	}
 
 	if result.HasErrors() {
 		// Try to format anyway with the partial result
@@ -99,7 +108,7 @@ func (f *Formatter) formatProgram(program *parser.Program) string {
 
 	// Format statements
 	for _, stmt := range program.Statements {
-		formatted := f.formatStatement(stmt, 0)
+		formatted := f.formatStatement(stmt, 0, program)
 		if strings.TrimSpace(formatted) != "" {
 			currentType := f.getStatementTypeFromStmt(stmt)
 
@@ -123,7 +132,27 @@ func (f *Formatter) formatProgram(program *parser.Program) string {
 	return result
 }
 
-func (f *Formatter) formatStatement(stmt parser.Statement, indent int) string {
+func (f *Formatter) formatStatement(stmt parser.Statement, indent int, program *parser.Program) string {
+	// Add leading comments
+	var result string
+	if comments := parser.GetLeadingComments(program, stmt); len(comments) > 0 {
+		for _, comment := range comments {
+			result += f.indent(indent) + "//" + comment.Text + "\n"
+		}
+	}
+
+	// Format the statement
+	formatted := f.formatStatementContent(stmt, indent, program)
+
+	// Add trailing comments
+	if comments := parser.GetTrailingComments(program, stmt); len(comments) > 0 {
+		formatted += " // " + comments[0].Text
+	}
+
+	return result + formatted
+}
+
+func (f *Formatter) formatStatementContent(stmt parser.Statement, indent int, program *parser.Program) string {
 	switch s := stmt.(type) {
 	case *parser.QuantumDeclaration:
 		return f.formatQuantumDeclaration(s, indent)
@@ -136,9 +165,9 @@ func (f *Formatter) formatStatement(stmt parser.Statement, indent int) string {
 	case *parser.Include:
 		return f.formatInclude(s, indent)
 	case *parser.GateDefinition:
-		return f.formatGateDefinition(s, indent)
+		return f.formatGateDefinition(s, indent, program)
 	case *parser.IfStatement:
-		return f.formatIfStatement(s, indent)
+		return f.formatIfStatement(s, indent, program)
 	default:
 		// Fallback - return empty for unsupported types
 		return ""
@@ -215,7 +244,7 @@ func (f *Formatter) formatInclude(stmt *parser.Include, indent int) string {
 	return f.indent(indent) + "include \"" + stmt.Path + "\";"
 }
 
-func (f *Formatter) formatGateDefinition(stmt *parser.GateDefinition, indent int) string {
+func (f *Formatter) formatGateDefinition(stmt *parser.GateDefinition, indent int, program *parser.Program) string {
 	result := f.indent(indent) + "gate " + stmt.Name
 
 	// Add parameters if present
@@ -240,19 +269,25 @@ func (f *Formatter) formatGateDefinition(stmt *parser.GateDefinition, indent int
 
 	// Format body
 	for _, bodyStmt := range stmt.Body {
-		result += f.formatStatement(bodyStmt, indent+1) + "\n"
+		formatted := f.formatStatementContent(bodyStmt, indent+1, program)
+		if strings.TrimSpace(formatted) != "" {
+			result += f.indent(indent+1) + formatted + "\n"
+		}
 	}
 
 	result += f.indent(indent) + "}"
 	return result
 }
 
-func (f *Formatter) formatIfStatement(stmt *parser.IfStatement, indent int) string {
+func (f *Formatter) formatIfStatement(stmt *parser.IfStatement, indent int, program *parser.Program) string {
 	result := f.indent(indent) + "if (" + f.formatExpression(stmt.Condition) + ") {\n"
 
 	// Format then body
 	for _, thenStmt := range stmt.ThenBody {
-		result += f.formatStatement(thenStmt, indent+1) + "\n"
+		formatted := f.formatStatementContent(thenStmt, indent+1, program)
+		if strings.TrimSpace(formatted) != "" {
+			result += f.indent(indent+1) + formatted + "\n"
+		}
 	}
 
 	result += f.indent(indent) + "}"
@@ -261,7 +296,10 @@ func (f *Formatter) formatIfStatement(stmt *parser.IfStatement, indent int) stri
 	if len(stmt.ElseBody) > 0 {
 		result += " else {\n"
 		for _, elseStmt := range stmt.ElseBody {
-			result += f.formatStatement(elseStmt, indent+1) + "\n"
+			formatted := f.formatStatementContent(elseStmt, indent+1, program)
+			if strings.TrimSpace(formatted) != "" {
+				result += f.indent(indent+1) + formatted + "\n"
+			}
 		}
 		result += f.indent(indent) + "}"
 	}
@@ -270,6 +308,9 @@ func (f *Formatter) formatIfStatement(stmt *parser.IfStatement, indent int) stri
 }
 
 func (f *Formatter) formatExpression(expr parser.Expression) string {
+	if expr == nil {
+		return ""
+	}
 	switch e := expr.(type) {
 	case *parser.Identifier:
 		return e.Name
@@ -286,7 +327,14 @@ func (f *Formatter) formatExpression(expr parser.Expression) string {
 	case *parser.BooleanLiteral:
 		return strconv.FormatBool(e.Value)
 	case *parser.BinaryExpression:
-		return f.formatExpression(e.Left) + " " + e.Operator + " " + f.formatExpression(e.Right)
+		left := f.formatExpression(e.Left)
+		right := f.formatExpression(e.Right)
+		if e.Operator == "/" || e.Operator == "*" {
+			// No spaces around division and multiplication operators in expressions like pi/2 and 3*x
+			return left + e.Operator + right
+		}
+		// Add spaces around other binary operators
+		return left + " " + e.Operator + " " + right
 	case *parser.UnaryExpression:
 		return e.Operator + f.formatExpression(e.Operand)
 	case *parser.FunctionCall:
@@ -297,6 +345,15 @@ func (f *Formatter) formatExpression(expr parser.Expression) string {
 		return e.Name + "(" + strings.Join(args, ", ") + ")"
 	case *parser.ParenthesizedExpression:
 		return "(" + f.formatExpression(e.Expression) + ")"
+	case *parser.TimingExpression:
+		// Handle timing expressions like 100ns
+		value := f.formatExpression(e.Value)
+		unit := strings.TrimSpace(e.Unit)
+		return value + unit
+	case *parser.DelayExpression:
+		// Handle delay expressions like delay[100ns]
+		timing := f.formatExpression(e.Timing)
+		return "delay[" + timing + "]"
 	default:
 		return ""
 	}
@@ -372,9 +429,11 @@ func ValidateQASM(content string) error {
 
 // preprocessMalformedQASM fixes common malformed patterns before parsing
 func (f *Formatter) preprocessMalformedQASM(content string) string {
-	// First, split compound lines with multiple statements
-	content = f.splitCompoundStatements(content)
+	// Normalize line endings
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+	content = strings.ReplaceAll(content, "\r", "\n")
 
+	// Split into lines
 	lines := strings.Split(content, "\n")
 	var processed []string
 
@@ -389,7 +448,13 @@ func (f *Formatter) preprocessMalformedQASM(content string) string {
 		processed = append(processed, line)
 	}
 
-	return strings.Join(processed, "\n")
+	// Join lines and ensure trailing newline
+	result := strings.Join(processed, "\n")
+	if !strings.HasSuffix(result, "\n") {
+		result += "\n"
+	}
+
+	return result
 }
 
 // splitCompoundStatements splits lines with multiple statements into separate lines
@@ -417,6 +482,14 @@ func (f *Formatter) splitCompoundStatements(content string) string {
 
 // fixMalformedLine fixes common malformed patterns in a single line
 func (f *Formatter) fixMalformedLine(line string) string {
+	// Handle comments
+	if strings.HasPrefix(line, "//") {
+		return line
+	}
+	if strings.HasPrefix(line, "/*") && strings.HasSuffix(line, "*/") {
+		return line
+	}
+
 	// Remove trailing semicolon for processing
 	hasSemicolon := strings.HasSuffix(line, ";")
 	if hasSemicolon {
@@ -424,35 +497,53 @@ func (f *Formatter) fixMalformedLine(line string) string {
 	}
 
 	// Fix include statements: include"file" -> include "file"
-	re1 := regexp.MustCompile(`include"([^"]*)"`)     // Changed to use " for string literal
-	line = re1.ReplaceAllString(line, `include "$1"`) // Changed to use " for string literal
+	re1 := regexp.MustCompile(`include"([^"]*)"`)
+	line = re1.ReplaceAllString(line, `include "$1"`)
 
 	// Fix qubit declarations: qubit[2]q -> qubit[2] q
-	re2 := regexp.MustCompile(`(qubit|bit)(\[[^\]]+\])([a-zA-Z_][a-zA-Z0-9_]*)`) // Changed to use \[ and \] for string literal
+	re2 := regexp.MustCompile(`(qubit|bit|int)(\[[^\]]+\])\s*([a-zA-Z_][a-zA-Z0-9_]*)`)
 	line = re2.ReplaceAllString(line, "$1$2 $3")
 
 	// Fix simple qubit declarations: qubitq -> qubit q
-	re3 := regexp.MustCompile(`^(qubit|bit)([a-zA-Z_][a-zA-Z0-9_]*)$`)
+	re3 := regexp.MustCompile(`^(qubit|bit|int)([a-zA-Z_][a-zA-Z0-9_]*)$`)
 	line = re3.ReplaceAllString(line, "$1 $2")
 
-	// Fix two-qubit gates first: cxq[0],q[1] -> cx q[0], q[1]
-	re4 := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)([a-zA-Z_][a-zA-Z0-9_]*\[[^\]]+\]),([a-zA-Z_][a-zA-Z0-9_]*\[[^\]]+\])$`) // Changed to use \[ and \] for string literal
-	if re4.MatchString(line) {
-		line = re4.ReplaceAllString(line, "$1 $2, $3")
+	// Fix binary operators
+	re4 := regexp.MustCompile(`([a-zA-Z0-9_\])])\s*([\+\-\*\/\=\<\>\!])\s*([a-zA-Z0-9_\[\(])`)
+	line = re4.ReplaceAllString(line, "$1 $2 $3")
+
+	// Fix gate calls with parameters
+	re5 := regexp.MustCompile(`([a-zA-Z_][a-zA-Z0-9_]*)\(([^)]+)\)([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]+\])?)`)
+	if re5.MatchString(line) {
+		line = re5.ReplaceAllString(line, "$1($2) $3")
+	}
+
+	// Fix two-qubit gates: cxq[0],q[1] -> cx q[0], q[1]
+	re6 := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)([a-zA-Z_][a-zA-Z0-9_]*\[[^\]]+\]),([a-zA-Z_][a-zA-Z0-9_]*\[[^\]]+\])$`)
+	if re6.MatchString(line) {
+		line = re6.ReplaceAllString(line, "$1 $2, $3")
 	} else {
 		// Fix single gate calls: hq -> h q, hq[0] -> h q[0]
-		re5 := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]+\])?)$`) // Changed to use \[ and \] for string literal
-		if re5.MatchString(line) && !strings.Contains(line, " ") {
-			line = re5.ReplaceAllString(line, "$1 $2")
+		re7 := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]+\])?)$`)
+		if re7.MatchString(line) && !strings.Contains(line, " ") {
+			line = re7.ReplaceAllString(line, "$1 $2")
 		}
 	}
 
 	// Fix measure statements: measureq->c -> measure q -> c
-	re6 := regexp.MustCompile(`measure([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]+\])?)->([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]+\])?)`) // Changed to use \[ and \] for string literal
-	line = re6.ReplaceAllString(line, "measure $1 -> $2")
+	re8 := regexp.MustCompile(`measure([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]+\])?)->([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]+\])?)`)
+	line = re8.ReplaceAllString(line, "measure $1 -> $2")
+
+	// Fix timing expressions
+	re9 := regexp.MustCompile(`\[\s*(\d+)\s*(ns|us|ms)\s*\]`)
+	line = re9.ReplaceAllString(line, "[$1$2]")
+
+	// Fix array indices
+	re10 := regexp.MustCompile(`\[\s*([^\]]+)\s*\]`)
+	line = re10.ReplaceAllString(line, "[$1]")
 
 	// Add semicolon back if it was there
-	if hasSemicolon {
+	if hasSemicolon && !strings.HasPrefix(line, "//") && !strings.HasPrefix(line, "/*") {
 		line += ";"
 	}
 

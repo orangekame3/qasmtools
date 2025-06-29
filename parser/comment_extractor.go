@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -22,12 +23,22 @@ func NewCommentExtractor(content string) *CommentExtractor {
 
 // ExtractComments extracts comments from the token stream
 func (ce *CommentExtractor) ExtractComments(stream antlr.TokenStream) []Comment {
-	// For now, simplified comment extraction
-	// In a full implementation, this would properly iterate through tokens
-	// including hidden channel tokens for comments
+	// Convert to CommonTokenStream to access hidden tokens
+	commonStream, ok := stream.(*antlr.CommonTokenStream)
+	if !ok {
+		return ce.comments
+	}
 
-	// Placeholder implementation - would need to access the underlying
-	// CommonTokenStream to get all tokens including hidden ones
+	// Get all tokens including hidden ones
+	tokens := commonStream.GetAllTokens()
+	for _, token := range tokens {
+		if token.GetChannel() == antlr.TokenHiddenChannel {
+			text := token.GetText()
+			if strings.HasPrefix(text, "//") || strings.HasPrefix(text, "/*") {
+				ce.extractComment(token)
+			}
+		}
+	}
 
 	return ce.comments
 }
@@ -110,16 +121,41 @@ func (ce *CommentExtractor) AssociateCommentsWithStatements(program *Program) {
 		program.LineComments = make(map[int][]Comment)
 	}
 
+	// Sort comments by line number
+	sort.Slice(ce.comments, func(i, j int) bool {
+		return ce.comments[i].Position.Line < ce.comments[j].Position.Line
+	})
+
 	// Associate each comment with statements
 	for i := range ce.comments {
 		comment := &ce.comments[i]
 
 		// Check if comment is on same line as a statement (trailing comment)
+		var attached bool
 		for _, stmt := range program.Statements {
 			stmtLine := stmt.Pos().Line
 			if comment.Position.Line == stmtLine {
 				comment.Attached = true
+				attached = true
 				break
+			}
+		}
+
+		// If not attached to any statement, it's a leading comment
+		if !attached {
+			// Find the next statement after this comment
+			var nextStmtLine int
+			for _, stmt := range program.Statements {
+				if stmt.Pos().Line > comment.Position.Line {
+					nextStmtLine = stmt.Pos().Line
+					break
+				}
+			}
+
+			// If there's a next statement and the comment is within 3 lines of it,
+			// associate it with that statement
+			if nextStmtLine > 0 && nextStmtLine-comment.Position.Line <= 3 {
+				comment.Attached = false
 			}
 		}
 
