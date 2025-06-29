@@ -17,7 +17,7 @@ rz(pi/4) q[1]; // Rotation around Z-axis
 cphase(pi/2) q[0], q[1]; // Controlled phase gate
 cx q[1], q[2]; // CNOT gate
 
-/* 
+/*
  * Measurement section
  * This measures all qubits
  */
