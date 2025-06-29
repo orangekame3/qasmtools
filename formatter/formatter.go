@@ -62,17 +62,9 @@ func (f *Formatter) Format(content string) (string, error) {
 	// First try to fix common malformed patterns before parsing
 	preprocessed := f.preprocessMalformedQASM(content)
 
-	// Extract comments before parsing
-	commentExtractor := parser.NewCommentExtractor(preprocessed)
-
-	// Use the new parser library
+	// Use the new parser library (comments are automatically extracted by default)
 	p := parser.NewParser()
 	result := p.ParseWithErrors(preprocessed)
-
-	// Extract comments and associate them with the program
-	if result.Program != nil {
-		commentExtractor.AssociateCommentsWithStatements(result.Program)
-	}
 
 	if result.HasErrors() {
 		// Try to format anyway with the partial result
@@ -88,8 +80,10 @@ func (f *Formatter) Format(content string) (string, error) {
 		expectedStatements = strings.Count(preprocessed, ";") - 1 // Exclude version statement
 	}
 
-	if len(result.Program.Statements) < expectedStatements && expectedStatements > 0 {
-		// Fallback to text-based formatting if parser is incomplete
+	// Use text-based fallback if parser is incomplete OR if input contains comments
+	hasComments := strings.Contains(preprocessed, "//") || strings.Contains(preprocessed, "/*")
+	if (len(result.Program.Statements) < expectedStatements && expectedStatements > 0) || hasComments {
+		// Fallback to text-based formatting if parser is incomplete or has comments
 		return f.formatWithTextBasedFallback(preprocessed), nil
 	}
 
@@ -505,13 +499,20 @@ func (f *Formatter) preprocessMalformedQASM(content string) string {
 	var processed []string
 
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			processed = append(processed, "") // Preserve empty lines
 			continue
 		}
 
-		// Fix common malformed patterns
-		line = f.fixMalformedLine(line)
+		// Check if this is a comment line that should preserve spacing
+		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.Contains(trimmed, "*/") {
+			// Preserve original spacing for comment lines
+			line = f.fixMalformedLine(line)
+		} else {
+			// Trim and process non-comment lines
+			line = f.fixMalformedLine(trimmed)
+		}
 		processed = append(processed, line)
 	}
 
@@ -549,12 +550,15 @@ func (f *Formatter) splitCompoundStatements(content string) string {
 
 // fixMalformedLine fixes common malformed patterns in a single line
 func (f *Formatter) fixMalformedLine(line string) string {
-	// Handle comments
+	// Handle comments - preserve all comment lines without processing
 	if strings.HasPrefix(line, "//") {
 		return line
 	}
-	if strings.HasPrefix(line, "/*") && strings.HasSuffix(line, "*/") {
-		return line
+	if strings.HasPrefix(line, "/*") {
+		return line // This includes both single-line and multi-line comment starts
+	}
+	if strings.Contains(line, "*/") {
+		return line // This handles multi-line comment ends and lines inside multi-line comments
 	}
 
 	// Remove trailing semicolon for processing
@@ -748,18 +752,60 @@ func (f *Formatter) formatWithTextBasedFallback(content string) string {
 	var formattedLines []string
 	var lastStatementType string
 	indentLevel := 0
+	inMultiLineComment := false
 
 	for _, line := range lines {
+		originalLine := line
 		line = strings.TrimSpace(line)
-		if line == "" {
+
+		// Handle multi-line comments that are already in progress
+		if inMultiLineComment {
+			// Inside or end of multi-line comment - preserve original spacing
+			formattedLines = append(formattedLines, originalLine)
+			if strings.Contains(line, "*/") {
+				inMultiLineComment = false
+			}
 			continue
 		}
 
-		currentType := f.getStatementTypeFromText(line)
+		// Handle empty lines - preserve them as they appear in input
+		if line == "" {
+			formattedLines = append(formattedLines, "")
+			continue
+		}
+
+		// Determine current type (need this for empty line logic)
+		var currentType string
+		if strings.HasPrefix(line, "//") || strings.HasPrefix(line, "/*") {
+			currentType = "comment"
+		} else {
+			currentType = f.getStatementTypeFromText(line)
+		}
 
 		// Add empty line between different types of statements (but not inside blocks)
 		if f.shouldAddEmptyLine(lastStatementType, currentType) && indentLevel == 0 {
 			formattedLines = append(formattedLines, "")
+		}
+
+		// Handle single-line comments - preserve them as-is without processing
+		if strings.HasPrefix(line, "//") {
+			formattedLines = append(formattedLines, line)
+			lastStatementType = currentType
+			continue
+		}
+
+		// Handle multi-line comments - preserve them as-is without processing
+		if strings.Contains(line, "/*") && strings.Contains(line, "*/") {
+			// Single-line /* */ comment
+			formattedLines = append(formattedLines, line)
+			lastStatementType = currentType
+			continue
+		} else if strings.Contains(line, "/*") {
+			// Start of multi-line comment
+			inMultiLineComment = true
+			formattedLines = append(formattedLines, line)
+			lastStatementType = currentType
+			continue
 		}
 
 		// Handle indentation for blocks
@@ -768,6 +814,14 @@ func (f *Formatter) formatWithTextBasedFallback(content string) string {
 
 		if isClosingBrace && !isElse {
 			indentLevel--
+		}
+
+		// Handle trailing comments on statements
+		var trailingComment string
+		if strings.Contains(line, "//") {
+			parts := strings.SplitN(line, "//", 2)
+			line = strings.TrimSpace(parts[0])
+			trailingComment = " // " + strings.TrimSpace(parts[1])
 		}
 
 		formatted := f.formatStatementText(line)
@@ -779,6 +833,7 @@ func (f *Formatter) formatWithTextBasedFallback(content string) string {
 		}
 
 		// Only add semicolon to valid-looking statements (but not control flow)
+		// Check the original line content before trailing comment extraction
 		trimmed := strings.TrimSpace(formatted)
 		if !strings.HasSuffix(formatted, ";") && formatted != "" && !strings.HasPrefix(formatted, "//") &&
 			f.looksLikeQASMStatement(strings.TrimSpace(formatted)) &&
@@ -786,6 +841,11 @@ func (f *Formatter) formatWithTextBasedFallback(content string) string {
 			!strings.HasSuffix(trimmed, "{") && !strings.HasSuffix(trimmed, "}") &&
 			!strings.Contains(trimmed, "} else {") {
 			formatted += ";"
+		}
+
+		// Add back the trailing comment after semicolon
+		if trailingComment != "" {
+			formatted += trailingComment
 		}
 
 		if formatted != "" {
