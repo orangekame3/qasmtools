@@ -1,18 +1,37 @@
 {
 	"name": "vscode-qasm",
 	"displayName": "QASM Language Support",
-	"description": "Language support for QASM (Quantum Assembly Language)",
-	"version": "0.0.1",
+	"description": "Language support for QASM (Quantum Assembly Language) with syntax highlighting and language server",
+	"version": "0.1.0",
+	"publisher": "qasmtools",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/orangekame3/qasmtools"
+	},
 	"engines": {
 		"vscode": "^1.60.0"
 	},
 	"categories": [
-		"Programming Languages"
+		"Programming Languages",
+		"Formatters",
+		"Other"
+	],
+	"keywords": [
+		"qasm",
+		"quantum",
+		"assembly",
+		"quantum computing",
+		"openqasm"
 	],
 	"activationEvents": [
 		"onLanguage:qasm"
 	],
 	"main": "./extension.js",
+	"files": [
+		"extension.js",
+		"language-configuration.json",
+		"bin/qasmlsp"
+	],
 	"contributes": {
 		"languages": [
 			{
@@ -28,36 +47,6 @@
 			}
 		],
 		"semanticTokenTypes": [
-			{
-				"id": "keyword",
-				"superType": "keyword",
-				"description": "QASM keywords"
-			},
-			{
-				"id": "operator",
-				"superType": "operator",
-				"description": "QASM operators"
-			},
-			{
-				"id": "identifier",
-				"superType": "variable",
-				"description": "QASM identifiers"
-			},
-			{
-				"id": "number",
-				"superType": "number",
-				"description": "QASM numbers"
-			},
-			{
-				"id": "string",
-				"superType": "string",
-				"description": "QASM strings"
-			},
-			{
-				"id": "comment",
-				"superType": "comment",
-				"description": "QASM comments"
-			},
 			{
 				"id": "gate",
 				"superType": "function",
@@ -92,13 +81,28 @@
 				"id": "builtin_constant",
 				"superType": "variable",
 				"description": "QASM builtin constants"
+			},
+			{
+				"id": "access_control",
+				"superType": "keyword",
+				"description": "QASM access control keywords"
+			},
+			{
+				"id": "extern",
+				"superType": "keyword",
+				"description": "QASM extern keyword"
+			},
+			{
+				"id": "hardware_qubit",
+				"superType": "variable",
+				"description": "QASM hardware qubits"
 			}
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./"
+		"vscode:prepublish": "echo 'No compilation needed for JS'",
+		"package": "vsce package",
+		"publish": "vsce publish"
 	},
 	"dependencies": {
 		"vscode-languageclient": "^8.0.0"
@@ -106,10 +110,10 @@
 	"devDependencies": {
 		"@types/node": "^16.11.7",
 		"@types/vscode": "^1.60.0",
-		"typescript": "^4.5.5"
+		"typescript": "^4.5.5",
+		"@vscode/vsce": "^2.19.0"
 	},
-	"keywords": [],
-	"author": "",
-	"license": "ISC",
+	"author": "orangekame3",
+	"license": "Apache-2.0",
 	"type": "commonjs"
 }

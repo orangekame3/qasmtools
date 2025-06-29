@@ -321,20 +321,26 @@ func (h *Highlighter) getTokenType(t antlr.Token) TokenType {
 
 	// Regular identifiers
 	case 94: // Identifier
-		// Check if it's a builtin gate (U, CX)
 		content := t.GetText()
-		if content == "U" || content == "CX" {
+		
+		// Check if it's a builtin gate
+		if isBuiltinGate(content) {
 			return TokenBuiltinGate
 		}
+		
 		// Check if it's a builtin classical function
 		if content == "sin" || content == "cos" || content == "tan" ||
-			content == "exp" || content == "ln" || content == "sqrt" {
+			content == "exp" || content == "ln" || content == "sqrt" ||
+			content == "arcsin" || content == "arccos" || content == "arctan" ||
+			content == "abs" || content == "mod" || content == "pow" {
 			return TokenBuiltinClassical
 		}
+		
 		// Check if it's a builtin constant
 		if content == "pi" || content == "tau" || content == "euler" {
 			return TokenBuiltinConstant
 		}
+		
 		return TokenIdentifier
 
 	// Punctuation
@@ -348,6 +354,33 @@ func (h *Highlighter) getTokenType(t antlr.Token) TokenType {
 	default:
 		return TokenIdentifier
 	}
+}
+
+// isBuiltinGate checks if the given identifier is a builtin gate
+func isBuiltinGate(name string) bool {
+	builtinGates := map[string]bool{
+		// Single-qubit gates
+		"x": true, "y": true, "z": true,
+		"h": true, "s": true, "t": true,
+		"rx": true, "ry": true, "rz": true,
+		"p": true, "u1": true, "u2": true, "u3": true,
+		"sx": true, "sy": true,
+		
+		// Two-qubit gates
+		"cx": true, "cy": true, "cz": true,
+		"cnot": true, "ch": true, "crx": true, "cry": true, "crz": true,
+		"cp": true, "cu1": true, "cu3": true,
+		"swap": true, "iswap": true,
+		"dcx": true,
+		
+		// Three-qubit gates
+		"ccx": true, "cswap": true, "toffoli": true, "fredkin": true,
+		
+		// Standard library gates (commonly used)
+		"U": true, "CX": true, "CCX": true,
+		"id": true, "iden": true,
+	}
+	return builtinGates[name]
 }
 
 // tokenTypeToString converts a TokenType to its string representation

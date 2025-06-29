@@ -275,6 +275,7 @@ tasks:
       - task: test:race
       - task: test:coverage
       - task: build:all
+      - task: vscode:package
       - task: security
 
   # Git hooks
@@ -307,7 +308,93 @@ tasks:
     desc: Clean all generated files
     cmds:
       - task: clean
+      - task: vscode:clean
       - go clean -cache -testcache -modcache
+
+  # VSCode Extension tasks
+  vscode:package:
+    desc: Package VSCode extension
+    deps: [build]
+    dir: vscode-qasm
+    cmds:
+      - cp ../bin/qasmlsp bin/
+      - npm install
+      - npx vsce package
+
+  vscode:install:
+    desc: Install VSCode extension locally
+    deps: [vscode:package]
+    dir: vscode-qasm
+    cmds:
+      - code --install-extension vscode-qasm-0.1.0.vsix
+
+  vscode:publish:
+    desc: Publish VSCode extension to marketplace
+    deps: [vscode:package]
+    dir: vscode-qasm
+    cmds:
+      - npx vsce publish
+
+  vscode:publish:test:
+    desc: Test publish without actually publishing
+    deps: [vscode:package]
+    dir: vscode-qasm
+    cmds:
+      - npx vsce publish --dry-run
+
+  vscode:clean:
+    desc: Clean VSCode extension build artifacts
+    dir: vscode-qasm
+    cmds:
+      - rm -f *.vsix
+      - rm -rf bin/qasmlsp
+      - rm -rf node_modules
+
+  vscode:setup:
+    desc: Setup VSCode extension development environment
+    dir: vscode-qasm
+    cmds:
+      - npm install
+      - npm install -g @vscode/vsce
+
+  vscode:dev:
+    desc: Run VSCode extension in development mode
+    deps: [vscode:package]
+    dir: vscode-qasm
+    cmds:
+      - code --extensionDevelopmentPath=. --new-window
+
+  vscode:inspect:
+    desc: Show VSCode extension package contents
+    dir: vscode-qasm
+    cmds:
+      - npx vsce ls --tree
+
+  # Release tasks
+  release:prepare:
+    desc: Prepare release (build all, package extension)
+    cmds:
+      - task: clean:all
+      - task: build:all
+      - task: vscode:package
+      - echo "Release artifacts prepared in bin/ and vscode-qasm/"
+
+  release:github:
+    desc: Create GitHub release with artifacts
+    deps: [release:prepare]
+    cmds:
+      - |
+        if ! command -v gh &> /dev/null; then
+          echo "GitHub CLI (gh) not found. Please install it first."
+          exit 1
+        fi
+      - |
+        echo "Creating GitHub release {{.VERSION}}"
+        gh release create {{.VERSION}} \
+          --title "Release {{.VERSION}}" \
+          --notes "Release {{.VERSION}}" \
+          bin/qasm-* \
+          vscode-qasm/vscode-qasm-*.vsix
 
   # Version info
   version:
