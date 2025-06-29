@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # now this is false because we don't want to run on every commit
+  branches-ignore: ['**']
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install Task
+        uses: arduino/setup-task@v1
+        with:
+          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install ANTLR
+        run: |
+          curl -O https://www.antlr.org/download/antlr-4.13.1-complete.jar
+          sudo mkdir -p /usr/local/lib
+          sudo mv antlr-4.13.1-complete.jar /usr/local/lib/
+          echo '#!/bin/bash' | sudo tee /usr/local/bin/antlr4
+          echo 'java -jar /usr/local/lib/antlr-4.13.1-complete.jar "$@"' | sudo tee -a /usr/local/bin/antlr4
+          sudo chmod +x /usr/local/bin/antlr4
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: task deps
+
+      - name: Generate parser code
+        run: task gen
+
+      - name: Run tests with coverage
+        run: task test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.out
+          flags: unittests
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install Task
+        uses: arduino/setup-task@v1
+        with:
+          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install golangci-lint
+        run: task lint:install
+
+      - name: Run linters
+        run: task lint
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install Task
+        uses: arduino/setup-task@v1
+        with:
+          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install ANTLR
+        run: |
+          curl -O https://www.antlr.org/download/antlr-4.13.1-complete.jar
+          sudo mkdir -p /usr/local/lib
+          sudo mv antlr-4.13.1-complete.jar /usr/local/lib/
+          echo '#!/bin/bash' | sudo tee /usr/local/bin/antlr4
+          echo 'java -jar /usr/local/lib/antlr-4.13.1-complete.jar "$@"' | sudo tee -a /usr/local/bin/antlr4
+          sudo chmod +x /usr/local/bin/antlr4
+
+      - name: Build all platforms
+        run: task build:all
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries
+          path: bin/
+          retention-days: 7
+
+  security:
+    name: Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install Task
+        uses: arduino/setup-task@v1
+        with:
+          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install security tools
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run security checks
