@@ -28,40 +28,70 @@ To build `qasmtools` from source, ensure you have Go installed (version 1.16 or 
 
 ## Usage
 
-The `qasm` executable can be used to format QASM files.
+The `qasm` executable provides two main commands: `fmt` for formatting and `parse` for parsing QASM files.
 
-### Formatting a QASM file
+### Formatting QASM Files
 
-To format a QASM file and print the output to standard output:
+To format a QASM file:
 
 ```bash
-./qasm format <input_file.qasm>
+qasm fmt [files...]
+```
+
+Options:
+
+- `-w, --write`: Write result to (source) file instead of stdout
+- `--check`: Check if files are formatted without modifying them
+- `-i, --indent`: Set indentation size (default: 2)
+- `-n, --newline`: Ensure files end with a newline (default: true)
+- `-v, --verbose`: Enable verbose output
+- `--diff`: Display diffs instead of rewriting files
+
+Examples:
+
+```bash
+# Format a file and print to stdout
+qasm fmt input.qasm
+
+# Format multiple files in-place
+qasm fmt -w file1.qasm file2.qasm
+
+# Check if files are properly formatted
+qasm fmt --check *.qasm
+
+# Format with custom indentation
+qasm fmt -i 4 input.qasm
+```
+
+### Parsing QASM Files
+
+To parse and validate a QASM file:
+
+```bash
+qasm parse <file>
 ```
 
 Example:
 
 ```bash
-./qasm format test.qasm
-```
-
-### Overwriting a QASM file (in-place formatting)
-
-To format a QASM file and overwrite the original file:
-
-```bash
-./qasm format -w <input_file.qasm>
-```
-
-Example:
-
-```bash
-
-./qasm format -w test.qasm
+qasm parse input.qasm
 ```
 
 ## Project Structure
 
-* `cmd/qasm/`: Contains the main entry point for the CLI tool.
-* `parser/`: Handles the parsing of QASM 3.0 files and AST generation.
-* `formatter/`: Implements the QASM 3.0 formatting logic.
-* `test.qasm`: A sample QASM file for testing and demonstration.
+* `cmd/qasm/`: Contains the main entry point and CLI implementation
+* `parser/`: Handles the parsing of QASM 3.0 files and AST generation
+  * `grammar/`: Contains the ANTLR grammar files for QASM 3.0
+  * `gen/`: Contains generated parser code
+* `formatter/`: Implements the QASM 3.0 formatting logic
+* `examples/`: Contains example QASM files and usage examples
+* `testdata/`: Contains test files for various QASM constructs
+
+## Examples
+
+Check out the `examples/` directory for sample QASM files and usage examples:
+- `examples/bell_state.qasm`: Implementation of a Bell state
+- `examples/grover.qasm`: Implementation of Grover's algorithm
+- `examples/ast_visitor/`: Example of using the AST visitor
+- `examples/error_handling/`: Example of error handling
+- `examples/parse_simple/`: Simple parsing example
