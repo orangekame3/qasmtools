@@ -203,64 +203,159 @@ func (v *ASTBuilderVisitor) parseStatementFromLine(line string) Statement {
 }
 
 func (v *ASTBuilderVisitor) parseQuantumDeclaration(line string) *QuantumDeclaration {
+	// Remove semicolon for parsing
+	line = strings.TrimSuffix(strings.TrimSpace(line), ";")
+
+	// Parse type with optional array size: qubit[2] q or qubit q
 	parts := strings.Fields(line)
+	if len(parts) == 0 {
+		return nil
+	}
+
+	declType := ""
+	var size Expression
 	identifier := "q" // default
 
-	for i, part := range parts {
-		if part == "qubit" && i+1 < len(parts) {
-			identifier = parts[i+1]
-			// Handle array notation like qubit[5]
-			if strings.Contains(identifier, "[") {
-				identifier = strings.Split(identifier, "[")[0]
-			}
-			break
+	// Find type and array size
+	typePart := parts[0]
+	if strings.Contains(typePart, "[") {
+		// Type with array size like "qubit[2]"
+		openBracket := strings.Index(typePart, "[")
+		closeBracket := strings.Index(typePart, "]")
+		if openBracket >= 0 && closeBracket > openBracket {
+			declType = typePart[:openBracket]
+			sizeStr := typePart[openBracket+1 : closeBracket]
+			// Parse size as integer literal
+			size = &IntegerLiteral{Value: parseInt(sizeStr)}
 		}
+	} else {
+		declType = typePart
+	}
+
+	// Find identifier
+	if len(parts) >= 2 {
+		identifier = strings.TrimSpace(parts[1])
 	}
 
 	return &QuantumDeclaration{
 		BaseNode:   BaseNode{Position: Position{Line: 1, Column: 1}},
-		Type:       "qubit",
+		Type:       declType,
+		Size:       size,
 		Identifier: identifier,
 	}
 }
 
 func (v *ASTBuilderVisitor) parseClassicalDeclaration(line string) *ClassicalDeclaration {
-	parts := strings.Fields(line)
-	declType := "bit"
-	identifier := "c"
+	// Remove semicolon for parsing
+	line = strings.TrimSuffix(strings.TrimSpace(line), ";")
 
-	for i, part := range parts {
-		// Handle types like "int[32]" or just "bit"
-		if strings.HasPrefix(part, "bit") {
-			declType = "bit"
-			if i+1 < len(parts) {
-				identifier = parts[i+1]
-			}
-			break
-		} else if strings.HasPrefix(part, "int") {
-			declType = "int"
-			if i+1 < len(parts) {
-				identifier = parts[i+1]
-			}
-			break
-		} else if part == "bit" || part == "int" {
-			declType = part
-			if i+1 < len(parts) {
-				identifier = parts[i+1]
-			}
-			break
+	// Parse type with optional array size: bit[2] c = 0 or int[32] x = 5+3*2
+	parts := strings.Fields(line)
+	if len(parts) == 0 {
+		return nil
+	}
+
+	declType := ""
+	var size Expression
+	identifier := ""
+	var initializer Expression
+
+	// Find type and array size
+	typePart := parts[0]
+	if strings.Contains(typePart, "[") {
+		// Type with array size like "bit[2]" or "int[32]"
+		openBracket := strings.Index(typePart, "[")
+		closeBracket := strings.Index(typePart, "]")
+		if openBracket >= 0 && closeBracket > openBracket {
+			declType = typePart[:openBracket]
+			sizeStr := typePart[openBracket+1 : closeBracket]
+			// Parse size as integer literal
+			size = &IntegerLiteral{Value: parseInt(sizeStr)}
 		}
-		// Handle array notation in identifier
-		if strings.Contains(identifier, "[") {
-			identifier = strings.Split(identifier, "[")[0]
+	} else {
+		declType = typePart
+	}
+
+	// Find identifier and initializer
+	if len(parts) >= 2 {
+		remaining := strings.Join(parts[1:], " ")
+		if strings.Contains(remaining, "=") {
+			// Has initializer: c = 0 or x = 5+3*2
+			assignParts := strings.SplitN(remaining, "=", 2)
+			identifier = strings.TrimSpace(assignParts[0])
+			if len(assignParts) > 1 {
+				initStr := strings.TrimSpace(assignParts[1])
+				initializer = v.parseExpression(initStr)
+			}
+		} else {
+			identifier = strings.TrimSpace(remaining)
 		}
 	}
 
 	return &ClassicalDeclaration{
-		BaseNode:   BaseNode{Position: Position{Line: 1, Column: 1}},
-		Type:       declType,
-		Identifier: identifier,
+		BaseNode:    BaseNode{Position: Position{Line: 1, Column: 1}},
+		Type:        declType,
+		Size:        size,
+		Identifier:  identifier,
+		Initializer: initializer,
 	}
+}
+
+// parseExpression parses a simple expression string into an Expression AST node
+func (v *ASTBuilderVisitor) parseExpression(expr string) Expression {
+	expr = strings.TrimSpace(expr)
+	if expr == "" {
+		return nil
+	}
+
+	// Handle binary expressions with + and *
+	// Simple precedence: * before +
+	if strings.Contains(expr, "+") {
+		parts := strings.Split(expr, "+")
+		if len(parts) == 2 {
+			left := v.parseExpression(strings.TrimSpace(parts[0]))
+			right := v.parseExpression(strings.TrimSpace(parts[1]))
+			return &BinaryExpression{
+				Left:     left,
+				Operator: "+",
+				Right:    right,
+			}
+		}
+	}
+
+	if strings.Contains(expr, "*") {
+		parts := strings.Split(expr, "*")
+		if len(parts) == 2 {
+			left := v.parseExpression(strings.TrimSpace(parts[0]))
+			right := v.parseExpression(strings.TrimSpace(parts[1]))
+			return &BinaryExpression{
+				Left:     left,
+				Operator: "*",
+				Right:    right,
+			}
+		}
+	}
+
+	// Handle integer literals
+	if val := parseInt(expr); val != 0 || expr == "0" {
+		return &IntegerLiteral{Value: val}
+	}
+
+	// Handle identifiers
+	return &Identifier{Name: expr}
+}
+
+// parseInt parses a string to int64, returns 0 if parsing fails
+func parseInt(s string) int64 {
+	var result int64
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			result = result*10 + int64(r-'0')
+		} else {
+			return 0
+		}
+	}
+	return result
 }
 
 func (v *ASTBuilderVisitor) parseGateCall(line string) *GateCall {

@@ -22,11 +22,11 @@ func main() {
 	commonlog.Configure(1, nil)
 
 	handler = protocol.Handler{
-		Initialize:           initialize,
-		Initialized:         initialized,
-		Shutdown:           shutdown,
-		SetTrace:           setTrace,
-		TextDocumentDidOpen: textDocumentDidOpen,
+		Initialize:            initialize,
+		Initialized:           initialized,
+		Shutdown:              shutdown,
+		SetTrace:              setTrace,
+		TextDocumentDidOpen:   textDocumentDidOpen,
 		TextDocumentDidChange: textDocumentDidChange,
 	}
 
@@ -109,7 +109,7 @@ func computeSemanticTokens(content string) (*protocol.SemanticTokens, error) {
 
 	for _, token := range tokens {
 		// Calculate delta line and delta start
-		deltaLine := uint32(token.Line - 1) - prevLine
+		deltaLine := uint32(token.Line-1) - prevLine
 		var deltaStart uint32
 		if deltaLine == 0 {
 			deltaStart = uint32(token.Column) - prevChar
@@ -144,16 +144,16 @@ var tokenTypeMap = map[string]int{
 	"identifier":        2,
 	"number":            3,
 	"string":            4,
-	"comment":          5,
-	"gate":             6,
-	"measurement":      7,
-	"register":         8,
-	"punctuation":      9,
-	"builtin_gate":     10,
-	"builtin_quantum":  11,
+	"comment":           5,
+	"gate":              6,
+	"measurement":       7,
+	"register":          8,
+	"punctuation":       9,
+	"builtin_gate":      10,
+	"builtin_quantum":   11,
 	"builtin_classical": 12,
-	"builtin_constant": 13,
-	"access_control":   14,
-	"extern":           15,
-	"hardware_qubit":   16,
+	"builtin_constant":  13,
+	"access_control":    14,
+	"extern":            15,
+	"hardware_qubit":    16,
 }
