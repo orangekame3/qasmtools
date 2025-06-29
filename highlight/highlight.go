@@ -67,7 +67,7 @@ func DefaultColorScheme() *ColorScheme {
 		Number:           Cyan,
 		String:           Green,
 		Comment:          Blue,
-		Gate:            Magenta,
+		Gate:             Magenta,
 		Measurement:      Red,
 		Register:         Yellow,
 		Punctuation:      White,
@@ -76,7 +76,7 @@ func DefaultColorScheme() *ColorScheme {
 		BuiltinClassical: Green,
 		BuiltinConstant:  Cyan,
 		AccessControl:    Yellow,
-		Extern:          Blue,
+		Extern:           Blue,
 		HardwareQubit:    Magenta,
 	}
 }
