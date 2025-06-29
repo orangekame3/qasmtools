@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/orangekame3/qasmparser/parser"
+	"github.com/orangekame3/qasmtools/parser"
 )
 
 func main() {

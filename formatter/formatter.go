@@ -424,7 +424,7 @@ func (f *Formatter) fixMalformedLine(line string) string {
 	}
 
 	// Fix include statements: include"file" -> include "file"
-	re1 := regexp.MustCompile(`include"([^"]*)"`) // Changed to use " for string literal
+	re1 := regexp.MustCompile(`include"([^"]*)"`)     // Changed to use " for string literal
 	line = re1.ReplaceAllString(line, `include "$1"`) // Changed to use " for string literal
 
 	// Fix qubit declarations: qubit[2]q -> qubit[2] q
