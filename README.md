@@ -87,6 +87,53 @@ qasm parse input.qasm
 * `examples/`: Contains example QASM files and usage examples
 * `testdata/`: Contains test files for various QASM constructs
 
+## Architecture
+
+The following diagram illustrates the processing flow of qasmtools:
+
+```mermaid
+flowchart TD
+    A[Input QASM Code] --> M[cmd/qasm.main]
+    
+    subgraph "cmd/qasm"
+        M
+    end
+    
+    M --> B[parser.Parse]
+    
+    subgraph "parser package"
+        B[parser.Parse] --> C[parser.ASTBuilder]
+        C --> D[parser.AST]
+        D --> E[parser.CommentExtractor]
+        E --> F[Comments Map]
+    end
+    
+    subgraph "formatter package"
+        G[formatter.Format]
+        H[Format AST]
+        I[Generate Code]
+    end
+    
+    D --> G
+    F --> G
+    G --> H
+    H --> I
+    I --> J[Output Formatted QASM]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style J fill:#9ff,stroke:#333,stroke-width:2px
+    
+    classDef package fill:#e0f7fa,stroke:#006064
+    class M,B,C,D,E,F,G,H,I package
+```
+
+The diagram shows how QASM code flows through the system:
+
+1. Input code enters through the cmd/qasm package
+2. The parser package handles parsing and AST generation
+3. Comments are extracted and maintained separately
+4. The formatter package processes the AST and comments to generate formatted output
+
 ## Examples
 
 Check out the `examples/` directory for sample QASM files and usage examples:
