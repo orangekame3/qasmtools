@@ -29,3 +29,4 @@ vendor/
 
 # Task specific
 .task/
+vscode-qasm/node_modules/
