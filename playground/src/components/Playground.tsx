@@ -28,6 +28,18 @@ export default function Playground() {
   const [inputCode, setInputCode] = useState(DEFAULT_QASM);
   const [outputCode, setOutputCode] = useState('');
   const [isFormatting, setIsFormatting] = useState(false);
+  const [fontSize, setFontSize] = useState(20);
+
+  useEffect(() => {
+    const updateFontSize = () => {
+      setFontSize(window.innerWidth < 768 ? 14 : 20);
+    };
+
+    updateFontSize();
+    window.addEventListener('resize', updateFontSize);
+    return () => window.removeEventListener('resize', updateFontSize);
+  }, []);
+
   const [formatError, setFormatError] = useState<string | null>(null);
   const [showSampleSelector, setShowSampleSelector] = useState(false);
   const [tokens, setTokens] = useState<TokenInfo[]>([]);
@@ -357,7 +369,7 @@ export default function Playground() {
               options={{
                 minimap: { enabled: false },
                 scrollBeyondLastLine: true,
-                fontSize: 20,
+                fontSize: fontSize,
                 lineNumbers: 'on',
                 roundedSelection: false,
                 scrollbar: { useShadows: false },
@@ -436,7 +448,7 @@ export default function Playground() {
                   readOnly: true,
                   minimap: { enabled: false },
                   scrollBeyondLastLine: true,
-                fontSize: 20,
+                fontSize: fontSize,
                 lineNumbers: 'on',
                   roundedSelection: false,
                   scrollbar: { useShadows: false },
