@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  basePath: '/qasmtools',
   trailingSlash: true,
   images: {
     unoptimized: true

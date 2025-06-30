@@ -5,6 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://orangekame3.github.io/qasmtools'),
   title: 'QASM Tools Playground',
   description: 'Online playground for OpenQASM 3.0 formatting and validation',
   keywords: ['QASM', 'OpenQASM', 'quantum', 'formatter', 'playground'],
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
     url: 'https://orangekame3.github.io/qasmtools/',
     images: [
       {
-        url: '/og-image.png',
+        url: '/qasmtools/og-image.png',
         width: 1200,
         height: 630,
         alt: 'QASM Tools Playground',
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'QASM Tools Playground',
     description: 'Online playground for OpenQASM 3.0 formatting and validation',
-    images: ['/og-image.png'],
+    images: ['/qasmtools/og-image.png'],
   },
 }
 

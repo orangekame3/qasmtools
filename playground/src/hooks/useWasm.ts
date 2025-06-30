@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
 
 interface WasmResult {
   success: boolean;
@@ -18,7 +17,6 @@ export const useWasm = () => {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wasmModule, setWasmModule] = useState<WasmModule | null>(null);
-  const router = useRouter();
 
   const loadWasm = useCallback(async () => {
     if (isReady || isLoading) return;
@@ -27,10 +25,11 @@ export const useWasm = () => {
     setError(null);
 
     try {
-      const basePath = router.basePath || '';
+      if (typeof window === 'undefined') return; // Skip during SSR
+
       // Load wasm_exec.js
       const wasmExecScript = document.createElement('script');
-      wasmExecScript.src = `${basePath}/wasm/wasm_exec.js`;
+      wasmExecScript.src = '/qasmtools/wasm/wasm_exec.js';
 
       await new Promise<void>((resolve, reject) => {
         wasmExecScript.onload = () => resolve();
@@ -40,7 +39,7 @@ export const useWasm = () => {
 
       // Initialize Go WebAssembly
       const go = new (window as unknown as { Go: new () => { importObject: WebAssembly.Imports; run: (instance: WebAssembly.Instance) => void } }).Go();
-      const wasmResponse = await fetch(`${basePath}/wasm/qasmtools.wasm`);
+      const wasmResponse = await fetch('/qasmtools/wasm/qasmtools.wasm');
       const wasmBytes = await wasmResponse.arrayBuffer();
       const wasmModule = await WebAssembly.instantiate(wasmBytes, go.importObject);
 
@@ -71,7 +70,7 @@ export const useWasm = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isReady, isLoading, router.basePath]);
+  }, [isReady, isLoading]);
 
   const formatQASM = useCallback((code: string): Promise<WasmResult> => {
     return new Promise((resolve) => {
