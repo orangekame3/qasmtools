@@ -1,0 +1,17 @@
+id: QAS003
+name: max-qubits
+description: "Warns if qubit count exceeds threshold."
+level: warning
+enabled: true
+
+match:
+  type: declaration
+  kind: qubit
+
+check:
+  - type: count
+    max: 100
+
+message: "Program uses too many qubits (maximum recommended: 100)."
+tags: [qasm3, performance, scale]
+fixable: false
