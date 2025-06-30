@@ -1,12 +1,14 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"strings"
 	"syscall/js"
 
 	"github.com/orangekame3/qasmtools/formatter"
 	"github.com/orangekame3/qasmtools/highlight"
+	// "github.com/orangekame3/qasmtools/lint" // Temporarily disabled
 )
 
 func main() {
@@ -26,6 +28,11 @@ func main() {
 	// Temporarily disabled to debug issues
 	highlightFunc := js.FuncOf(highlightQASM)
 	js.Global().Set("highlightQASM", highlightFunc)
+
+	// Export lintQASM function to JavaScript
+	// Temporarily disabled to debug WASM stability issues
+	// lintFunc := js.FuncOf(lintQASM)
+	// js.Global().Set("lintQASM", lintFunc)
 
 	// Signal that functions are ready
 	js.Global().Set("qasmToolsReady", js.ValueOf(true))
@@ -134,3 +141,77 @@ func convertTokensToJS(tokens []highlight.TokenInfo) []map[string]interface{} {
 	}
 	return result
 }
+
+/*
+// Temporarily disabled to debug WASM stability issues
+func lintQASM(this js.Value, args []js.Value) interface{} {
+	defer func() {
+		if r := recover(); r != nil {
+			js.Global().Get("console").Call("error", fmt.Sprintf("lintQASM panic: %v", r))
+		}
+	}()
+
+	if len(args) != 1 {
+		return map[string]interface{}{
+			"success": false,
+			"error":   "Expected exactly one argument (QASM code)",
+		}
+	}
+
+	qasmCode := args[0].String()
+	if strings.TrimSpace(qasmCode) == "" {
+		return map[string]interface{}{
+			"success":    true,
+			"violations": []map[string]interface{}{},
+		}
+	}
+
+	// Create linter with built-in rules (no need for rules directory in WASM)
+	linter := lint.NewLinter("")
+
+	// Load built-in rules
+	err := linter.LoadRules()
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to load lint rules: %v", err),
+		}
+	}
+
+	// Lint the QASM code
+	violations, err := linter.LintContent(qasmCode, "input.qasm")
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to lint QASM: %v", err),
+		}
+	}
+
+	// Convert violations to JavaScript-friendly format
+	return map[string]interface{}{
+		"success":    true,
+		"violations": convertViolationsToJS(violations),
+	}
+}
+
+// convertViolationsToJS converts violations to a JavaScript-friendly format
+func convertViolationsToJS(violations []*lint.Violation) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(violations))
+	for i, violation := range violations {
+		result[i] = map[string]interface{}{
+			"file":     violation.File,
+			"line":     violation.Line,
+			"column":   violation.Column,
+			"severity": violation.Severity,
+			"message":  violation.Message,
+			"rule": map[string]interface{}{
+				"id":               violation.Rule.ID,
+				"name":             violation.Rule.Name,
+				"description":      violation.Rule.Description,
+				"documentationUrl": violation.Rule.DocumentationURL,
+			},
+		}
+	}
+	return result
+}
+*/
