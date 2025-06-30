@@ -11,7 +11,7 @@
 
 * **QASM 3.0 Parsing**: Parses OpenQASM 3.0 files into an Abstract Syntax Tree (AST).
 * **QASM 3.0 Formatting**: Formats QASM 3.0 files to adhere to a consistent style.
-* **QASM 3.0 Linting**: Checks QASM files for style and semantic issues using configurable YAML-based rules.
+* **QASM 3.0 Linting**: Checks QASM files for style and semantic issues using configurable YAML-based rules with documentation URLs for each violation.
 * **VSCode Extension**: Provides language support for OpenQASM 3.0 in Visual Studio Code with syntax highlighting, formatting, and Language Server Protocol (LSP) integration.
 
 ## Installation
@@ -107,9 +107,28 @@ qasm lint --rules=custom/rules input.qasm
 
 #### Built-in Rules
 
-- **QAS001**: `no-unused-qubit` - Detects qubits that are declared but never used
-- **QAS002**: `gate-naming-convention` - Enforces naming conventions for gates
-- **QAS003**: `max-qubits` - Warns if qubit count exceeds threshold
+The linter includes 5 built-in rules to ensure code quality and correctness:
+
+- **QAS001** `unused-qubit` - Detects qubits that are declared but never used in gates or measurements
+- **QAS002** `insufficient-classical-bits` - Detects when the number of classical bits is insufficient for measurements
+- **QAS003** `constant-measured-bit` - Detects measurements of qubits that have not been affected by any gates, resulting in constant outcomes
+- **QAS004** `exceeding-qubit-limits` - Detects when qubit or classical bit array indices exceed declared bounds
+- **QAS005** `naming-convention-violation` - Detects violations of OpenQASM naming conventions for variables and circuits
+
+Each rule violation includes a documentation URL for detailed explanations and examples.
+
+#### Output Example
+
+```
+input.qasm:5:7: warning [QAS001] Qubit 'unused_qubit' is declared but never used. (https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS001.md)
+input.qasm:8:12: error [QAS002] Insufficient classical bits for measurements. Need 2 but only 1 declared. (https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS002.md)
+
+📊 Found 2 issues: 1 errors, 1 warnings, 0 info
+```
+
+#### Rule Documentation
+
+Detailed documentation for each rule is available at [docs/rules/](docs/rules/README.md) with examples and explanations.
 
 ## VSCode Extension
 
@@ -121,6 +140,7 @@ The `vscode-qasm` extension provides comprehensive OpenQASM 3.0 language support
 * **Code Formatting**: Automatic code formatting with `Shift+Alt+F` (Windows/Linux) or `Shift+Option+F` (Mac)
 * **Semantic Tokens**: Advanced token-based highlighting for better code readability
 * **Language Server Integration**: Real-time parsing and analysis through LSP
+* **Built-in Linting**: Powered by the same YAML-based rule engine as the CLI tool
 
 ### Installation
 
@@ -179,6 +199,7 @@ task vscode:logs
   * `gen/`: Contains generated parser code
 * `formatter/`: Implements the QASM 3.0 formatting logic
 * `lint/`: QASM 3.0 linting engine with YAML-based rules
+  * `rules/`: Built-in rule definitions (QAS001-QAS005)
 * `highlight/`: Syntax highlighting implementation for LSP
 * `vscode-qasm/`: VSCode extension for OpenQASM 3.0 language support
   * `syntaxes/`: TextMate grammar for syntax highlighting
