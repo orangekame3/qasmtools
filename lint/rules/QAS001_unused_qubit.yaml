@@ -1,6 +1,6 @@
 id: QAS001
-name: no-unused-qubit
-description: "Detects qubits that are declared but never used."
+name: unused-qubit
+description: "Detects qubits that are declared but never used in gates or measurements."
 level: warning
 enabled: true
 
@@ -13,5 +13,5 @@ check:
     not_found: true
 
 message: "Qubit '{{ name }}' is declared but never used."
-tags: [qasm3, readability]
+tags: [qasm3, readability, unused-variables]
 fixable: false
