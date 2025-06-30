@@ -39,7 +39,7 @@ export const useWasm = () => {
       });
 
       // Initialize Go WebAssembly
-      const go = new (window as any).Go();
+      const go = new (window as unknown as { Go: new () => { importObject: WebAssembly.Imports } }).Go();
       const wasmResponse = await fetch(`${basePath}/qasmtools.wasm`);
       const wasmBytes = await wasmResponse.arrayBuffer();
       const wasmModule = await WebAssembly.instantiate(wasmBytes, go.importObject);
@@ -50,7 +50,7 @@ export const useWasm = () => {
       // Wait for the formatQASM function to be available
       await new Promise<void>((resolve) => {
         const checkFunction = () => {
-          if ((window as any).formatQASM) {
+          if ((window as unknown as { formatQASM: unknown }).formatQASM) {
             resolve();
           } else {
             setTimeout(checkFunction, 100);
@@ -60,7 +60,7 @@ export const useWasm = () => {
       });
 
       setWasmModule({
-        formatQASM: (window as any).formatQASM
+        formatQASM: (window as unknown as WasmModule).formatQASM
       });
 
       setIsReady(true);
@@ -71,7 +71,7 @@ export const useWasm = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isReady, isLoading]);
+  }, [isReady, isLoading, router.basePath]);
 
   const formatQASM = useCallback((code: string): Promise<WasmResult> => {
     return new Promise((resolve) => {

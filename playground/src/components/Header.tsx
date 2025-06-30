@@ -2,15 +2,9 @@
 
 import { useState, useEffect } from 'react';
 
-interface HeaderProps {
-  onLoadExample: () => void;
-  onClear: () => void;
-  onFormat: () => void;
-  isFormatting: boolean;
-  canFormat: boolean;
-}
 
-export default function Header({ onLoadExample, onClear, onFormat, isFormatting, canFormat }: HeaderProps) {
+
+export default function Header() {
   const [theme, setTheme] = useState('qasm');
 
   useEffect(() => {
