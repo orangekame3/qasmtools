@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Monaco Editor customizations */
+.monaco-editor {
+  @apply rounded-lg;
+}
+
+/* Custom scrollbar for better appearance */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-base-200;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-base-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-neutral;
+}
+
+/* Layout adjustments for better code visibility */
+.editor-container {
+  height: calc(100vh - 8rem);
+}
+
+@media (max-width: 768px) {
+  .editor-container {
+    height: calc(50vh - 4rem);
+  }
+}

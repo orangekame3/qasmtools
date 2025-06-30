@@ -1,0 +1,91 @@
+name: Deploy Playground to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'playground/**'
+      - 'cmd/wasm/**'
+      - 'formatter/**'
+      - 'parser/**'
+      - '.github/workflows/deploy-playground.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'playground/**'
+      - 'cmd/wasm/**'
+      - 'formatter/**'
+      - 'parser/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: playground/package-lock.json
+
+    - name: Install Go dependencies
+      run: go mod download
+
+    - name: Build WebAssembly
+      run: |
+        mkdir -p bin/wasm
+        GOOS=js GOARCH=wasm go build -o bin/wasm/qasmtools.wasm ./cmd/wasm
+        cp $(go env GOROOT)/lib/wasm/wasm_exec.js bin/wasm/
+
+    - name: Install Node.js dependencies
+      working-directory: ./playground
+      run: npm ci
+
+    - name: Copy WASM files to public directory
+      run: cp -r bin/wasm playground/public/
+
+    - name: Build Next.js app
+      working-directory: ./playground
+      run: |
+        npm run build
+        touch out/.nojekyll
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+      with:
+        static_site_generator: next
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./playground/out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
