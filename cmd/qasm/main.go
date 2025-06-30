@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/fang"
 	"github.com/orangekame3/qasmtools/formatter"
 	"github.com/orangekame3/qasmtools/highlight"
+	"github.com/orangekame3/qasmtools/lint"
 	"github.com/spf13/cobra"
 )
 
@@ -78,7 +79,27 @@ func init() {
 	// Add flags to highlight command
 	highlightCmd.Flags().StringP("file", "f", "", "file to highlight")
 
-	rootCmd.AddCommand(fmtCmd, highlightCmd)
+	// Add lint subcommand
+	lintCmd := &cobra.Command{
+		Use:   "lint [files...]",
+		Short: "Lint QASM files",
+		Long:  `Check QASM files for style and semantic issues using configurable rules.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return fmt.Errorf("at least one file is required")
+			}
+			return runLint(cmd, args)
+		},
+	}
+
+	// Add flags to lint command
+	lintCmd.Flags().String("rules", "", "directory containing rule files (default: use embedded rules)")
+	lintCmd.Flags().StringSliceP("disable", "d", []string{}, "disable specific rules (e.g., QAS001,QAS002)")
+	lintCmd.Flags().StringSliceP("enable-only", "e", []string{}, "enable only specific rules")
+	lintCmd.Flags().String("format", "text", "output format (text, json)")
+	lintCmd.Flags().BoolP("quiet", "q", false, "suppress info and warning messages")
+
+	rootCmd.AddCommand(fmtCmd, highlightCmd, lintCmd)
 }
 
 func getConfigFromFlags(cmd *cobra.Command) (*formatter.Config, error) {
@@ -249,5 +270,117 @@ func runHighlight(filename string) error {
 func showDiff(filename, original, formatted string) error {
 	// TODO: Implement diff functionality
 	fmt.Printf("Diff functionality not implemented yet for %s\n", filename)
+	return nil
+}
+
+func runLint(cmd *cobra.Command, args []string) error {
+	rulesDir, _ := cmd.Flags().GetString("rules")
+	disabledRules, _ := cmd.Flags().GetStringSlice("disable")
+	enabledOnly, _ := cmd.Flags().GetStringSlice("enable-only")
+	format, _ := cmd.Flags().GetString("format")
+	quiet, _ := cmd.Flags().GetBool("quiet")
+
+	// Create linter
+	linter := lint.NewLinter(rulesDir)
+
+	// Load rules
+	err := linter.LoadRules()
+	if err != nil {
+		return fmt.Errorf("failed to load rules: %w", err)
+	}
+
+	// Lint files
+	violations, err := linter.LintFiles(args)
+	if err != nil {
+		return fmt.Errorf("failed to lint files: %w", err)
+	}
+
+	// Filter violations based on flags
+	filteredViolations := filterViolations(violations, disabledRules, enabledOnly, quiet)
+
+	// Output results
+	switch format {
+	case "json":
+		return outputJSON(filteredViolations)
+	default:
+		return outputText(filteredViolations)
+	}
+}
+
+func filterViolations(violations []*lint.Violation, disabled []string, enabledOnly []string, quiet bool) []*lint.Violation {
+	var filtered []*lint.Violation
+
+	disabledMap := make(map[string]bool)
+	for _, rule := range disabled {
+		disabledMap[rule] = true
+	}
+
+	enabledMap := make(map[string]bool)
+	for _, rule := range enabledOnly {
+		enabledMap[rule] = true
+	}
+
+	for _, violation := range violations {
+		// Skip disabled rules
+		if disabledMap[violation.Rule.ID] {
+			continue
+		}
+
+		// If enable-only is specified, only include those rules
+		if len(enabledOnly) > 0 && !enabledMap[violation.Rule.ID] {
+			continue
+		}
+
+		// Skip info messages if quiet
+		if quiet && violation.Severity == lint.SeverityInfo {
+			continue
+		}
+
+		filtered = append(filtered, violation)
+	}
+
+	return filtered
+}
+
+func outputText(violations []*lint.Violation) error {
+	if len(violations) == 0 {
+		fmt.Println("✅ No issues found")
+		return nil
+	}
+
+	for _, violation := range violations {
+		fmt.Println(violation.String())
+	}
+
+	// Summary
+	errorCount := 0
+	warningCount := 0
+	infoCount := 0
+
+	for _, violation := range violations {
+		switch violation.Severity {
+		case lint.SeverityError:
+			errorCount++
+		case lint.SeverityWarning:
+			warningCount++
+		case lint.SeverityInfo:
+			infoCount++
+		}
+	}
+
+	fmt.Printf("\n📊 Found %d issues: %d errors, %d warnings, %d info\n",
+		len(violations), errorCount, warningCount, infoCount)
+
+	// Exit with error code if there are errors
+	if errorCount > 0 {
+		os.Exit(1)
+	}
+
+	return nil
+}
+
+func outputJSON(violations []*lint.Violation) error {
+	// TODO: Implement JSON output
+	fmt.Println("JSON output not implemented yet")
 	return nil
 }

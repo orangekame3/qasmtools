@@ -99,7 +99,7 @@ func textDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 		for i, changeInterface := range params.ContentChanges {
 			if change, ok := changeInterface.(protocol.TextDocumentContentChangeEvent); ok {
 				log.Info("Processing change", "index", i, "text_length", len(change.Text), "has_range", change.Range != nil)
-				
+
 				// Check if this is a full document change (no range specified)
 				if change.Range == nil {
 					// Full document replacement - this is what we want for format results
@@ -109,7 +109,7 @@ func textDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 				}
 			}
 		}
-		
+
 		// If we only have incremental changes from formatting, don't update the cache
 		// The formatter has already updated the cache, so incremental changes might be inconsistent
 		log.Info("Only incremental changes detected - skipping document cache update to preserve formatter consistency")

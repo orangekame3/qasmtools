@@ -11,6 +11,7 @@
 
 * **QASM 3.0 Parsing**: Parses OpenQASM 3.0 files into an Abstract Syntax Tree (AST).
 * **QASM 3.0 Formatting**: Formats QASM 3.0 files to adhere to a consistent style.
+* **QASM 3.0 Linting**: Checks QASM files for style and semantic issues using configurable YAML-based rules.
 * **VSCode Extension**: Provides language support for OpenQASM 3.0 in Visual Studio Code with syntax highlighting, formatting, and Language Server Protocol (LSP) integration.
 
 ## Installation
@@ -34,7 +35,7 @@ To build `qasmtools` from source, ensure you have Go installed (version 1.16 or 
 
 ## Usage
 
-The `qasm` executable provides two main commands: `fmt` for formatting and `parse` for parsing QASM files.
+The `qasm` executable provides three main commands: `fmt` for formatting, `lint` for linting, and `highlight` for syntax highlighting of QASM files.
 
 ### Formatting QASM Files
 
@@ -69,19 +70,46 @@ qasm fmt --check *.qasm
 qasm fmt -i 4 input.qasm
 ```
 
-### Parsing QASM Files
+### Linting QASM Files
 
-To parse and validate a QASM file:
-
-```bash
-qasm parse <file>
-```
-
-Example:
+To check QASM files for style and semantic issues:
 
 ```bash
-qasm parse input.qasm
+qasm lint [files...]
 ```
+
+Options:
+
+- `--rules`: Directory containing custom rule files (default: use embedded rules)
+- `-d, --disable`: Disable specific rules (e.g., QAS001,QAS002)
+- `-e, --enable-only`: Enable only specific rules
+- `--format`: Output format (text, json)
+- `-q, --quiet`: Suppress info and warning messages
+
+Examples:
+
+```bash
+# Lint a single file
+qasm lint input.qasm
+
+# Lint multiple files
+qasm lint *.qasm
+
+# Disable specific rules
+qasm lint --disable=QAS001,QAS003 input.qasm
+
+# Enable only specific rules
+qasm lint --enable-only=QAS002 input.qasm
+
+# Use custom rules directory
+qasm lint --rules=custom/rules input.qasm
+```
+
+#### Built-in Rules
+
+- **QAS001**: `no-unused-qubit` - Detects qubits that are declared but never used
+- **QAS002**: `gate-naming-convention` - Enforces naming conventions for gates
+- **QAS003**: `max-qubits` - Warns if qubit count exceeds threshold
 
 ## VSCode Extension
 
@@ -150,6 +178,7 @@ task vscode:logs
   * `grammar/`: Contains the ANTLR grammar files for QASM 3.0
   * `gen/`: Contains generated parser code
 * `formatter/`: Implements the QASM 3.0 formatting logic
+* `lint/`: QASM 3.0 linting engine with YAML-based rules
 * `highlight/`: Syntax highlighting implementation for LSP
 * `vscode-qasm/`: VSCode extension for OpenQASM 3.0 language support
   * `syntaxes/`: TextMate grammar for syntax highlighting
