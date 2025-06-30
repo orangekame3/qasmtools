@@ -32,13 +32,17 @@ func (c *ExceedingQubitLimitsChecker) CheckProgram(context *CheckContext) []*Vio
 func (c *ExceedingQubitLimitsChecker) checkFileTextBased(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content
-	content, err := os.ReadFile(context.File)
-	if err != nil {
-		return violations
+	// Use content from context (works for both file-based and LSP content)
+	text := context.Content
+	if text == "" {
+		// Fallback to reading file if content not provided
+		content, err := os.ReadFile(context.File)
+		if err != nil {
+			return violations
+		}
+		text = string(content)
 	}
 
-	text := string(content)
 	lines := strings.Split(text, "\n")
 
 	// Build map of declared arrays and their sizes

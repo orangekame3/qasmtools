@@ -174,6 +174,20 @@ code --install-extension vscode-qasm-*.vsix
    - Code formatting capabilities
    - Semantic token highlighting
 
+### Demonstration
+
+#### Syntax Highlighting Example
+
+![vscode highlight](img/vscode-highlight.png)
+
+#### Code Formatting Example
+
+![vscode formatting](img/vscode-format.gif)
+
+#### Linting Example
+
+![vscode linting](img/vscode-linting.png)
+
 ### Development Commands
 
 ```bash

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/orangekame3/qasmtools/formatter"
 	"github.com/orangekame3/qasmtools/highlight"
+	"github.com/orangekame3/qasmtools/lint"
 	_ "github.com/tliron/commonlog/simple"
 )
 
@@ -24,11 +26,24 @@ var (
 	documents      = make(map[protocol.DocumentUri]string)
 	lastFormatTime = make(map[protocol.DocumentUri]time.Time)
 	formatMutex    sync.RWMutex
+	linter         *lint.Linter
 )
 
 func main() {
 	commonlog.Configure(1, nil) // Lower log level for more verbose output
 	log.Info("qasmlsp server starting")
+	
+	// Initialize linter
+	linter = lint.NewLinter("")
+	if err := linter.LoadRules(); err != nil {
+		log.Error("Failed to load linting rules", "error", err)
+	} else {
+		rules := linter.GetRules()
+		log.Info("Linting rules loaded successfully", "rule_count", len(rules))
+		for i, rule := range rules {
+			log.Info("Rule loaded", "index", i, "id", rule.ID, "name", rule.Name, "enabled", rule.Enabled)
+		}
+	}
 
 	handler = protocol.Handler{
 		Initialize:                     initialize,
@@ -88,6 +103,15 @@ func textDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocu
 	log.Info("Document opened", "uri", params.TextDocument.URI)
 	documents[params.TextDocument.URI] = params.TextDocument.Text
 	log.Info("Document content stored", "uri", params.TextDocument.URI, "content_length", len(params.TextDocument.Text))
+	
+	// Run linting on newly opened document
+	if linter != nil {
+		log.Info("Running linting on opened document", "uri", params.TextDocument.URI)
+		violations := runLinting(params.TextDocument.Text, string(params.TextDocument.URI))
+		log.Info("Linting completed", "violations_count", len(violations))
+		publishDiagnostics(context, params.TextDocument.URI, violations)
+	}
+	
 	return nil
 }
 
@@ -105,6 +129,14 @@ func textDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 					// Full document replacement - this is what we want for format results
 					documents[params.TextDocument.URI] = change.Text
 					log.Info("Full document replacement applied", "new_length", len(change.Text))
+					
+					// Run linting on updated document content
+					if linter != nil {
+						log.Info("Running linting on changed document", "uri", params.TextDocument.URI)
+						violations := runLinting(change.Text, string(params.TextDocument.URI))
+						log.Info("Linting completed", "violations_count", len(violations))
+						publishDiagnostics(context, params.TextDocument.URI, violations)
+					}
 					return nil
 				}
 			}
@@ -305,6 +337,83 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// convertViolationsToDiagnostics converts lint violations to LSP diagnostics
+func convertViolationsToDiagnostics(violations []*lint.Violation) []protocol.Diagnostic {
+	var diagnostics []protocol.Diagnostic
+	
+	for _, violation := range violations {
+		severity := protocol.DiagnosticSeverityInformation
+		switch violation.Severity {
+		case lint.SeverityError:
+			severity = protocol.DiagnosticSeverityError
+		case lint.SeverityWarning:
+			severity = protocol.DiagnosticSeverityWarning
+		case lint.SeverityInfo:
+			severity = protocol.DiagnosticSeverityInformation
+		}
+		
+		// Convert 1-based line/column to 0-based for LSP
+		line := uint32(violation.Line - 1)
+		column := uint32(violation.Column)
+		
+		// Create code as IntegerOrString
+		code := protocol.IntegerOrString{Value: violation.Rule.ID}
+		source := "qasm-lint"
+		
+		diagnostic := protocol.Diagnostic{
+			Range: protocol.Range{
+				Start: protocol.Position{Line: line, Character: column},
+				End:   protocol.Position{Line: line, Character: column + 10}, // Estimate end position
+			},
+			Severity: &severity,
+			Code:     &code,
+			Source:   &source,
+			Message:  violation.Message,
+		}
+		
+		diagnostics = append(diagnostics, diagnostic)
+	}
+	
+	return diagnostics
+}
+
+// publishDiagnostics sends diagnostics to the client
+func publishDiagnostics(context *glsp.Context, uri protocol.DocumentUri, violations []*lint.Violation) {
+	diagnostics := convertViolationsToDiagnostics(violations)
+	
+	params := protocol.PublishDiagnosticsParams{
+		URI:         uri,
+		Diagnostics: diagnostics,
+	}
+	
+	context.Notify(protocol.ServerTextDocumentPublishDiagnostics, params)
+	log.Info("Published diagnostics", "uri", uri, "count", len(diagnostics))
+}
+
+// runLinting runs linting on document content and returns violations
+func runLinting(content string, filename string) []*lint.Violation {
+	if linter == nil {
+		log.Error("Linter not initialized")
+		return nil
+	}
+	
+	log.Info("Starting lint process", "filename", filename, "content_length", len(content))
+	log.Info("Linter state", "linter_ptr", fmt.Sprintf("%p", linter), "rules_count", len(linter.GetRules()))
+	
+	violations, err := linter.LintContent(content, filename)
+	if err != nil {
+		log.Error("Linting failed", "error", err)
+		return nil
+	}
+	
+	log.Info("Lint process completed", "violations_found", len(violations))
+	for i, violation := range violations {
+		log.Info("Violation found", "index", i, "rule", violation.Rule.ID, "message", violation.Message, "line", violation.Line, "column", violation.Column)
+	}
+	
+	return violations
 }
 
 func splitLines(text string) []string {
