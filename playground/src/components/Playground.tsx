@@ -67,20 +67,20 @@ export default function Playground() {
 
     try {
       const result = await highlightQASM(code);
-      
+
       if (!result) {
         console.warn('No result from highlightQASM');
         return;
       }
-      
+
       if (result.success && result.tokens) {
         setTokens(result.tokens);
-        
+
         // Clear previous decorations
         if (decorationsRef.current.length > 0) {
           editorRef.current.deltaDecorations(decorationsRef.current, []);
         }
-        
+
         // Apply new decorations
         const decorations = tokensToDecorations(result.tokens, monacoInstance);
         decorationsRef.current = editorRef.current.deltaDecorations([], decorations);
@@ -97,15 +97,15 @@ export default function Playground() {
 
     try {
       const result = await lintQASM(code);
-      
+
       if (!result) {
         console.warn('No result from lintQASM');
         return;
       }
-      
+
       if (result.success && result.violations) {
         setViolations(result.violations);
-        
+
         // Convert violations to Monaco markers
         const markers = result.violations.map(violation => ({
           startLineNumber: violation.line,
@@ -113,10 +113,10 @@ export default function Playground() {
           endLineNumber: violation.line,
           endColumn: violation.column + 10, // Estimate end column
           message: `${violation.message} (${violation.rule.id})`,
-          severity: violation.severity === 'error' ? 
-            monacoInstance.MarkerSeverity.Error : 
-            violation.severity === 'warning' ? 
-              monacoInstance.MarkerSeverity.Warning : 
+          severity: violation.severity === 'error' ?
+            monacoInstance.MarkerSeverity.Error :
+            violation.severity === 'warning' ?
+              monacoInstance.MarkerSeverity.Warning :
               monacoInstance.MarkerSeverity.Info,
           code: violation.rule.id,
           source: 'qasm-lint'
@@ -130,7 +130,7 @@ export default function Playground() {
       } else if (!result.success) {
         console.warn('Linting failed:', result.error);
         setViolations([]);
-        
+
         // Clear markers
         const model = editorRef.current.getModel();
         if (model) {
@@ -146,10 +146,10 @@ export default function Playground() {
   const handleEditorDidMount = useCallback((editor: import('monaco-editor').editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
     editorRef.current = editor;
     setMonacoInstance(monaco);
-    
+
     // Register QASM language
     registerQasmLanguage(monaco);
-    
+
     // Initial syntax highlighting
     // Temporarily disabled to debug WASM issues
     // if (inputCode) {
@@ -160,7 +160,7 @@ export default function Playground() {
   const handleCodeChange = useCallback((value: string | undefined) => {
     const newCode = value || '';
     setInputCode(newCode);
-    
+
     // Update syntax highlighting and linting with debouncing
     if (wasmReady && newCode.trim()) {
       setTimeout(() => {
@@ -193,7 +193,7 @@ export default function Playground() {
 
     const button = e.currentTarget as HTMLButtonElement;
     const spanElement = button.querySelector('span');
-    
+
     try {
       // Check if clipboard API is available
       if (navigator?.clipboard?.writeText) {
@@ -223,7 +223,7 @@ export default function Playground() {
       if (spanElement) {
         const originalText = spanElement.textContent || 'Copy';
         spanElement.textContent = 'Copied!';
-        
+
         setTimeout(() => {
           if (spanElement) {
             spanElement.textContent = originalText;
@@ -232,12 +232,12 @@ export default function Playground() {
       }
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
-      
+
       // Show error feedback
       if (spanElement) {
         const originalText = spanElement.textContent || 'Copy';
         spanElement.textContent = 'Failed!';
-        
+
         setTimeout(() => {
           if (spanElement) {
             spanElement.textContent = originalText;
@@ -346,18 +346,18 @@ export default function Playground() {
               </button>
             </div>
           </div>
-          <div className="flex-1 p-0 min-h-0 editor-container">
+          <div className="flex-1 p-0 min-h-0 editor-container bg-[#1e1e1e]">
             <MonacoEditor
               height="100%"
               language="qasm"
-              theme="qasm-theme"
+              theme="vs-dark"
               value={inputCode}
               onChange={handleCodeChange}
               onMount={handleEditorDidMount}
               options={{
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
-                fontSize: 13,
+                fontSize: 20,
                 lineNumbers: 'on',
                 roundedSelection: false,
                 scrollbar: { useShadows: false },
@@ -408,7 +408,7 @@ export default function Playground() {
               </button>
             )}
           </div>
-          <div className="flex-1 p-0 min-h-0 editor-container">
+          <div className="flex-1 p-0 min-h-0 editor-container bg-[#1e1e1e]">
             {!outputCode && !formatError ? (
               <div className="flex items-center justify-center h-full text-center">
                 <div className="px-4">
@@ -430,14 +430,14 @@ export default function Playground() {
               <MonacoEditor
                 height="100%"
                 language="qasm"
-                theme="qasm-theme"
+                theme="vs-dark"
                 value={outputCode}
                 options={{
                   readOnly: true,
                   minimap: { enabled: false },
                   scrollBeyondLastLine: false,
-                  fontSize: 13,
-                  lineNumbers: 'on',
+                fontSize: 20,
+                lineNumbers: 'on',
                   roundedSelection: false,
                   scrollbar: { useShadows: false },
                   automaticLayout: true,
@@ -512,7 +512,7 @@ export default function Playground() {
                     <div className="opacity-70">
                       Rule: {violation.rule.id} ({violation.rule.name})
                       {violation.rule.documentationUrl && (
-                        <a 
+                        <a
                           href={violation.rule.documentationUrl}
                           target="_blank"
                           rel="noopener noreferrer"
