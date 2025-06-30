@@ -157,8 +157,9 @@ export const qasmMonarchLanguage: monaco.languages.IMonarchLanguage = {
 // Custom theme for QASM highlighting
 export const qasmTheme: monaco.editor.IStandaloneThemeData = {
   base: 'vs-dark',
-  inherit: true,
+  inherit: false,
   rules: [
+    { token: '', foreground: 'D4D4D4' }, // Default text color
     { token: 'keyword', foreground: 'C586C0' }, // Purple
     { token: 'keyword.builtin', foreground: 'C586C0' }, // Purple
     { token: 'keyword.gate', foreground: 'C586C0' }, // Purple

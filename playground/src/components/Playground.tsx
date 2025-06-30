@@ -291,7 +291,7 @@ export default function Playground() {
   }
 
   return (
-    <div className="h-screen bg-base-100 flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#1e1e1e] text-white flex flex-col overflow-hidden">
       {/* Header */}
       <Header
         onLoadExample={handleLoadExample}
@@ -304,8 +304,8 @@ export default function Playground() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row mx-0">
         {/* Input Panel */}
-        <div className="flex-1 flex flex-col border-r-0 md:border-r border-base-300 min-h-0 bg-base-100 rounded-t-lg md:rounded-l-lg md:rounded-tr-none shadow-sm">
-          <div className="bg-base-200 px-2 md:px-4 py-3 border-b border-base-300 rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div className="flex-1 flex flex-col border-r-0 md:border-r border-[#2d2d2d] min-h-0 bg-[#252526] rounded-t-lg md:rounded-l-lg md:rounded-tr-none shadow-sm">
+          <div className="bg-[#2d2d2d] px-2 md:px-4 py-3 border-b border-[#2d2d2d] rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Input QASM Code</h2>
               <p className="text-xs opacity-70 hidden sm:block">Write or paste your OpenQASM 3.0 code here</p>
@@ -388,8 +388,8 @@ export default function Playground() {
         </div>
 
         {/* Output Panel */}
-        <div className="flex-1 flex flex-col border-t md:border-t-0 border-base-300 min-h-0 bg-base-100 rounded-b-lg md:rounded-r-lg md:rounded-bl-none shadow-sm">
-          <div className="bg-base-200 px-2 md:px-4 py-3 border-b border-base-300 md:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div className="flex-1 flex flex-col border-t md:border-t-0 border-[#2d2d2d] min-h-0 bg-[#252526] rounded-b-lg md:rounded-r-lg md:rounded-bl-none shadow-sm">
+          <div className="bg-[#2d2d2d] px-2 md:px-4 py-3 border-b border-[#2d2d2d] md:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Formatted Output</h2>
               <p className="text-xs opacity-70 hidden sm:block">
@@ -455,7 +455,7 @@ export default function Playground() {
 
       {/* Simple Status Bar */}
       {(isFormatting || formatError || outputCode || violations.length > 0) && (
-        <div className="bg-base-200 border-t border-base-300 px-2 py-1 space-y-1">
+        <div className="bg-[#2d2d2d] border-t border-[#2d2d2d] px-2 py-1 space-y-1">
           {isFormatting && (
             <div className="flex items-center gap-2 text-info">
               <div className="loading loading-spinner loading-sm"></div>
