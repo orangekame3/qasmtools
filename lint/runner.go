@@ -10,8 +10,8 @@ import (
 
 // Linter is the main linter engine
 type Linter struct {
-	rules   []*Rule
-	loader  *RuleLoader
+	rules    []*Rule
+	loader   *RuleLoader
 	checkers map[string]RuleChecker
 }
 
@@ -31,7 +31,7 @@ func (l *Linter) LoadRules() error {
 	}
 
 	l.rules = rules
-	
+
 	// Create checkers for each rule
 	for _, rule := range rules {
 		checker := CreateChecker(rule)
@@ -71,13 +71,13 @@ func (l *Linter) LintFile(filename string) ([]*Violation, error) {
 	for _, rule := range l.rules {
 		checker := l.checkers[rule.ID]
 		violations := l.runRuleOnProgram(rule, checker, result.Program, context)
-		
+
 		// Set rule reference for each violation
 		for _, violation := range violations {
 			violation.Rule = rule
 			violation.Severity = rule.Level
 		}
-		
+
 		allViolations = append(allViolations, violations...)
 	}
 
@@ -165,7 +165,7 @@ func (l *Linter) collectSymbolUsage(node parser.Node, usageMap map[string][]pars
 		if id, ok := n.Target.(*parser.Identifier); ok {
 			usageMap[id.Name] = append(usageMap[id.Name], node)
 		}
-	// Add more cases as needed for other statement types
+		// Add more cases as needed for other statement types
 	}
 }
 

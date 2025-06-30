@@ -24,7 +24,7 @@ type RuleLoader struct {
 func NewRuleLoader(rulesDir string) *RuleLoader {
 	// Use embedded rules if no custom directory specified or default directory
 	useEmbedded := rulesDir == "" || rulesDir == "lint/rules"
-	
+
 	return &RuleLoader{
 		rulesDir:    rulesDir,
 		useEmbedded: useEmbedded,

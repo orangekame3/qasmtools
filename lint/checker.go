@@ -16,7 +16,7 @@ func (c *UnusedQubitChecker) Check(node parser.Node, context *CheckContext) []*V
 	// Only check qubit declarations
 	if decl, ok := node.(*parser.QuantumDeclaration); ok && decl.Type == "qubit" {
 		qubitName := decl.Identifier
-		
+
 		// Check if the qubit is used anywhere
 		if usages, exists := context.UsageMap[qubitName]; !exists || len(usages) == 0 {
 			violation := &Violation{
@@ -45,7 +45,7 @@ func NewGateNamingChecker(pattern string) *GateNamingChecker {
 		// Fallback to default pattern
 		regex = regexp.MustCompile("^[a-z][a-z0-9_]*$")
 	}
-	
+
 	return &GateNamingChecker{
 		Pattern: regex,
 	}
@@ -57,7 +57,7 @@ func (c *GateNamingChecker) Check(node parser.Node, context *CheckContext) []*Vi
 	// Only check gate declarations
 	if gate, ok := node.(*parser.GateDefinition); ok {
 		gateName := gate.Name
-		
+
 		if !c.Pattern.MatchString(gateName) {
 			violation := &Violation{
 				File:     context.File,

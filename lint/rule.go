@@ -18,16 +18,16 @@ const (
 
 // Rule represents a lint rule loaded from YAML
 type Rule struct {
-	ID          string    `yaml:"id"`
-	Name        string    `yaml:"name"`
-	Description string    `yaml:"description"`
-	Level       Severity  `yaml:"level"`
-	Enabled     bool      `yaml:"enabled"`
-	Match       Match     `yaml:"match"`
-	Check       []Check   `yaml:"check"`
-	Message     string    `yaml:"message"`
-	Tags        []string  `yaml:"tags"`
-	Fixable     bool      `yaml:"fixable"`
+	ID          string   `yaml:"id"`
+	Name        string   `yaml:"name"`
+	Description string   `yaml:"description"`
+	Level       Severity `yaml:"level"`
+	Enabled     bool     `yaml:"enabled"`
+	Match       Match    `yaml:"match"`
+	Check       []Check  `yaml:"check"`
+	Message     string   `yaml:"message"`
+	Tags        []string `yaml:"tags"`
+	Fixable     bool     `yaml:"fixable"`
 }
 
 // Match defines what AST nodes to match
@@ -38,7 +38,7 @@ type Match struct {
 
 // Check defines what to check on matched nodes
 type Check struct {
-	Type     string `yaml:"type"`     // usage, naming, count, etc.
+	Type     string `yaml:"type"`      // usage, naming, count, etc.
 	NotFound bool   `yaml:"not_found"` // for usage checks
 	Pattern  string `yaml:"pattern"`   // for naming checks
 	Max      int    `yaml:"max"`       // for count checks
@@ -58,7 +58,7 @@ type Violation struct {
 
 // String returns a formatted string representation of the violation
 func (v *Violation) String() string {
-	return fmt.Sprintf("%s:%d:%d: %s [%s] %s", 
+	return fmt.Sprintf("%s:%d:%d: %s [%s] %s",
 		v.File, v.Line, v.Column, v.Severity, v.Rule.ID, v.Message)
 }
 

@@ -4,10 +4,10 @@ package main
 var (
 	// Version is the current version of the qasm CLI
 	Version = "0.2.0"
-	
+
 	// BuildDate is the date when the binary was built
 	BuildDate = "unknown"
-	
+
 	// GitCommit is the git commit hash
 	GitCommit = "unknown"
 )

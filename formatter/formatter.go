@@ -535,39 +535,39 @@ func (f *Formatter) preprocessMalformedQASM(content string) string {
 func (f *Formatter) splitCompoundStatements(content string) string {
 	lines := strings.Split(content, "\n")
 	var processedLines []string
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			processedLines = append(processedLines, line)
 			continue
 		}
-		
+
 		// Skip lines that are only comments
 		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") {
 			processedLines = append(processedLines, line)
 			continue
 		}
-		
+
 		// Count semicolons to determine if this line has multiple statements
 		semicolonCount := strings.Count(line, ";")
-		
+
 		// If there's only 0 or 1 semicolon, keep the line as-is
 		if semicolonCount <= 1 {
 			processedLines = append(processedLines, line)
 			continue
 		}
-		
+
 		// Split compound statements on lines with multiple semicolons
 		var statements []string
 		parts := strings.Split(line, ";")
-		
+
 		for i, part := range parts {
 			part = strings.TrimSpace(part)
 			if part == "" {
 				continue
 			}
-			
+
 			// Check if this part starts with a comment - if so, attach it to the previous statement
 			if strings.HasPrefix(part, "//") && len(statements) > 0 {
 				// This is a trailing comment, attach it to the previous statement
@@ -580,7 +580,7 @@ func (f *Formatter) splitCompoundStatements(content string) string {
 				statements = append(statements, part)
 			}
 		}
-		
+
 		processedLines = append(processedLines, statements...)
 	}
 

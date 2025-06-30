@@ -222,7 +222,7 @@ if (c[0] == 1) {
 }`,
 		},
 		{
-			name: "malformed spacing",
+			name:  "malformed spacing",
 			input: `OPENQASM   3.0  ; include   "stdgates.qasm"   ;qubit [ 2 ] q ; bit[ 2]c;h  q[  0 ];`,
 		},
 		{
