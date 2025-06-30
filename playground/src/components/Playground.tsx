@@ -291,7 +291,7 @@ export default function Playground() {
   }
 
   return (
-    <div className="min-h-screen bg-base-100 flex flex-col">
+    <div className="h-screen bg-base-100 flex flex-col overflow-hidden">
       {/* Header */}
       <Header
         onLoadExample={handleLoadExample}
@@ -302,17 +302,17 @@ export default function Playground() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row mx-0 mb-1">
+      <div className="flex-1 flex flex-col md:flex-row mx-0">
         {/* Input Panel */}
         <div className="flex-1 flex flex-col border-r-0 md:border-r border-base-300 min-h-0 bg-base-100 rounded-t-lg md:rounded-l-lg md:rounded-tr-none shadow-sm">
-          <div className="bg-base-200 px-1 md:px-2 py-2 border-b border-base-300 rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="bg-base-200 px-2 md:px-4 py-3 border-b border-base-300 rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Input QASM Code</h2>
               <p className="text-xs opacity-70 hidden sm:block">Write or paste your OpenQASM 3.0 code here</p>
             </div>
             <div className="flex gap-1 md:gap-2">
               <button
-                className="btn btn-xs md:btn-sm btn-primary whitespace-nowrap"
+                className="btn btn-sm md:btn-md btn-primary whitespace-nowrap"
                 onClick={handleLoadExample}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,7 +322,7 @@ export default function Playground() {
                 <span className="sm:hidden">Ex</span>
               </button>
               <button
-                className="btn btn-xs md:btn-sm btn-warning whitespace-nowrap"
+                className="btn btn-sm md:btn-md btn-warning whitespace-nowrap"
                 onClick={handleClearInput}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -332,7 +332,7 @@ export default function Playground() {
                 <span className="sm:hidden">✕</span>
               </button>
               <button
-                className={`btn btn-xs md:btn-sm btn-accent whitespace-nowrap ${isFormatting ? 'loading' : ''}`}
+                className={`btn btn-sm md:btn-md btn-accent whitespace-nowrap ${isFormatting ? 'loading' : ''}`}
                 onClick={handleFormat}
                 disabled={!wasmReady || isFormatting || !inputCode.trim()}
               >
@@ -356,7 +356,7 @@ export default function Playground() {
               onMount={handleEditorDidMount}
               options={{
                 minimap: { enabled: false },
-                scrollBeyondLastLine: false,
+                scrollBeyondLastLine: true,
                 fontSize: 20,
                 lineNumbers: 'on',
                 roundedSelection: false,
@@ -389,7 +389,7 @@ export default function Playground() {
 
         {/* Output Panel */}
         <div className="flex-1 flex flex-col border-t md:border-t-0 border-base-300 min-h-0 bg-base-100 rounded-b-lg md:rounded-r-lg md:rounded-bl-none shadow-sm">
-          <div className="bg-base-200 px-1 md:px-2 py-2 border-b border-base-300 md:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="bg-base-200 px-2 md:px-4 py-3 border-b border-base-300 md:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Formatted Output</h2>
               <p className="text-xs opacity-70 hidden sm:block">
@@ -398,7 +398,7 @@ export default function Playground() {
             </div>
             {outputCode && (
               <button
-                className="btn btn-xs md:btn-sm btn-success whitespace-nowrap"
+                className="btn btn-sm md:btn-md btn-success whitespace-nowrap"
                 onClick={(e) => handleCopyOutput(e)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -435,7 +435,7 @@ export default function Playground() {
                 options={{
                   readOnly: true,
                   minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
+                  scrollBeyondLastLine: true,
                 fontSize: 20,
                 lineNumbers: 'on',
                   roundedSelection: false,
@@ -455,7 +455,7 @@ export default function Playground() {
 
       {/* Simple Status Bar */}
       {(isFormatting || formatError || outputCode || violations.length > 0) && (
-        <div className="bg-base-200 border-t border-base-300 px-2 py-2 space-y-2">
+        <div className="bg-base-200 border-t border-base-300 px-2 py-1 space-y-1">
           {isFormatting && (
             <div className="flex items-center gap-2 text-info">
               <div className="loading loading-spinner loading-sm"></div>
@@ -530,8 +530,7 @@ export default function Playground() {
         </div>
       )}
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer is hidden to save space */}
 
       {/* Sample Selector Modal */}
       <SampleSelector
