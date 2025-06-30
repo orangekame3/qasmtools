@@ -30,8 +30,8 @@ export const useWasm = () => {
       const basePath = router.basePath || '';
       // Load wasm_exec.js
       const wasmExecScript = document.createElement('script');
-      wasmExecScript.src = `${basePath}/wasm_exec.js`;
-      
+      wasmExecScript.src = `${basePath}/wasm/wasm_exec.js`;
+
       await new Promise<void>((resolve, reject) => {
         wasmExecScript.onload = () => resolve();
         wasmExecScript.onerror = () => reject(new Error('Failed to load wasm_exec.js'));
@@ -39,8 +39,8 @@ export const useWasm = () => {
       });
 
       // Initialize Go WebAssembly
-      const go = new (window as unknown as { Go: new () => { importObject: WebAssembly.Imports } }).Go();
-      const wasmResponse = await fetch(`${basePath}/qasmtools.wasm`);
+      const go = new (window as unknown as { Go: new () => { importObject: WebAssembly.Imports; run: (instance: WebAssembly.Instance) => void } }).Go();
+      const wasmResponse = await fetch(`${basePath}/wasm/qasmtools.wasm`);
       const wasmBytes = await wasmResponse.arrayBuffer();
       const wasmModule = await WebAssembly.instantiate(wasmBytes, go.importObject);
 
