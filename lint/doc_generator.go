@@ -49,6 +49,7 @@ func (dg *DocumentationGenerator) GenerateRuleDocumentation(rule *Rule) (string,
 	sb.WriteString(dg.generateIncorrectExample(rule))
 	sb.WriteString("\n### ✅ Correct\n\n")
 	sb.WriteString(dg.generateCorrectExample(rule))
+	sb.WriteString("\n\n")
 
 	// Configuration
 	sb.WriteString("## Configuration\n\n")
