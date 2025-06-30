@@ -81,6 +81,7 @@ type ProgramChecker interface {
 // CheckContext provides context for rule checking
 type CheckContext struct {
 	File     string
+	Content  string  // Raw file content for text-based analysis
 	Program  *parser.Program
 	UsageMap map[string][]parser.Node // For tracking symbol usage
 }

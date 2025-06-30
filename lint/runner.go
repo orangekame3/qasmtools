@@ -47,6 +47,54 @@ func (l *Linter) GetRules() []*Rule {
 	return l.rules
 }
 
+// LintContent lints QASM content directly from a string
+func (l *Linter) LintContent(content string, filename string) ([]*Violation, error) {
+	// Parse the content
+	p := parser.NewParser()
+	result := p.ParseWithErrors(content)
+	if result.HasErrors() && result.Program == nil {
+		return nil, fmt.Errorf("failed to parse content: %v", result.Errors)
+	}
+	
+
+	// Build usage map for symbol tracking
+	usageMap := l.buildUsageMap(result.Program)
+
+	// Create check context
+	context := &CheckContext{
+		File:     filename,
+		Content:  content,
+		Program:  result.Program,
+		UsageMap: usageMap,
+	}
+
+	var allViolations []*Violation
+
+	// Run each rule against the AST (same logic as LintFile)
+	for _, rule := range l.rules {
+		if !rule.Enabled {
+			continue
+		}
+		
+		checker := l.checkers[rule.ID]
+		if checker == nil {
+			continue
+		}
+		
+		violations := l.runRuleOnProgram(rule, checker, result.Program, context)
+
+		// Set rule reference for each violation
+		for _, violation := range violations {
+			violation.Rule = rule
+			violation.Severity = rule.Level
+		}
+
+		allViolations = append(allViolations, violations...)
+	}
+
+	return allViolations, nil
+}
+
 // LintFile lints a single QASM file
 func (l *Linter) LintFile(filename string) ([]*Violation, error) {
 	// Parse the file
@@ -67,6 +115,7 @@ func (l *Linter) LintFile(filename string) ([]*Violation, error) {
 	// Create check context
 	context := &CheckContext{
 		File:     filename,
+		Content:  string(content),
 		Program:  result.Program,
 		UsageMap: usageMap,
 	}
@@ -96,7 +145,8 @@ func (l *Linter) runRuleOnProgram(rule *Rule, checker RuleChecker, program *pars
 
 	// For some rules that need program-level analysis, check if they implement ProgramChecker
 	if programChecker, ok := checker.(ProgramChecker); ok {
-		return programChecker.CheckProgram(context)
+		programViolations := programChecker.CheckProgram(context)
+		return programViolations
 	}
 
 	// Check version statement
