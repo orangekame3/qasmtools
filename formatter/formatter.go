@@ -639,10 +639,11 @@ func (f *Formatter) fixMalformedLine(line string) string {
 
 	// Fix comparison operators in if statements
 	if strings.Contains(line, "if") {
-		line = regexp.MustCompile(`==`).ReplaceAllString(line, " == ")
-		line = regexp.MustCompile(`!=`).ReplaceAllString(line, " != ")
-		line = regexp.MustCompile(`<=`).ReplaceAllString(line, " <= ")
-		line = regexp.MustCompile(`>=`).ReplaceAllString(line, " >= ")
+		// Use word boundaries and check for existing spacing to avoid duplicating spaces
+		line = regexp.MustCompile(`\s*==\s*`).ReplaceAllString(line, " == ")
+		line = regexp.MustCompile(`\s*!=\s*`).ReplaceAllString(line, " != ")
+		line = regexp.MustCompile(`\s*<=\s*`).ReplaceAllString(line, " <= ")
+		line = regexp.MustCompile(`\s*>=\s*`).ReplaceAllString(line, " >= ")
 	}
 
 	// Skip assignment operator processing for now
