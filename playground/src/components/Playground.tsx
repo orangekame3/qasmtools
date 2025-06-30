@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { useWasm, TokenInfo } from '@/hooks/useWasm';
+import { useWasm, TokenInfo, Violation } from '@/hooks/useWasm';
 import Header from './Header';
 import SampleSelector from './SampleSelector';
 import Footer from './Footer';
@@ -31,11 +31,12 @@ export default function Playground() {
   const [formatError, setFormatError] = useState<string | null>(null);
   const [showSampleSelector, setShowSampleSelector] = useState(false);
   const [tokens, setTokens] = useState<TokenInfo[]>([]);
+  const [violations, setViolations] = useState<Violation[]>([]);
   const [monacoInstance, setMonacoInstance] = useState<typeof import('monaco-editor') | null>(null);
   const editorRef = useRef<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = useRef<string[]>([]);
 
-  const { isLoading: wasmLoading, isReady: wasmReady, error: wasmError, formatQASM, highlightQASM } = useWasm();
+  const { isLoading: wasmLoading, isReady: wasmReady, error: wasmError, formatQASM, highlightQASM, lintQASM } = useWasm();
 
   const handleFormat = useCallback(async () => {
     if (!wasmReady || !inputCode.trim()) return;
@@ -91,6 +92,57 @@ export default function Playground() {
     }
   }, [wasmReady, highlightQASM, monacoInstance]);
 
+  const updateLinting = useCallback(async (code: string) => {
+    if (!wasmReady || !code.trim() || !editorRef.current || !monacoInstance) return;
+
+    try {
+      const result = await lintQASM(code);
+      
+      if (!result) {
+        console.warn('No result from lintQASM');
+        return;
+      }
+      
+      if (result.success && result.violations) {
+        setViolations(result.violations);
+        
+        // Convert violations to Monaco markers
+        const markers = result.violations.map(violation => ({
+          startLineNumber: violation.line,
+          startColumn: violation.column,
+          endLineNumber: violation.line,
+          endColumn: violation.column + 10, // Estimate end column
+          message: `${violation.message} (${violation.rule.id})`,
+          severity: violation.severity === 'error' ? 
+            monacoInstance.MarkerSeverity.Error : 
+            violation.severity === 'warning' ? 
+              monacoInstance.MarkerSeverity.Warning : 
+              monacoInstance.MarkerSeverity.Info,
+          code: violation.rule.id,
+          source: 'qasm-lint'
+        }));
+
+        // Set markers on the model
+        const model = editorRef.current.getModel();
+        if (model) {
+          monacoInstance.editor.setModelMarkers(model, 'qasm-lint', markers);
+        }
+      } else if (!result.success) {
+        console.warn('Linting failed:', result.error);
+        setViolations([]);
+        
+        // Clear markers
+        const model = editorRef.current.getModel();
+        if (model) {
+          monacoInstance.editor.setModelMarkers(model, 'qasm-lint', []);
+        }
+      }
+    } catch (error) {
+      console.warn('Linting failed:', error);
+      setViolations([]);
+    }
+  }, [wasmReady, lintQASM, monacoInstance]);
+
   const handleEditorDidMount = useCallback((editor: import('monaco-editor').editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
     editorRef.current = editor;
     setMonacoInstance(monaco);
@@ -109,22 +161,31 @@ export default function Playground() {
     const newCode = value || '';
     setInputCode(newCode);
     
-    // Update syntax highlighting with debouncing
-    // Temporarily disabled to debug WASM issues
-    // if (wasmReady && newCode.trim()) {
-    //   setTimeout(() => {
-    //     updateSyntaxHighlighting(newCode);
-    //   }, 300); // 300ms debounce
-    // }
-  }, [wasmReady, updateSyntaxHighlighting]);
+    // Update syntax highlighting and linting with debouncing
+    if (wasmReady && newCode.trim()) {
+      setTimeout(() => {
+        // updateSyntaxHighlighting(newCode); // Temporarily disabled
+        // updateLinting(newCode); // Temporarily disabled to debug WASM stability
+      }, 500); // 500ms debounce for linting (a bit slower than highlighting)
+    } else if (!newCode.trim()) {
+      // Clear violations when code is empty
+      setViolations([]);
+      if (editorRef.current && monacoInstance) {
+        const model = editorRef.current.getModel();
+        if (model) {
+          monacoInstance.editor.setModelMarkers(model, 'qasm-lint', []);
+        }
+      }
+    }
+  }, [wasmReady, updateSyntaxHighlighting, updateLinting, monacoInstance]);
 
-  // Update syntax highlighting when WASM becomes ready
-  // Temporarily disabled to debug WASM issues
+  // Update linting when WASM becomes ready
+  // Temporarily disabled to debug WASM stability
   // useEffect(() => {
   //   if (wasmReady && inputCode.trim()) {
-  //     updateSyntaxHighlighting(inputCode);
+  //     updateLinting(inputCode);
   //   }
-  // }, [wasmReady, inputCode, updateSyntaxHighlighting]);
+  // }, [wasmReady, inputCode, updateLinting]);
 
   const handleCopyOutput = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -393,8 +454,8 @@ export default function Playground() {
       </div>
 
       {/* Simple Status Bar */}
-      {(isFormatting || formatError || outputCode) && (
-        <div className="bg-base-200 border-t border-base-300 px-2 py-2">
+      {(isFormatting || formatError || outputCode || violations.length > 0) && (
+        <div className="bg-base-200 border-t border-base-300 px-2 py-2 space-y-2">
           {isFormatting && (
             <div className="flex items-center gap-2 text-info">
               <div className="loading loading-spinner loading-sm"></div>
@@ -420,6 +481,50 @@ export default function Playground() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span className="text-sm font-medium">✨ Code formatted successfully!</span>
+            </div>
+          )}
+
+          {/* Linting Results */}
+          {violations.length > 0 && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span className="text-sm font-medium">
+                  Found {violations.length} issue{violations.length !== 1 ? 's' : ''}:
+                  {' '}
+                  {violations.filter(v => v.severity === 'error').length} error{violations.filter(v => v.severity === 'error').length !== 1 ? 's' : ''},
+                  {' '}
+                  {violations.filter(v => v.severity === 'warning').length} warning{violations.filter(v => v.severity === 'warning').length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {violations.map((violation, index) => (
+                  <div key={index} className={`text-xs p-2 rounded ${
+                    violation.severity === 'error' ? 'bg-error/20 text-error-content' :
+                    violation.severity === 'warning' ? 'bg-warning/20 text-warning-content' :
+                    'bg-info/20 text-info-content'
+                  }`}>
+                    <div className="font-medium">
+                      Line {violation.line}, Column {violation.column}: {violation.message}
+                    </div>
+                    <div className="opacity-70">
+                      Rule: {violation.rule.id} ({violation.rule.name})
+                      {violation.rule.documentationUrl && (
+                        <a 
+                          href={violation.rule.documentationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 underline hover:no-underline"
+                        >
+                          📖 Learn more
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

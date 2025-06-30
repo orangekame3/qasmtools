@@ -22,9 +22,30 @@ export interface HighlightResult {
   error?: string;
 }
 
+export interface Violation {
+  file: string;
+  line: number;
+  column: number;
+  severity: string;
+  message: string;
+  rule: {
+    id: string;
+    name: string;
+    description: string;
+    documentationUrl: string;
+  };
+}
+
+export interface LintResult {
+  success: boolean;
+  violations?: Violation[];
+  error?: string;
+}
+
 interface WasmModule {
   formatQASM: (code: string) => WasmResult;
   highlightQASM: (code: string) => HighlightResult;
+  lintQASM: (code: string) => LintResult;
 }
 
 export const useWasm = () => {
@@ -62,6 +83,7 @@ export const useWasm = () => {
       go.run(wasmModule.instance);
 
       // Wait for the formatQASM and highlightQASM functions to be available
+      // Temporarily removed lintQASM to debug WASM stability
       await new Promise<void>((resolve) => {
         const checkFunction = () => {
           if ((window as any).qasmToolsReady && (window as any).formatQASM && (window as any).highlightQASM) {
@@ -75,7 +97,8 @@ export const useWasm = () => {
 
       setWasmModule({
         formatQASM: (window as any).formatQASM,
-        highlightQASM: (window as any).highlightQASM
+        highlightQASM: (window as any).highlightQASM,
+        lintQASM: (window as any).lintQASM || (() => Promise.resolve({ success: false, error: 'Linting temporarily disabled' }))
       });
 
       setIsReady(true);
@@ -153,6 +176,43 @@ export const useWasm = () => {
     });
   }, [wasmModule]);
 
+  const lintQASM = useCallback((code: string): Promise<LintResult> => {
+    return new Promise((resolve) => {
+      if (!wasmModule) {
+        resolve({ success: false, error: 'WASM module not loaded' });
+        return;
+      }
+
+      try {
+        // Check if the Go program is still running
+        if (!(window as any).qasmToolsReady) {
+          resolve({ success: false, error: 'WASM module has exited. Please reload the page.' });
+          return;
+        }
+
+        const result = wasmModule.lintQASM(code);
+        
+        // Check if result is valid
+        if (!result || typeof result !== 'object') {
+          resolve({ success: false, error: 'Invalid response from WASM module' });
+          return;
+        }
+        
+        resolve(result);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        console.error('lintQASM error:', err);
+        
+        // If the error suggests the program has exited, provide helpful message
+        if (errorMessage.includes('Go program has already exited')) {
+          resolve({ success: false, error: 'WASM module has exited. Please reload the page.' });
+        } else {
+          resolve({ success: false, error: errorMessage });
+        }
+      }
+    });
+  }, [wasmModule]);
+
   // Auto-load WASM on component mount
   useEffect(() => {
     loadWasm();
@@ -164,6 +224,7 @@ export const useWasm = () => {
     error,
     formatQASM,
     highlightQASM,
+    lintQASM,
     reload: loadWasm
   };
 };
