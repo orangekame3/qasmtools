@@ -35,3 +35,59 @@
     height: calc(50vh - 4rem);
   }
 }
+
+/* QASM syntax highlighting custom styles */
+.qasm-token-keyword {
+  color: #0000FF !important;
+  font-weight: bold !important;
+}
+
+.qasm-token-builtin-gate {
+  color: #FF6600 !important;
+  font-weight: bold !important;
+}
+
+.qasm-token-gate {
+  color: #FF00FF !important;
+  font-weight: bold !important;
+}
+
+.qasm-token-measurement {
+  color: #FF0000 !important;
+  font-weight: bold !important;
+}
+
+.qasm-token-register {
+  color: #008000 !important;
+  font-weight: bold !important;
+}
+
+.qasm-token-builtin-classical {
+  color: #800080 !important;
+}
+
+.qasm-token-builtin-constant {
+  color: #008080 !important;
+}
+
+.qasm-token-number {
+  color: #098658 !important;
+}
+
+.qasm-token-string {
+  color: #A31515 !important;
+}
+
+.qasm-token-comment {
+  color: #008000 !important;
+  font-style: italic !important;
+}
+
+.qasm-token-operator {
+  color: #FF0000 !important;
+}
+
+.qasm-token-hardware-qubit {
+  color: #FF00FF !important;
+  font-weight: bold !important;
+}

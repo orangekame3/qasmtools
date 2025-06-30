@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { useWasm } from '@/hooks/useWasm';
+import { useWasm, TokenInfo } from '@/hooks/useWasm';
 import Header from './Header';
 import SampleSelector from './SampleSelector';
 import Footer from './Footer';
 import { qasmSamples, type QASMSample } from '@/data/samples';
+import { registerQasmLanguage, tokensToDecorations } from '@/utils/qasmLanguage';
 
 // Dynamic import for Monaco Editor to avoid SSR issues
 const MonacoEditor = dynamic(
@@ -29,8 +30,12 @@ export default function Playground() {
   const [isFormatting, setIsFormatting] = useState(false);
   const [formatError, setFormatError] = useState<string | null>(null);
   const [showSampleSelector, setShowSampleSelector] = useState(false);
+  const [tokens, setTokens] = useState<TokenInfo[]>([]);
+  const [monacoInstance, setMonacoInstance] = useState<typeof import('monaco-editor') | null>(null);
+  const editorRef = useRef<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null);
+  const decorationsRef = useRef<string[]>([]);
 
-  const { isLoading: wasmLoading, isReady: wasmReady, error: wasmError, formatQASM } = useWasm();
+  const { isLoading: wasmLoading, isReady: wasmReady, error: wasmError, formatQASM, highlightQASM } = useWasm();
 
   const handleFormat = useCallback(async () => {
     if (!wasmReady || !inputCode.trim()) return;
@@ -56,10 +61,78 @@ export default function Playground() {
     }
   }, [inputCode, wasmReady, formatQASM]);
 
+  const updateSyntaxHighlighting = useCallback(async (code: string) => {
+    if (!wasmReady || !code.trim() || !editorRef.current || !monacoInstance) return;
+
+    try {
+      const result = await highlightQASM(code);
+      
+      if (!result) {
+        console.warn('No result from highlightQASM');
+        return;
+      }
+      
+      if (result.success && result.tokens) {
+        setTokens(result.tokens);
+        
+        // Clear previous decorations
+        if (decorationsRef.current.length > 0) {
+          editorRef.current.deltaDecorations(decorationsRef.current, []);
+        }
+        
+        // Apply new decorations
+        const decorations = tokensToDecorations(result.tokens, monacoInstance);
+        decorationsRef.current = editorRef.current.deltaDecorations([], decorations);
+      } else if (!result.success) {
+        console.warn('Syntax highlighting failed:', result.error);
+      }
+    } catch (error) {
+      console.warn('Syntax highlighting failed:', error);
+    }
+  }, [wasmReady, highlightQASM, monacoInstance]);
+
+  const handleEditorDidMount = useCallback((editor: import('monaco-editor').editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
+    editorRef.current = editor;
+    setMonacoInstance(monaco);
+    
+    // Register QASM language
+    registerQasmLanguage(monaco);
+    
+    // Initial syntax highlighting
+    // Temporarily disabled to debug WASM issues
+    // if (inputCode) {
+    //   updateSyntaxHighlighting(inputCode);
+    // }
+  }, [inputCode, updateSyntaxHighlighting]);
+
+  const handleCodeChange = useCallback((value: string | undefined) => {
+    const newCode = value || '';
+    setInputCode(newCode);
+    
+    // Update syntax highlighting with debouncing
+    // Temporarily disabled to debug WASM issues
+    // if (wasmReady && newCode.trim()) {
+    //   setTimeout(() => {
+    //     updateSyntaxHighlighting(newCode);
+    //   }, 300); // 300ms debounce
+    // }
+  }, [wasmReady, updateSyntaxHighlighting]);
+
+  // Update syntax highlighting when WASM becomes ready
+  // Temporarily disabled to debug WASM issues
+  // useEffect(() => {
+  //   if (wasmReady && inputCode.trim()) {
+  //     updateSyntaxHighlighting(inputCode);
+  //   }
+  // }, [wasmReady, inputCode, updateSyntaxHighlighting]);
+
   const handleCopyOutput = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!outputCode) return;
 
+    const button = e.currentTarget as HTMLButtonElement;
+    const spanElement = button.querySelector('span');
+    
     try {
       // Check if clipboard API is available
       if (navigator?.clipboard?.writeText) {
@@ -79,20 +152,37 @@ export default function Playground() {
           document.execCommand('copy');
         } catch (err) {
           console.error('Fallback: Oops, unable to copy', err);
+          throw new Error('Copy operation failed');
         }
 
         document.body.removeChild(textarea);
       }
 
       // Show success feedback
-      const button = e.currentTarget as HTMLButtonElement;
-      const originalText = button.textContent;
-      button.textContent = 'Copied!';
-      setTimeout(() => {
-        button.textContent = originalText;
-      }, 2000);
+      if (spanElement) {
+        const originalText = spanElement.textContent || 'Copy';
+        spanElement.textContent = 'Copied!';
+        
+        setTimeout(() => {
+          if (spanElement) {
+            spanElement.textContent = originalText;
+          }
+        }, 2000);
+      }
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
+      
+      // Show error feedback
+      if (spanElement) {
+        const originalText = spanElement.textContent || 'Copy';
+        spanElement.textContent = 'Failed!';
+        
+        setTimeout(() => {
+          if (spanElement) {
+            spanElement.textContent = originalText;
+          }
+        }, 2000);
+      }
     }
   }, [outputCode]);
 
@@ -198,10 +288,11 @@ export default function Playground() {
           <div className="flex-1 p-0 min-h-0 editor-container">
             <MonacoEditor
               height="100%"
-              language="text"
-              theme="vs-light"
+              language="qasm"
+              theme="qasm-theme"
               value={inputCode}
-              onChange={(value) => setInputCode(value || '')}
+              onChange={handleCodeChange}
+              onMount={handleEditorDidMount}
               options={{
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
@@ -216,9 +307,20 @@ export default function Playground() {
                 contextmenu: true,
                 selectOnLineNumbers: true,
                 glyphMargin: true,
-                folding: false,
+                folding: true,
                 lineDecorationsWidth: 5,
                 lineNumbersMinChars: 3,
+                suggest: {
+                  showKeywords: true,
+                  showSnippets: true,
+                  showFunctions: true,
+                  showConstants: true,
+                },
+                quickSuggestions: {
+                  other: true,
+                  comments: false,
+                  strings: false,
+                },
               }}
             />
           </div>
@@ -241,7 +343,7 @@ export default function Playground() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                Copy
+                <span>Copy</span>
               </button>
             )}
           </div>
@@ -266,8 +368,8 @@ export default function Playground() {
             ) : (
               <MonacoEditor
                 height="100%"
-                language="text"
-                theme="vs-light"
+                language="qasm"
+                theme="qasm-theme"
                 value={outputCode}
                 options={{
                   readOnly: true,
@@ -280,7 +382,7 @@ export default function Playground() {
                   automaticLayout: true,
                   wordWrap: 'on',
                   contextmenu: true,
-                  folding: false,
+                  folding: true,
                   lineDecorationsWidth: 5,
                   lineNumbersMinChars: 3,
                 }}
