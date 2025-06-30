@@ -15,3 +15,4 @@ check:
 message: "Qubit '{{ name }}' is declared but never used."
 tags: [qasm3, readability, unused-variables]
 fixable: false
+documentation_url: "https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS001.md"

@@ -16,3 +16,4 @@ check:
 message: "Identifier '{{ name }}' violates naming convention. Should match pattern: ^[a-z][a-zA-Z0-9_]*$"
 tags: [qasm3, style, naming, readability]
 fixable: false
+documentation_url: "https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS005.md"

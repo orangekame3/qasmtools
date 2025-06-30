@@ -24,9 +24,10 @@ type Rule struct {
 	Enabled     bool     `yaml:"enabled"`
 	Match       Match    `yaml:"match"`
 	Check       []Check  `yaml:"check"`
-	Message     string   `yaml:"message"`
-	Tags        []string `yaml:"tags"`
-	Fixable     bool     `yaml:"fixable"`
+	Message           string   `yaml:"message"`
+	Tags              []string `yaml:"tags"`
+	Fixable           bool     `yaml:"fixable"`
+	DocumentationURL  string   `yaml:"documentation_url"`
 }
 
 // Match defines what AST nodes to match
@@ -57,8 +58,14 @@ type Violation struct {
 
 // String returns a formatted string representation of the violation
 func (v *Violation) String() string {
-	return fmt.Sprintf("%s:%d:%d: %s [%s] %s",
+	result := fmt.Sprintf("%s:%d:%d: %s [%s] %s",
 		v.File, v.Line, v.Column, v.Severity, v.Rule.ID, v.Message)
+	
+	if v.Rule.DocumentationURL != "" {
+		result += fmt.Sprintf(" (%s)", v.Rule.DocumentationURL)
+	}
+	
+	return result
 }
 
 // RuleChecker checks a specific rule against AST nodes

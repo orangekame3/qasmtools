@@ -384,3 +384,4 @@ func outputJSON(violations []*lint.Violation) error {
 	fmt.Println("JSON output not implemented yet")
 	return nil
 }
+

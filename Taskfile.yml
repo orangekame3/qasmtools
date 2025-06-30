@@ -226,6 +226,21 @@ tasks:
     cmds:
       - go install mvdan.cc/gofumpt@latest
 
+  # Documentation tasks
+  docs:generate:
+    desc: Generate rule documentation markdown files
+    cmds:
+      - go run ./cmd/tools/gendocs.go -output docs/rules
+      - echo "📚 Rule documentation generated in docs/rules/"
+      - echo "💡 Files generated:"
+      - ls -1 docs/rules/ | sed 's/^/   - /'
+
+  docs:clean:
+    desc: Clean generated documentation
+    cmds:
+      - rm -rf docs/rules
+      - echo "🧹 Generated documentation cleaned"
+
   # Dependency management
   deps:
     desc: Download dependencies
