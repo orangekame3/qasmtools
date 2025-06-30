@@ -155,6 +155,16 @@ tasks:
     cmds:
       - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-windows-amd64.exe ./cmd/qasm
 
+  build:wasm:
+    desc: Build WebAssembly version for playground
+    env:
+      GOOS: js
+      GOARCH: wasm
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}/wasm
+      - go build -o {{.BUILD_DIR}}/wasm/qasmtools.wasm ./cmd/wasm
+      - cp $(go env GOROOT)/lib/wasm/wasm_exec.js {{.BUILD_DIR}}/wasm/
+
   # Development tasks
   dev:
     desc: Run in development mode with live reload
@@ -649,3 +659,34 @@ tasks:
       - npm version {{.NEW_VERSION}} --no-git-tag-version
       - echo "VSCode extension version set to {{.NEW_VERSION}}"
       - echo "Don't forget to git commit the version change!"
+
+  # Playground tasks
+  playground:setup:
+    desc: Setup playground development environment
+    dir: playground
+    cmds:
+      - npm install
+      - echo "Playground setup complete!"
+
+  playground:dev:
+    desc: Start playground development server
+    deps: [build:wasm]
+    dir: playground  
+    cmds:
+      - cp -r ../bin/wasm public/
+      - npm run dev
+
+  playground:build:
+    desc: Build playground for production
+    deps: [build:wasm]
+    dir: playground
+    cmds:
+      - cp -r ../bin/wasm public/
+      - npm run build
+
+  playground:clean:
+    desc: Clean playground build artifacts
+    dir: playground
+    cmds:
+      - rm -rf .next out node_modules
+      - rm -rf public/wasm
