@@ -8,7 +8,7 @@ vars:
   COMMIT:
     sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
   BUILD_DATE:
-    sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
+    sh: date -Iseconds
   ANTLR_VERSION: 4.13.1
   VSCODE_VERSION:
     sh: cd vscode-qasm && node -p "require('./package.json').version" 2>/dev/null || echo "0.1.4"
@@ -93,7 +93,7 @@ tasks:
     deps: [gen]
     cmds:
       - mkdir -p {{.BUILD_DIR}}
-      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}} -X github.com/orangekame3/qasmtools/cmd.Commit={{.COMMIT}} -X github.com/orangekame3/qasmtools/cmd.BuildDate={{.BUILD_DATE}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}} ./cmd/qasm
+      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}} ./cmd/qasm
       - go build -o {{.BUILD_DIR}}/qasmlsp ./cmd/qasmlsp
     sources:
       - "**/*.go"
@@ -102,6 +102,13 @@ tasks:
     generates:
       - "{{.BUILD_DIR}}/{{.BINARY_NAME}}"
       - "{{.BUILD_DIR}}/qasmlsp"
+
+  build:quick:
+    desc: Quick build without parser generation (for development)
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}} ./cmd/qasm
+      - go build -o {{.BUILD_DIR}}/qasmlsp ./cmd/qasmlsp
 
   build:all:
     desc: Build for all platforms
@@ -118,7 +125,7 @@ tasks:
       GOOS: linux
       GOARCH: amd64
     cmds:
-      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-linux-amd64 ./cmd/qasm
+      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-linux-amd64 ./cmd/qasm
 
   build:darwin:
     desc: Build for macOS (amd64 and arm64)
@@ -131,14 +138,14 @@ tasks:
       GOOS: darwin
       GOARCH: amd64
     cmds:
-      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-amd64 ./cmd/qasm
+      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-amd64 ./cmd/qasm
 
   build:darwin:arm64:
     env:
       GOOS: darwin
       GOARCH: arm64
     cmds:
-      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-arm64 ./cmd/qasm
+      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-arm64 ./cmd/qasm
 
   build:windows:
     desc: Build for Windows (amd64)
@@ -146,7 +153,7 @@ tasks:
       GOOS: windows
       GOARCH: amd64
     cmds:
-      - go build -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-windows-amd64.exe ./cmd/qasm
+      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-windows-amd64.exe ./cmd/qasm
 
   # Development tasks
   dev:

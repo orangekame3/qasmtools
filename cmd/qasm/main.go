@@ -1,17 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/charmbracelet/fang"
 	"github.com/orangekame3/qasmtools/formatter"
 	"github.com/orangekame3/qasmtools/highlight"
 	"github.com/spf13/cobra"
 )
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+	if err := fang.Execute(context.Background(), rootCmd, fang.WithVersion(GetVersion())); err != nil {
 		os.Exit(1)
 	}
 }
