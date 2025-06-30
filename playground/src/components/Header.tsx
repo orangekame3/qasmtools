@@ -11,20 +11,6 @@ interface HeaderProps {
 }
 
 export default function Header({ onLoadExample, onClear, onFormat, isFormatting, canFormat }: HeaderProps) {
-  const [theme, setTheme] = useState('qasm');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'qasm';
-    setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'qasm' ? 'dark' : 'qasm';
-    setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
 
   return (
     <div className="navbar bg-gradient-to-r from-primary to-secondary text-primary-content shadow-lg min-h-16">
@@ -39,23 +25,6 @@ export default function Header({ onLoadExample, onClear, onFormat, isFormatting,
       </div>
 
       <div className="navbar-end gap-1 md:gap-2">
-        {/* Theme Toggle */}
-        <div className="tooltip tooltip-bottom" data-tip={`Switch to ${theme === 'qasm' ? 'dark' : 'light'} theme`}>
-          <button 
-            className="btn btn-ghost btn-circle btn-xs md:btn-sm"
-            onClick={toggleTheme}
-          >
-            {theme === 'qasm' ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            )}
-          </button>
-        </div>
 
         {/* Format button moved to input panel */}
 
@@ -63,9 +32,9 @@ export default function Header({ onLoadExample, onClear, onFormat, isFormatting,
 
         {/* GitHub Link */}
         <div className="tooltip tooltip-bottom" data-tip="View on GitHub">
-          <a 
-            href="https://github.com/orangekame3/qasmtools" 
-            target="_blank" 
+          <a
+            href="https://github.com/orangekame3/qasmtools"
+            target="_blank"
             rel="noopener noreferrer"
             className="btn btn-ghost btn-circle btn-xs md:btn-sm"
           >

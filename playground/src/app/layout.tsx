@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" data-theme="qasm">
+    <html lang="en" data-theme="dark">
       <body className={inter.className} suppressHydrationWarning={true}>
         <div className="min-h-screen bg-base-100">
           {children}
