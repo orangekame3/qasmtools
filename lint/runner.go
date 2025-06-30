@@ -42,6 +42,11 @@ func (l *Linter) LoadRules() error {
 	return nil
 }
 
+// GetRules returns the loaded rules
+func (l *Linter) GetRules() []*Rule {
+	return l.rules
+}
+
 // LintFile lints a single QASM file
 func (l *Linter) LintFile(filename string) ([]*Violation, error) {
 	// Parse the file

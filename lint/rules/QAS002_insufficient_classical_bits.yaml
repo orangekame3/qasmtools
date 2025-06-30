@@ -15,3 +15,4 @@ check:
 message: "Insufficient classical bits for measurements. Need {{ required }} but only {{ available }} declared."
 tags: [qasm3, correctness, measurement]
 fixable: false
+documentation_url: "https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS002.md"
