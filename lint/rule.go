@@ -2,7 +2,6 @@ package lint
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
@@ -72,11 +71,4 @@ type CheckContext struct {
 	File     string
 	Program  *parser.Program
 	UsageMap map[string][]parser.Node // For tracking symbol usage
-}
-
-// expandMessage replaces template variables in the message
-func (r *Rule) expandMessage(nodeName string) string {
-	message := r.Message
-	message = strings.ReplaceAll(message, "{{ name }}", nodeName)
-	return message
 }
