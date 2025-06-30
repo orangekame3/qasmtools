@@ -156,22 +156,22 @@ export const qasmMonarchLanguage: monaco.languages.IMonarchLanguage = {
 
 // Custom theme for QASM highlighting
 export const qasmTheme: monaco.editor.IStandaloneThemeData = {
-  base: 'vs',
+  base: 'vs-dark',
   inherit: true,
   rules: [
-    { token: 'keyword', foreground: '0000FF', fontStyle: 'bold' },
-    { token: 'keyword.builtin', foreground: 'FF6600', fontStyle: 'bold' },
-    { token: 'keyword.gate', foreground: 'FF00FF', fontStyle: 'bold' },
-    { token: 'keyword.measurement', foreground: 'FF0000', fontStyle: 'bold' },
-    { token: 'type', foreground: '008000', fontStyle: 'bold' },
-    { token: 'function', foreground: '800080' },
-    { token: 'constant', foreground: '008080' },
-    { token: 'number', foreground: '098658' },
-    { token: 'string', foreground: 'A31515' },
-    { token: 'comment', foreground: '008000', fontStyle: 'italic' },
-    { token: 'operator', foreground: 'FF0000' },
-    { token: 'delimiter', foreground: '000000' },
-    { token: 'variable.hardware', foreground: 'FF00FF', fontStyle: 'bold' },
+    { token: 'keyword', foreground: 'C586C0' }, // Purple
+    { token: 'keyword.builtin', foreground: 'C586C0' }, // Purple
+    { token: 'keyword.gate', foreground: 'C586C0' }, // Purple
+    { token: 'keyword.measurement', foreground: 'C586C0' }, // Purple
+    { token: 'type', foreground: '4EC9B0' }, // Teal
+    { token: 'function', foreground: 'DCDCAA' }, // Light Yellow
+    { token: 'constant', foreground: '569CD6' }, // Blue
+    { token: 'number', foreground: 'B5CEA8' }, // Light Green
+    { token: 'string', foreground: 'CE9178' }, // Orange
+    { token: 'comment', foreground: '6A9955' }, // Green
+    { token: 'operator', foreground: 'D4D4D4' }, // Light Gray
+    { token: 'delimiter', foreground: 'D4D4D4' }, // Light Gray
+    { token: 'variable.hardware', foreground: '9CDCFE' }, // Light Blue
   ],
   colors: {}
 };

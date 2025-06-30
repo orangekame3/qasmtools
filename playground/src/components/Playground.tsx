@@ -67,20 +67,20 @@ export default function Playground() {
 
     try {
       const result = await highlightQASM(code);
-      
+
       if (!result) {
         console.warn('No result from highlightQASM');
         return;
       }
-      
+
       if (result.success && result.tokens) {
         setTokens(result.tokens);
-        
+
         // Clear previous decorations
         if (decorationsRef.current.length > 0) {
           editorRef.current.deltaDecorations(decorationsRef.current, []);
         }
-        
+
         // Apply new decorations
         const decorations = tokensToDecorations(result.tokens, monacoInstance);
         decorationsRef.current = editorRef.current.deltaDecorations([], decorations);
@@ -97,15 +97,15 @@ export default function Playground() {
 
     try {
       const result = await lintQASM(code);
-      
+
       if (!result) {
         console.warn('No result from lintQASM');
         return;
       }
-      
+
       if (result.success && result.violations) {
         setViolations(result.violations);
-        
+
         // Convert violations to Monaco markers
         const markers = result.violations.map(violation => ({
           startLineNumber: violation.line,
@@ -113,10 +113,10 @@ export default function Playground() {
           endLineNumber: violation.line,
           endColumn: violation.column + 10, // Estimate end column
           message: `${violation.message} (${violation.rule.id})`,
-          severity: violation.severity === 'error' ? 
-            monacoInstance.MarkerSeverity.Error : 
-            violation.severity === 'warning' ? 
-              monacoInstance.MarkerSeverity.Warning : 
+          severity: violation.severity === 'error' ?
+            monacoInstance.MarkerSeverity.Error :
+            violation.severity === 'warning' ?
+              monacoInstance.MarkerSeverity.Warning :
               monacoInstance.MarkerSeverity.Info,
           code: violation.rule.id,
           source: 'qasm-lint'
@@ -130,7 +130,7 @@ export default function Playground() {
       } else if (!result.success) {
         console.warn('Linting failed:', result.error);
         setViolations([]);
-        
+
         // Clear markers
         const model = editorRef.current.getModel();
         if (model) {
@@ -146,10 +146,10 @@ export default function Playground() {
   const handleEditorDidMount = useCallback((editor: import('monaco-editor').editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
     editorRef.current = editor;
     setMonacoInstance(monaco);
-    
+
     // Register QASM language
     registerQasmLanguage(monaco);
-    
+
     // Initial syntax highlighting
     // Temporarily disabled to debug WASM issues
     // if (inputCode) {
@@ -160,7 +160,7 @@ export default function Playground() {
   const handleCodeChange = useCallback((value: string | undefined) => {
     const newCode = value || '';
     setInputCode(newCode);
-    
+
     // Update syntax highlighting and linting with debouncing
     if (wasmReady && newCode.trim()) {
       setTimeout(() => {
@@ -193,7 +193,7 @@ export default function Playground() {
 
     const button = e.currentTarget as HTMLButtonElement;
     const spanElement = button.querySelector('span');
-    
+
     try {
       // Check if clipboard API is available
       if (navigator?.clipboard?.writeText) {
@@ -223,7 +223,7 @@ export default function Playground() {
       if (spanElement) {
         const originalText = spanElement.textContent || 'Copy';
         spanElement.textContent = 'Copied!';
-        
+
         setTimeout(() => {
           if (spanElement) {
             spanElement.textContent = originalText;
@@ -232,12 +232,12 @@ export default function Playground() {
       }
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
-      
+
       // Show error feedback
       if (spanElement) {
         const originalText = spanElement.textContent || 'Copy';
         spanElement.textContent = 'Failed!';
-        
+
         setTimeout(() => {
           if (spanElement) {
             spanElement.textContent = originalText;
@@ -291,7 +291,7 @@ export default function Playground() {
   }
 
   return (
-    <div className="min-h-screen bg-base-100 flex flex-col">
+    <div className="h-screen bg-base-100 flex flex-col overflow-hidden">
       {/* Header */}
       <Header
         onLoadExample={handleLoadExample}
@@ -302,17 +302,17 @@ export default function Playground() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row mx-0 mb-1">
+      <div className="flex-1 flex flex-col md:flex-row mx-0">
         {/* Input Panel */}
         <div className="flex-1 flex flex-col border-r-0 md:border-r border-base-300 min-h-0 bg-base-100 rounded-t-lg md:rounded-l-lg md:rounded-tr-none shadow-sm">
-          <div className="bg-base-200 px-1 md:px-2 py-2 border-b border-base-300 rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="bg-base-200 px-2 md:px-4 py-3 border-b border-base-300 rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Input QASM Code</h2>
               <p className="text-xs opacity-70 hidden sm:block">Write or paste your OpenQASM 3.0 code here</p>
             </div>
             <div className="flex gap-1 md:gap-2">
               <button
-                className="btn btn-xs md:btn-sm btn-primary whitespace-nowrap"
+                className="btn btn-sm md:btn-md btn-primary whitespace-nowrap"
                 onClick={handleLoadExample}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,7 +322,7 @@ export default function Playground() {
                 <span className="sm:hidden">Ex</span>
               </button>
               <button
-                className="btn btn-xs md:btn-sm btn-warning whitespace-nowrap"
+                className="btn btn-sm md:btn-md btn-warning whitespace-nowrap"
                 onClick={handleClearInput}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -332,7 +332,7 @@ export default function Playground() {
                 <span className="sm:hidden">✕</span>
               </button>
               <button
-                className={`btn btn-xs md:btn-sm btn-accent whitespace-nowrap ${isFormatting ? 'loading' : ''}`}
+                className={`btn btn-sm md:btn-md btn-accent whitespace-nowrap ${isFormatting ? 'loading' : ''}`}
                 onClick={handleFormat}
                 disabled={!wasmReady || isFormatting || !inputCode.trim()}
               >
@@ -346,18 +346,18 @@ export default function Playground() {
               </button>
             </div>
           </div>
-          <div className="flex-1 p-0 min-h-0 editor-container">
+          <div className="flex-1 p-0 min-h-0 editor-container bg-[#1e1e1e]">
             <MonacoEditor
               height="100%"
               language="qasm"
-              theme="qasm-theme"
+              theme="vs-dark"
               value={inputCode}
               onChange={handleCodeChange}
               onMount={handleEditorDidMount}
               options={{
                 minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 13,
+                scrollBeyondLastLine: true,
+                fontSize: 20,
                 lineNumbers: 'on',
                 roundedSelection: false,
                 scrollbar: { useShadows: false },
@@ -389,7 +389,7 @@ export default function Playground() {
 
         {/* Output Panel */}
         <div className="flex-1 flex flex-col border-t md:border-t-0 border-base-300 min-h-0 bg-base-100 rounded-b-lg md:rounded-r-lg md:rounded-bl-none shadow-sm">
-          <div className="bg-base-200 px-1 md:px-2 py-2 border-b border-base-300 md:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="bg-base-200 px-2 md:px-4 py-3 border-b border-base-300 md:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Formatted Output</h2>
               <p className="text-xs opacity-70 hidden sm:block">
@@ -398,7 +398,7 @@ export default function Playground() {
             </div>
             {outputCode && (
               <button
-                className="btn btn-xs md:btn-sm btn-success whitespace-nowrap"
+                className="btn btn-sm md:btn-md btn-success whitespace-nowrap"
                 onClick={(e) => handleCopyOutput(e)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -408,7 +408,7 @@ export default function Playground() {
               </button>
             )}
           </div>
-          <div className="flex-1 p-0 min-h-0 editor-container">
+          <div className="flex-1 p-0 min-h-0 editor-container bg-[#1e1e1e]">
             {!outputCode && !formatError ? (
               <div className="flex items-center justify-center h-full text-center">
                 <div className="px-4">
@@ -430,14 +430,14 @@ export default function Playground() {
               <MonacoEditor
                 height="100%"
                 language="qasm"
-                theme="qasm-theme"
+                theme="vs-dark"
                 value={outputCode}
                 options={{
                   readOnly: true,
                   minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 13,
-                  lineNumbers: 'on',
+                  scrollBeyondLastLine: true,
+                fontSize: 20,
+                lineNumbers: 'on',
                   roundedSelection: false,
                   scrollbar: { useShadows: false },
                   automaticLayout: true,
@@ -455,7 +455,7 @@ export default function Playground() {
 
       {/* Simple Status Bar */}
       {(isFormatting || formatError || outputCode || violations.length > 0) && (
-        <div className="bg-base-200 border-t border-base-300 px-2 py-2 space-y-2">
+        <div className="bg-base-200 border-t border-base-300 px-2 py-1 space-y-1">
           {isFormatting && (
             <div className="flex items-center gap-2 text-info">
               <div className="loading loading-spinner loading-sm"></div>
@@ -512,7 +512,7 @@ export default function Playground() {
                     <div className="opacity-70">
                       Rule: {violation.rule.id} ({violation.rule.name})
                       {violation.rule.documentationUrl && (
-                        <a 
+                        <a
                           href={violation.rule.documentationUrl}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -530,8 +530,7 @@ export default function Playground() {
         </div>
       )}
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer is hidden to save space */}
 
       {/* Sample Selector Modal */}
       <SampleSelector
