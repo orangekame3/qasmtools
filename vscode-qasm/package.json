@@ -2,7 +2,7 @@
 	"name": "vscode-qasm",
 	"displayName": "OpenQASM 3.0 Language Support",
 	"description": "Language support for OpenQASM 3.0 (Open Quantum Assembly Language) with syntax highlighting and language server",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"publisher": "orangekame3",
 	"icon": "icons/vscode-qasm.png",
 	"repository": {
