@@ -8,8 +8,23 @@ interface WasmResult {
   error?: string;
 }
 
+export interface TokenInfo {
+  type: string;
+  content: string;
+  line: number;
+  column: number;
+  length: number;
+}
+
+export interface HighlightResult {
+  success: boolean;
+  tokens?: TokenInfo[];
+  error?: string;
+}
+
 interface WasmModule {
   formatQASM: (code: string) => WasmResult;
+  highlightQASM: (code: string) => HighlightResult;
 }
 
 export const useWasm = () => {
@@ -46,10 +61,10 @@ export const useWasm = () => {
       // Run the Go program
       go.run(wasmModule.instance);
 
-      // Wait for the formatQASM function to be available
+      // Wait for the formatQASM and highlightQASM functions to be available
       await new Promise<void>((resolve) => {
         const checkFunction = () => {
-          if ((window as any).formatQASM) {
+          if ((window as any).qasmToolsReady && (window as any).formatQASM && (window as any).highlightQASM) {
             resolve();
           } else {
             setTimeout(checkFunction, 100);
@@ -59,7 +74,8 @@ export const useWasm = () => {
       });
 
       setWasmModule({
-        formatQASM: (window as any).formatQASM
+        formatQASM: (window as any).formatQASM,
+        highlightQASM: (window as any).highlightQASM
       });
 
       setIsReady(true);
@@ -80,11 +96,59 @@ export const useWasm = () => {
       }
 
       try {
+        // Check if the Go program is still running
+        if (!(window as any).qasmToolsReady) {
+          resolve({ success: false, error: 'WASM module has exited. Please reload the page.' });
+          return;
+        }
+
         const result = wasmModule.formatQASM(code);
         resolve(result);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        resolve({ success: false, error: errorMessage });
+        // If the error suggests the program has exited, provide helpful message
+        if (errorMessage.includes('Go program has already exited')) {
+          resolve({ success: false, error: 'WASM module has exited. Please reload the page.' });
+        } else {
+          resolve({ success: false, error: errorMessage });
+        }
+      }
+    });
+  }, [wasmModule]);
+
+  const highlightQASM = useCallback((code: string): Promise<HighlightResult> => {
+    return new Promise((resolve) => {
+      if (!wasmModule) {
+        resolve({ success: false, error: 'WASM module not loaded' });
+        return;
+      }
+
+      try {
+        // Check if the Go program is still running
+        if (!(window as any).qasmToolsReady) {
+          resolve({ success: false, error: 'WASM module has exited. Please reload the page.' });
+          return;
+        }
+
+        const result = wasmModule.highlightQASM(code);
+        
+        // Check if result is valid
+        if (!result || typeof result !== 'object') {
+          resolve({ success: false, error: 'Invalid response from WASM module' });
+          return;
+        }
+        
+        resolve(result);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        console.error('highlightQASM error:', err);
+        
+        // If the error suggests the program has exited, provide helpful message
+        if (errorMessage.includes('Go program has already exited')) {
+          resolve({ success: false, error: 'WASM module has exited. Please reload the page.' });
+        } else {
+          resolve({ success: false, error: errorMessage });
+        }
       }
     });
   }, [wasmModule]);
@@ -99,6 +163,7 @@ export const useWasm = () => {
     isReady,
     error,
     formatQASM,
+    highlightQASM,
     reload: loadWasm
   };
 };
