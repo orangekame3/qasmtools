@@ -1,0 +1,18 @@
+id: QAS003
+name: constant-measured-bit
+description: "Detects measurements of qubits that have not been affected by any gates, resulting in constant measurement outcomes."
+level: warning
+enabled: true
+
+match:
+  type: statement
+  kind: measure
+
+check:
+  - type: gate_dependency
+    target: qubit
+    required: false
+
+message: "Measuring qubit '{{ name }}' that has not been affected by any gates will always yield |0⟩."
+tags: [qasm3, logic, measurement, constant-results]
+fixable: false

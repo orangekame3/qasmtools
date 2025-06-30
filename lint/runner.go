@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
@@ -88,6 +89,11 @@ func (l *Linter) LintFile(filename string) ([]*Violation, error) {
 func (l *Linter) runRuleOnProgram(rule *Rule, checker RuleChecker, program *parser.Program, context *CheckContext) []*Violation {
 	var violations []*Violation
 
+	// For some rules that need program-level analysis, check if they implement ProgramChecker
+	if programChecker, ok := checker.(ProgramChecker); ok {
+		return programChecker.CheckProgram(context)
+	}
+
 	// Check version statement
 	if program.Version != nil {
 		if l.matchesRule(rule, program.Version) {
@@ -154,19 +160,31 @@ func (l *Linter) collectSymbolUsage(node parser.Node, usageMap map[string][]pars
 		// Record usage of qubits in gate calls
 		for _, qubit := range n.Qubits {
 			if id, ok := qubit.(*parser.Identifier); ok {
-				usageMap[id.Name] = append(usageMap[id.Name], node)
+				// Extract base name for array access (e.g., "q[0]" -> "q")
+				baseName := l.extractBaseName(id.Name)
+				usageMap[baseName] = append(usageMap[baseName], node)
 			}
 		}
 	case *parser.Measurement:
 		// Record usage of qubits and classical bits in measurements
 		if id, ok := n.Qubit.(*parser.Identifier); ok {
-			usageMap[id.Name] = append(usageMap[id.Name], node)
+			baseName := l.extractBaseName(id.Name)
+			usageMap[baseName] = append(usageMap[baseName], node)
 		}
 		if id, ok := n.Target.(*parser.Identifier); ok {
-			usageMap[id.Name] = append(usageMap[id.Name], node)
+			baseName := l.extractBaseName(id.Name)
+			usageMap[baseName] = append(usageMap[baseName], node)
 		}
 		// Add more cases as needed for other statement types
 	}
+}
+
+// extractBaseName extracts the base identifier name, removing array access
+func (l *Linter) extractBaseName(name string) string {
+	if idx := strings.Index(name, "["); idx != -1 {
+		return name[:idx]
+	}
+	return name
 }
 
 // LintFiles lints multiple files

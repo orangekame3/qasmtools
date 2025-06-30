@@ -66,6 +66,11 @@ type RuleChecker interface {
 	Check(node parser.Node, context *CheckContext) []*Violation
 }
 
+// ProgramChecker checks rules that need access to the entire program
+type ProgramChecker interface {
+	CheckProgram(context *CheckContext) []*Violation
+}
+
 // CheckContext provides context for rule checking
 type CheckContext struct {
 	File     string
