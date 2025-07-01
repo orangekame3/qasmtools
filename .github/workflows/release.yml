@@ -31,31 +31,6 @@ jobs:
           version: '3.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Java (for ANTLR)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install ANTLR
-        run: |
-          curl -O https://www.antlr.org/download/antlr-4.13.1-complete.jar
-          sudo mkdir -p /usr/local/lib
-          sudo mv antlr-4.13.1-complete.jar /usr/local/lib/
-          echo '#!/bin/bash' | sudo tee /usr/local/bin/antlr4
-          echo 'java -jar /usr/local/lib/antlr-4.13.1-complete.jar "$@"' | sudo tee -a /usr/local/bin/antlr4
-          sudo chmod +x /usr/local/bin/antlr4
-
-      - name: Generate parser code
-        run: task gen
-
-      - name: Commit generated parser files (if any changes)
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add parser/gen/*.go || true
-          git diff --staged --quiet || git commit -m "chore: update generated parser files for release [skip ci]" || true
-
       - name: Run tests
         run: task test
 

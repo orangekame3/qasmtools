@@ -15,7 +15,6 @@ bin/
 coverage.html
 
 # Generated files
-parser/gen/
 parser/grammar/*.g4
 
 # Dependency directories
