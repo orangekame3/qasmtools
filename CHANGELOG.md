@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.4](https://github.com/orangekame3/qasmtools/compare/v0.2.3...v0.2.4) - 2025-07-01
+- Remove parser generation dependency from build and test tasks by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/53
+
 ## [v0.2.3](https://github.com/orangekame3/qasmtools/compare/v0.2.2...v0.2.3) - 2025-07-01
 - Remove Java setup and parser generation from release workflow by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/51
 
