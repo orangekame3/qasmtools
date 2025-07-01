@@ -7,9 +7,7 @@ before:
     - go mod tidy
 
 builds:
-  # Main CLI tool
-  - id: qasm
-    main: ./cmd/qasm
+  - main: ./cmd/qasm
     binary: qasm
     env:
       - CGO_ENABLED=0
@@ -29,23 +27,9 @@ builds:
       - -X main.GitCommit={{.ShortCommit}}
       - -X main.BuildDate={{.Date}}
 
-  # LSP Server  
-  - id: qasmlsp
-    main: ./cmd/qasmlsp
-    binary: qasmlsp
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    ldflags:
-      - -s -w
-
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -54,13 +38,13 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
 
 checksum:
   name_template: 'checksums.txt'
 
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+
 
 changelog:
   sort: asc
