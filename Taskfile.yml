@@ -382,8 +382,8 @@ tasks:
     desc: Clean build artifacts
     cmds:
       - rm -rf {{.BUILD_DIR}}
-      - rm -rf parser/gen
       - rm -f coverage.out coverage.html
+      - task: vscode:clean
 
   clean:all:
     desc: Clean all generated files
@@ -429,7 +429,7 @@ tasks:
     dir: vscode-qasm
     cmds:
       - rm -f *.vsix
-      - rm -rf bin/qasmlsp
+      - rm -rf bin
       - rm -rf node_modules
 
   vscode:setup:

@@ -14,7 +14,7 @@ vsc-extension-quickstart.md
 test.qasm
 
 # Make sure to keep these files
-!bin/qasmlsp
+!bin/**
 !extension.js
 !language-configuration.json
 !syntaxes/**
