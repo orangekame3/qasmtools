@@ -14,21 +14,21 @@ func CreateChecker(rule *Rule) RuleChecker {
 	case "QAS004":
 		return &OutOfBoundsIndexChecker{}
 	case "QAS005":
-		return &NoOpChecker{} // TODO: Implement NamingConventionChecker
+		return &NamingConventionViolationChecker{}
 	case "QAS006":
-		return &NoOpChecker{} // TODO: Implement GateRegisterSizeMismatchChecker
+		return &GateRegisterSizeMismatchChecker{}
 	case "QAS007":
-		return &NoOpChecker{} // TODO: Implement GateParameterIndexingChecker
+		return &GateParameterIndexingChecker{}
 	case "QAS008":
-		return &NoOpChecker{} // TODO: Implement QubitDeclaredInLocalScopeChecker
+		return &QubitDeclaredInLocalScopeChecker{}
 	case "QAS009":
-		return &NoOpChecker{} // TODO: Implement IllegalBreakContinueChecker
+		return &IllegalBreakContinueChecker{}
 	case "QAS010":
-		return &NoOpChecker{} // TODO: Implement InvalidInstructionInGateChecker
+		return &InvalidInstructionInGateChecker{}
 	case "QAS011":
-		return &NoOpChecker{} // TODO: Implement ReservedPrefixUsageChecker
+		return &ReservedPrefixUsageChecker{}
 	case "QAS012":
-		return &NoOpChecker{} // TODO: Implement SnakeCaseRequiredChecker
+		return &SnakeCaseRequiredChecker{}
 	default:
 		return &NoOpChecker{}
 	}

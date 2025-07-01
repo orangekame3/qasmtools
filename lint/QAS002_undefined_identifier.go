@@ -96,7 +96,7 @@ func (c *UndefinedIdentifierChecker) findDeclaredIdentifiers(lines []string) map
 	patterns := []*regexp.Regexp{
 		regexp.MustCompile(`^\s*qubit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),        // qubit declarations
 		regexp.MustCompile(`^\s*bit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),          // bit declarations
-		regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(`),                          // gate definitions
+		regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*[\(\s]`),                     // gate definitions (followed by space or parentheses)
 		regexp.MustCompile(`^\s*def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(`),                           // function definitions
 		regexp.MustCompile(`^\s*include\s+"([^"]+)"`),                                            // include statements
 	}

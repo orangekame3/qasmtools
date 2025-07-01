@@ -32,3 +32,4 @@ vendor/
 vscode-qasm/node_modules/
 CLAUDE.md
 .claude/
+qasm
