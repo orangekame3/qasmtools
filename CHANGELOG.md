@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.8](https://github.com/orangekame3/qasmtools/compare/v0.2.7...v0.2.8) - 2025-07-01
+- Restore Dockerfile and update image build configuration by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/61
+
 ## [v0.2.7](https://github.com/orangekame3/qasmtools/compare/v0.2.6...v0.2.7) - 2025-07-01
 - Simplify .goreleaser.yml configuration by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/59
 
