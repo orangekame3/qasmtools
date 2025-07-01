@@ -10,8 +10,10 @@
 ## Features
 
 * **QASM 3.0 Parsing**: Parses OpenQASM 3.0 files into an Abstract Syntax Tree (AST).
-* **QASM 3.0 Formatting**: Formats QASM 3.0 files to adhere to a consistent style with support for standard input and JSON-style escaped strings.
-* **QASM 3.0 Linting**: Checks QASM files for style and semantic issues using configurable YAML-based rules with documentation URLs for each violation.
+* **QASM 3.0 Formatting**: Formats QASM 3.0 files to adhere to a consistent style with support for standard input, JSON-style escaped strings, and automatic pipe detection.
+* **QASM 3.0 Linting**: Checks QASM files for style and semantic issues using configurable YAML-based rules with documentation URLs for each violation, colored output, and JSON format support.
+* **QASM 3.0 Highlighting**: Provides syntax highlighting for QASM files in the terminal with color-coded output for keywords, numbers, strings, and operators.
+* **Pipeline Support**: All commands support stdin/stdout piping for seamless integration in command-line workflows.
 * **Web Playground**: Interactive browser-based formatter with WebAssembly backend and unescape support.
 * **VSCode Extension**: Provides language support for OpenQASM 3.0 in Visual Studio Code with syntax highlighting, formatting, and Language Server Protocol (LSP) integration.
 
@@ -189,7 +191,10 @@ qasm fmt --check *.qasm
 # Format with custom indentation
 qasm fmt -i 4 input.qasm
 
-# Format from standard input
+# Format from standard input (automatic detection)
+echo "OPENQASM 3.0;qubit q;h q;" | qasm fmt
+
+# Format from standard input (explicit)
 echo "OPENQASM 3.0;qubit q;h q;" | qasm fmt --stdin
 
 # Format escaped JSON strings
@@ -235,6 +240,21 @@ qasm lint --enable-only=QAS002 input.qasm
 
 # Use custom rules directory
 qasm lint --rules=custom/rules input.qasm
+
+# Pipe input from stdin (automatic detection)
+cat input.qasm | qasm lint
+
+# Explicit stdin input
+qasm lint --stdin < input.qasm
+
+# Disable colored output
+qasm lint --no-color input.qasm
+
+# JSON output format
+qasm lint --format=json input.qasm
+
+# Pipeline example: format then lint
+cat messy.qasm | qasm fmt | qasm lint
 ```
 
 #### Built-in Rules
@@ -311,6 +331,36 @@ task playground:dev
 # Build for production
 task playground:build
 ```
+
+### Highlighting QASM Files
+
+To display QASM files with syntax highlighting in the terminal:
+
+```bash
+qasm highlight [file]
+```
+
+Examples:
+
+```bash
+# Highlight a file
+qasm highlight input.qasm
+
+# Highlight from stdin (automatic detection)
+cat input.qasm | qasm highlight
+
+# Explicit stdin input
+qasm highlight --stdin < input.qasm
+
+# Pipeline example: format then highlight
+echo "OPENQASM 3.0;qubit q;h q;" | qasm fmt | qasm highlight
+```
+
+The highlight command provides colorized output with:
+- **Keywords** in yellow (OPENQASM, include, qubit, etc.)
+- **Numbers** in cyan  
+- **Strings** in green
+- **Operators** in white
 
 ## VSCode Extension
 

@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
 
 	"github.com/charmbracelet/fang"
+	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/mattn/go-isatty"
 	"github.com/orangekame3/qasmtools/formatter"
 	"github.com/orangekame3/qasmtools/highlight"
 	"github.com/orangekame3/qasmtools/lint"
@@ -35,6 +38,14 @@ func init() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			stdin, _ := cmd.Flags().GetBool("stdin")
 			if !stdin && len(args) == 0 {
+				// Check if input is being piped
+				if !isatty.IsTerminal(os.Stdin.Fd()) {
+					config, err := getConfigFromFlags(cmd)
+					if err != nil {
+						return err
+					}
+					return runFormatStdin(cmd, config)
+				}
 				return fmt.Errorf("at least one file is required (or use --stdin flag)")
 			}
 			if stdin && len(args) > 0 {
@@ -72,24 +83,27 @@ func init() {
 		Short: "Highlight QASM file",
 		Long:  `Display QASM file with syntax highlighting.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			file, err := cmd.Flags().GetString("file")
-			if err != nil {
-				return err
+			stdin, _ := cmd.Flags().GetBool("stdin")
+			if !stdin && len(args) == 0 {
+				// Check if input is being piped
+				if !isatty.IsTerminal(os.Stdin.Fd()) {
+					return runHighlightStdin()
+				}
+				return fmt.Errorf("a file is required (or use --stdin flag)")
+			}
+			if stdin && len(args) > 0 {
+				return fmt.Errorf("cannot specify files when using --stdin flag")
 			}
 
-			if file == "" && len(args) == 0 {
-				return fmt.Errorf("a file is required (use -f flag or provide as argument)")
-			}
-
-			if file != "" {
-				return runHighlight(file)
+			if stdin {
+				return runHighlightStdin()
 			}
 			return runHighlight(args[0])
 		},
 	}
 
 	// Add flags to highlight command
-	highlightCmd.Flags().StringP("file", "f", "", "file to highlight")
+	highlightCmd.Flags().Bool("stdin", false, "read input from stdin instead of files")
 
 	// Add lint subcommand
 	lintCmd := &cobra.Command{
@@ -97,8 +111,20 @@ func init() {
 		Short: "Lint QASM files",
 		Long:  `Check QASM files for style and semantic issues using configurable rules.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("at least one file is required")
+			stdin, _ := cmd.Flags().GetBool("stdin")
+			if !stdin && len(args) == 0 {
+				// Check if input is being piped
+				if !isatty.IsTerminal(os.Stdin.Fd()) {
+					return runLintStdin(cmd)
+				}
+				return fmt.Errorf("at least one file is required (or use --stdin flag)")
+			}
+			if stdin && len(args) > 0 {
+				return fmt.Errorf("cannot specify files when using --stdin flag")
+			}
+
+			if stdin {
+				return runLintStdin(cmd)
 			}
 			return runLint(cmd, args)
 		},
@@ -110,6 +136,8 @@ func init() {
 	lintCmd.Flags().StringSliceP("enable-only", "e", []string{}, "enable only specific rules")
 	lintCmd.Flags().String("format", "text", "output format (text, json)")
 	lintCmd.Flags().BoolP("quiet", "q", false, "suppress info and warning messages")
+	lintCmd.Flags().Bool("no-color", false, "disable colored output")
+	lintCmd.Flags().Bool("stdin", false, "read input from stdin instead of files")
 
 	rootCmd.AddCommand(fmtCmd, highlightCmd, lintCmd)
 }
@@ -348,6 +376,7 @@ func runLint(cmd *cobra.Command, args []string) error {
 	enabledOnly, _ := cmd.Flags().GetStringSlice("enable-only")
 	format, _ := cmd.Flags().GetString("format")
 	quiet, _ := cmd.Flags().GetBool("quiet")
+	noColor, _ := cmd.Flags().GetBool("no-color")
 
 	// Create linter
 	linter := lint.NewLinter(rulesDir)
@@ -372,7 +401,7 @@ func runLint(cmd *cobra.Command, args []string) error {
 	case "json":
 		return outputJSON(filteredViolations)
 	default:
-		return outputText(filteredViolations)
+		return outputTextWithColor(filteredViolations, !noColor)
 	}
 }
 
@@ -412,13 +441,58 @@ func filterViolations(violations []*lint.Violation, disabled []string, enabledOn
 }
 
 func outputText(violations []*lint.Violation) error {
+	return outputTextWithColor(violations, true)
+}
+
+func outputTextWithColor(violations []*lint.Violation, useColor bool) error {
 	if len(violations) == 0 {
 		fmt.Println("✅ No issues found")
 		return nil
 	}
 
+	// Define color styles
+	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF5F87")).Bold(true)
+	warningStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Bold(true)
+	infoStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#87CEEB")).Bold(true)
+	fileStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#98FB98")).Bold(true)
+	ruleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#DDA0DD")).Bold(true)
+	urlStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#87CEFA")).Underline(true)
+
+	// Disable colors if not using color or output is not a terminal
+	if !useColor || !isatty.IsTerminal(os.Stdout.Fd()) {
+		errorStyle = lipgloss.NewStyle()
+		warningStyle = lipgloss.NewStyle()
+		infoStyle = lipgloss.NewStyle()
+		fileStyle = lipgloss.NewStyle()
+		ruleStyle = lipgloss.NewStyle()
+		urlStyle = lipgloss.NewStyle()
+	}
+
 	for _, violation := range violations {
-		fmt.Println(violation.String())
+		// Format colored output
+		filePart := fileStyle.Render(fmt.Sprintf("%s:%d:%d:", violation.File, violation.Line, violation.Column))
+		
+		var severityPart string
+		switch violation.Severity {
+		case lint.SeverityError:
+			severityPart = errorStyle.Render(string(violation.Severity))
+		case lint.SeverityWarning:
+			severityPart = warningStyle.Render(string(violation.Severity))
+		case lint.SeverityInfo:
+			severityPart = infoStyle.Render(string(violation.Severity))
+		}
+		
+		rulePart := ruleStyle.Render(fmt.Sprintf("[%s]", violation.Rule.ID))
+		
+		var result string
+		if violation.Rule.DocumentationURL != "" {
+			urlPart := urlStyle.Render(fmt.Sprintf("(%s)", violation.Rule.DocumentationURL))
+			result = fmt.Sprintf("%s %s %s %s %s", filePart, severityPart, rulePart, violation.Message, urlPart)
+		} else {
+			result = fmt.Sprintf("%s %s %s %s", filePart, severityPart, rulePart, violation.Message)
+		}
+		
+		fmt.Println(result)
 	}
 
 	// Summary
@@ -449,8 +523,89 @@ func outputText(violations []*lint.Violation) error {
 }
 
 func outputJSON(violations []*lint.Violation) error {
-	// TODO: Implement JSON output
-	fmt.Println("JSON output not implemented yet")
+	type jsonViolation struct {
+		File            string `json:"file"`
+		Line            int    `json:"line"`
+		Column          int    `json:"column"`
+		Severity        string `json:"severity"`
+		RuleID          string `json:"rule_id"`
+		Message         string `json:"message"`
+		DocumentationURL string `json:"documentation_url,omitempty"`
+	}
+
+	var jsonViolations []jsonViolation
+	for _, v := range violations {
+		jsonViolations = append(jsonViolations, jsonViolation{
+			File:            v.File,
+			Line:            v.Line,
+			Column:          v.Column,
+			Severity:        string(v.Severity),
+			RuleID:          v.Rule.ID,
+			Message:         v.Message,
+			DocumentationURL: v.Rule.DocumentationURL,
+		})
+	}
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(jsonViolations)
+}
+
+func runHighlightStdin() error {
+	// Read all input from stdin
+	input, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("failed to read from stdin: %w", err)
+	}
+
+	h := highlight.New()
+	colored, err := h.Highlight(string(input))
+	if err != nil {
+		return fmt.Errorf("failed to highlight: %v", err)
+	}
+
+	fmt.Print(colored)
 	return nil
+}
+
+func runLintStdin(cmd *cobra.Command) error {
+	rulesDir, _ := cmd.Flags().GetString("rules")
+	disabledRules, _ := cmd.Flags().GetStringSlice("disable")
+	enabledOnly, _ := cmd.Flags().GetStringSlice("enable-only")
+	format, _ := cmd.Flags().GetString("format")
+	quiet, _ := cmd.Flags().GetBool("quiet")
+	noColor, _ := cmd.Flags().GetBool("no-color")
+
+	// Read all input from stdin
+	input, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("failed to read from stdin: %w", err)
+	}
+
+	// Create linter
+	linter := lint.NewLinter(rulesDir)
+
+	// Load rules
+	err = linter.LoadRules()
+	if err != nil {
+		return fmt.Errorf("failed to load rules: %w", err)
+	}
+
+	// Lint content
+	violations, err := linter.LintContent(string(input), "<stdin>")
+	if err != nil {
+		return fmt.Errorf("failed to lint content: %w", err)
+	}
+
+	// Filter violations based on flags
+	filteredViolations := filterViolations(violations, disabledRules, enabledOnly, quiet)
+
+	// Output results
+	switch format {
+	case "json":
+		return outputJSON(filteredViolations)
+	default:
+		return outputTextWithColor(filteredViolations, !noColor)
+	}
 }
 
