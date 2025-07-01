@@ -17,6 +17,123 @@
 
 ## Installation
 
+### Quick Install (macOS/Linux)
+
+The easiest way to install `qasmtools` is with a single command:
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/orangekame3/qasmtools/main/install.sh | sh
+```
+
+### Homebrew (macOS/Linux)
+
+You can also install via Homebrew:
+
+```bash
+brew install orangekame3/tap/qasmtools
+```
+
+### Docker
+
+You can use `qasmtools` via Docker without installing Go:
+
+```bash
+# Pull the image
+docker pull ghcr.io/orangekame3/qasmtools:latest
+
+# Format a QASM file
+docker run --rm -v $(pwd):/workspace ghcr.io/orangekame3/qasmtools:latest fmt /workspace/input.qasm
+
+# Lint a QASM file
+docker run --rm -v $(pwd):/workspace ghcr.io/orangekame3/qasmtools:latest lint /workspace/input.qasm
+
+# Interactive usage
+docker run --rm -it -v $(pwd):/workspace ghcr.io/orangekame3/qasmtools:latest
+```
+
+### GitHub Actions
+
+Use `qasmtools` in your CI/CD pipeline:
+
+```yaml
+name: QASM Quality Check
+
+on: [push, pull_request]
+
+jobs:
+  qasm-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install qasmtools
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/orangekame3/qasmtools/main/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Format check
+        run: |
+          qasm fmt --check *.qasm
+      
+      - name: Lint check
+        run: |
+          qasm lint *.qasm
+```
+
+Multi-platform testing:
+
+```yaml
+name: QASM Quality Check
+
+on: [push, pull_request]
+
+jobs:
+  qasm-check:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install qasmtools
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/orangekame3/qasmtools/main/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      
+      - name: Format check
+        run: |
+          qasm fmt --check *.qasm
+      
+      - name: Lint check
+        run: |
+          qasm lint *.qasm
+```
+
+Alternative using Docker:
+
+```yaml
+name: QASM Quality Check
+
+on: [push, pull_request]
+
+jobs:
+  qasm-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Format check
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace ghcr.io/orangekame3/qasmtools:latest fmt --check /workspace/*.qasm
+      
+      - name: Lint check
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace ghcr.io/orangekame3/qasmtools:latest lint /workspace/*.qasm
+```
+
+### Build from Source
+
 To build `qasmtools` from source, ensure you have Go installed (version 1.16 or higher recommended).
 
 1. Clone the repository:
