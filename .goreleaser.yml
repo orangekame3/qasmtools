@@ -68,12 +68,7 @@ dockers:
   - image_templates:
       - "ghcr.io/orangekame3/qasmtools:{{ .Version }}"
       - "ghcr.io/orangekame3/qasmtools:latest"
-    dockerfile: |
-      FROM alpine:latest
-      RUN apk --no-cache add ca-certificates
-      WORKDIR /root/
-      COPY qasm /usr/local/bin/
-      ENTRYPOINT ["/usr/local/bin/qasm"]
+    dockerfile: Dockerfile
     build_flag_templates:
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
