@@ -1,0 +1,31 @@
+id: QAS011
+name: reserved-prefix-usage
+description: "Using reserved prefix (__) in identifier."
+level: error
+enabled: true
+
+match:
+  type: declaration
+  kind: any
+
+check:
+- type: naming_pattern
+  pattern: ^__
+  mode: disallow
+
+message: "Identifier '{{ name }}' uses reserved prefix '__'."
+tags:
+- qasm3
+- naming
+- style
+
+fixable: false
+
+examples:
+  incorrect: |
+    qubit __reserved_name;  // uses reserved prefix
+  correct: |
+    qubit my_qubit;  // normal identifier
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS011.md
+specification_url: https://openqasm.com/versions/3.0/language/lexical.html#identifiers

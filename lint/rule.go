@@ -28,6 +28,8 @@ type Rule struct {
 	Tags              []string `yaml:"tags"`
 	Fixable           bool     `yaml:"fixable"`
 	DocumentationURL  string   `yaml:"documentation_url"`
+	SpecificationURL  string   `yaml:"specification_url"`
+	Examples          Examples `yaml:"examples"`
 }
 
 // Match defines what AST nodes to match
@@ -43,6 +45,12 @@ type Check struct {
 	Pattern  string `yaml:"pattern"`   // for naming checks
 	Max      int    `yaml:"max"`       // for count checks
 	Min      int    `yaml:"min"`       // for count checks
+}
+
+// Examples contains code examples for the rule
+type Examples struct {
+	Incorrect string `yaml:"incorrect"`
+	Correct   string `yaml:"correct"`
 }
 
 // Violation represents a rule violation

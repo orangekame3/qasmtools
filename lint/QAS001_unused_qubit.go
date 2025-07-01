@@ -126,7 +126,8 @@ func (c *UnusedQubitChecker) isQubitUsed(qubitName string, content string) bool 
 		patterns := []string{
 			`\b` + regexp.QuoteMeta(qubitName) + `\[\d+\]`,           // Array access
 			`\b[a-z]+\s+` + regexp.QuoteMeta(qubitName) + `\b`,       // Gate application
-			`\b` + regexp.QuoteMeta(qubitName) + `\s*,`,              // Usage in gate parameters
+			`\b` + regexp.QuoteMeta(qubitName) + `\s*,`,              // Usage in gate parameters (first param)
+			`,\s*` + regexp.QuoteMeta(qubitName) + `\b`,              // Usage in gate parameters (second param)
 			`\bmeasure\s+` + regexp.QuoteMeta(qubitName) + `\b`,      // Measurement
 		}
 

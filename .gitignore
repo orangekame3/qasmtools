@@ -31,3 +31,4 @@ vendor/
 .task/
 vscode-qasm/node_modules/
 CLAUDE.md
+.claude/

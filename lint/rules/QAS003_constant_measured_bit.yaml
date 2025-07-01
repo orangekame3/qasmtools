@@ -1,6 +1,6 @@
 id: QAS003
 name: constant-measured-bit
-description: "Detects measurements of qubits that have not been affected by any gates, resulting in constant measurement outcomes."
+description: "Measuring a qubit that has no gates applied. The result will always be |0⟩."
 level: warning
 enabled: true
 
@@ -9,11 +9,29 @@ match:
   kind: measure
 
 check:
-  - type: gate_dependency
-    target: qubit
-    required: false
+- type: gate_dependency
+  target: qubit
+  required: false
 
-message: "Measuring qubit '{{ name }}' that has not been affected by any gates will always yield |0⟩."
-tags: [qasm3, logic, measurement, constant-results]
+message: "Measuring qubit '{{ name }}' that has no gates applied. The result will always be |0⟩."
+tags:
+- qasm3
+- logic
+- measurement
+- constant-results
+
 fixable: false
-documentation_url: "https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS003.md"
+
+examples:
+  incorrect: |
+    qubit q;
+    bit c;
+    measure q -> c;  // q has no gates applied
+  correct: |
+    qubit q;
+    bit c;
+    h q;  // apply gate first
+    measure q -> c;
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS003.md
+specification_url: https://openqasm.com/versions/3.0/language/quantum.html#measurement

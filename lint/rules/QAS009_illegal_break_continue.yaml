@@ -1,0 +1,31 @@
+id: QAS009
+name: illegal-break-continue
+description: "break and continue can only be used inside loops."
+level: error
+enabled: true
+
+match:
+  type: statement
+  kind: break_or_continue
+
+check:
+- type: must_be_inside_loop
+
+message: "'{{ keyword }}' cannot be used outside of a loop."
+tags:
+- qasm3
+- control-flow
+- syntax
+
+fixable: false
+
+examples:
+  incorrect: |
+    break;  // outside of loop, error
+  correct: |
+    for i in [0:1:10] {
+      if (i == 5) break;  // inside loop, valid
+    }
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS009.md
+specification_url: https://openqasm.com/versions/3.0/language/classical.html#breaking-and-continuing-loops
