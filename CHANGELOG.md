@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.2](https://github.com/orangekame3/qasmtools/compare/v0.2.1...v0.2.2) - 2025-07-01
+- Add GitHub Action for committing generated parser files and update GoReleaser config by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/49
+
 ## [v0.2.1](https://github.com/orangekame3/qasmtools/compare/v0.2.0...v0.2.1) - 2025-07-01
 - Refactor parser generation in release workflow and GoReleaser configuration by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/47
 
