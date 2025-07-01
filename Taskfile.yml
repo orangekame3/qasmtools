@@ -24,14 +24,14 @@ tasks:
 
   # Quick aliases for common development tasks
   dev:
-    desc: 🚀 Quick development mode (alias for vscode:dev)
+    desc: 🚀 Quick development mode (alias for vscode:dev:fast)
     cmds:
-      - task vscode:dev
+      - task vscode:dev:fast
 
   debug:
-    desc: 🐛 Quick debug setup (alias for vscode:debug:extension)
+    desc: 🐛 Quick debug setup (alias for vscode:debug:extension:fast)
     cmds:
-      - task vscode:debug:extension
+      - task vscode:debug:extension:fast
 
   hot:
     desc: 🔥 Hot reload (alias for vscode:hot-reload)
@@ -44,15 +44,19 @@ tasks:
     cmds:
       - echo "🛠️  Development Workflow Help"
       - echo ""
-      - echo "📋 Quick Commands (no version concerns):"
-      - echo "   task dev      - Build & install extension (version-agnostic)"
-      - echo "   task debug    - Setup extension debugging (F5 ready)"
+      - echo "📋 Quick Commands (fast development):"
+      - echo "   task dev      - Build & install extension (current platform only)"
+      - echo "   task debug    - Setup extension debugging (F5 ready, fast)"
       - echo "   task hot      - Quick rebuild for minor changes"
       - echo ""
+      - echo "🚀 Full Platform Commands:"
+      - echo "   task vscode:dev           - Build & install (all platforms)"
+      - echo "   task vscode:debug:extension - Debug (all platforms)"
+      - echo ""
       - echo "🐛 Debug Modes:"
-      - echo "   task vscode:debug:extension  - Debug extension code (JavaScript)"
-      - echo "   task vscode:debug:lsp        - Debug LSP server (Go)"
-      - echo "   task vscode:debug:full       - Debug both together"
+      - echo "   task vscode:debug:extension:fast - Debug extension (current platform)"
+      - echo "   task vscode:debug:lsp            - Debug LSP server (Go)"
+      - echo "   task vscode:debug:full           - Debug both together"
       - echo ""
       - echo "🔄 Development Cycle:"
       - echo "   1. Make changes"
@@ -109,6 +113,28 @@ tasks:
       - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}} ./cmd/qasm
       - go build -o {{.BUILD_DIR}}/qasmlsp ./cmd/qasmlsp
 
+  build:current:
+    desc: Build LSP server for current platform
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - |
+        platform=$(go env GOOS)
+        arch=$(go env GOARCH)
+        if [ "$arch" = "amd64" ] && [ "$platform" = "windows" ]; then
+          arch="amd64"
+          platform="win32"
+          ext=".exe"
+        elif [ "$arch" = "arm64" ] && [ "$platform" = "windows" ]; then
+          arch="arm64"
+          platform="win32"
+          ext=".exe"
+        else
+          ext=""
+        fi
+        binary_name="qasmlsp_${platform}_${arch}${ext}"
+        echo "Building for current platform: $binary_name"
+        go build -o {{.BUILD_DIR}}/$binary_name ./cmd/qasmlsp
+
   build:all:
     desc: Build for all platforms
     cmds:
@@ -118,12 +144,24 @@ tasks:
       - task: build:windows
 
   build:linux:
-    desc: Build for Linux (amd64)
+    desc: Build for Linux (amd64 and arm64)
+    cmds:
+      - task: build:linux:amd64
+      - task: build:linux:arm64
+
+  build:linux:amd64:
     env:
       GOOS: linux
       GOARCH: amd64
     cmds:
-      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-linux-amd64 ./cmd/qasm
+      - go build -o {{.BUILD_DIR}}/qasmlsp_linux_amd64 ./cmd/qasmlsp
+
+  build:linux:arm64:
+    env:
+      GOOS: linux
+      GOARCH: arm64
+    cmds:
+      - go build -o {{.BUILD_DIR}}/qasmlsp_linux_arm64 ./cmd/qasmlsp
 
   build:darwin:
     desc: Build for macOS (amd64 and arm64)
@@ -136,23 +174,34 @@ tasks:
       GOOS: darwin
       GOARCH: amd64
     cmds:
-      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-amd64 ./cmd/qasm
+      - go build -o {{.BUILD_DIR}}/qasmlsp_darwin_amd64 ./cmd/qasmlsp
 
   build:darwin:arm64:
     env:
       GOOS: darwin
       GOARCH: arm64
     cmds:
-      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-darwin-arm64 ./cmd/qasm
+      - go build -o {{.BUILD_DIR}}/qasmlsp_darwin_arm64 ./cmd/qasmlsp
 
   build:windows:
-    desc: Build for Windows (amd64)
+    desc: Build for Windows (amd64 and arm64)
+    cmds:
+      - task: build:windows:amd64
+      - task: build:windows:arm64
+
+  build:windows:amd64:
     env:
       GOOS: windows
       GOARCH: amd64
     cmds:
-      - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}}-windows-amd64.exe ./cmd/qasm
+      - go build -o {{.BUILD_DIR}}/qasmlsp_win32_amd64.exe ./cmd/qasmlsp
 
+  build:windows:arm64:
+    env:
+      GOOS: windows
+      GOARCH: arm64
+    cmds:
+      - go build -o {{.BUILD_DIR}}/qasmlsp_win32_arm64.exe ./cmd/qasmlsp
   build:wasm:
     desc: Build WebAssembly version for playground
     env:
@@ -395,10 +444,16 @@ tasks:
   # VSCode Extension tasks
   vscode:package:
     desc: Package VSCode extension
-    deps: [build]
+    deps: [build:all]
     dir: vscode-qasm
     cmds:
-      - cp ../bin/qasmlsp bin/
+      - mkdir -p bin
+      - cp ../bin/qasmlsp_linux_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_linux_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_amd64.exe bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_arm64.exe bin/ 2>/dev/null || true
       - npm install
       - npx vsce package
 
@@ -455,13 +510,48 @@ tasks:
   # VSCode Extension Debug Tasks (Version-agnostic)
   vscode:debug:extension:
     desc: Debug VSCode extension only (activate extension debugging)
-    deps: [build]
+    deps: [build:all]
     dir: vscode-qasm
     cmds:
       - mkdir -p bin
-      - cp ../bin/qasmlsp bin/
+      - cp ../bin/qasmlsp_linux_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_linux_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_amd64.exe bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_arm64.exe bin/ 2>/dev/null || true
       - npm run build
       - echo "🚀 Extension ready for debugging"
+      - echo "📋 Next steps:"
+      - echo "   1. Press F5"
+      - echo "   2. Select 'Launch Extension'"
+      - echo "   3. New VSCode window will open with extension loaded"
+
+  vscode:debug:extension:fast:
+    desc: Debug VSCode extension (fast - current platform only)
+    deps: [build:current]
+    dir: vscode-qasm
+    cmds:
+      - mkdir -p bin
+      - |
+        platform=$(go env GOOS)
+        arch=$(go env GOARCH)
+        if [ "$arch" = "amd64" ] && [ "$platform" = "windows" ]; then
+          arch="amd64"
+          platform="win32"
+          ext=".exe"
+        elif [ "$arch" = "arm64" ] && [ "$platform" = "windows" ]; then
+          arch="arm64"
+          platform="win32"
+          ext=".exe"
+        else
+          ext=""
+        fi
+        binary_name="qasmlsp_${platform}_${arch}${ext}"
+        echo "Copying binary: $binary_name"
+        cp ../bin/$binary_name bin/
+      - npm run build
+      - echo "🚀 Extension ready for debugging (fast mode)"
       - echo "📋 Next steps:"
       - echo "   1. Press F5"
       - echo "   2. Select 'Launch Extension'"
@@ -494,11 +584,55 @@ tasks:
 
   vscode:dev:
     desc: Quick development mode (build + install without version concerns)
-    deps: [build]
+    deps: [build:all]
     dir: vscode-qasm
     cmds:
       - mkdir -p bin
-      - cp ../bin/qasmlsp bin/
+      - cp ../bin/qasmlsp_linux_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_linux_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_amd64.exe bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_arm64.exe bin/ 2>/dev/null || true
+      - npm run build
+      - npm run package
+      - |
+        # Find the generated .vsix file (version-agnostic)
+        VSIX_FILE=$(ls vscode-qasm-*.vsix 2>/dev/null | head -1)
+        if [ -n "$VSIX_FILE" ]; then
+          echo "📦 Found extension package: $VSIX_FILE"
+          code --uninstall-extension orangekame3.vscode-qasm >/dev/null 2>&1 || true
+          code --install-extension "$VSIX_FILE" --force
+          echo "✅ Extension installed successfully"
+          echo "🔄 Restart VSCode to see changes"
+        else
+          echo "❌ No .vsix file found"
+          exit 1
+        fi
+
+  vscode:dev:fast:
+    desc: Fast development mode (build only current platform)
+    deps: [build:current]
+    dir: vscode-qasm
+    cmds:
+      - mkdir -p bin
+      - |
+        platform=$(go env GOOS)
+        arch=$(go env GOARCH)
+        if [ "$arch" = "amd64" ] && [ "$platform" = "windows" ]; then
+          arch="amd64"
+          platform="win32"
+          ext=".exe"
+        elif [ "$arch" = "arm64" ] && [ "$platform" = "windows" ]; then
+          arch="arm64"
+          platform="win32"
+          ext=".exe"
+        else
+          ext=""
+        fi
+        binary_name="qasmlsp_${platform}_${arch}${ext}"
+        echo "Copying binary: $binary_name"
+        cp ../bin/$binary_name bin/
       - npm run build
       - npm run package
       - |
@@ -517,10 +651,16 @@ tasks:
 
   vscode:hot-reload:
     desc: Hot reload for rapid development (minimal steps)
-    deps: [build]
+    deps: [build:all]
     dir: vscode-qasm
     cmds:
-      - cp ../bin/qasmlsp bin/ 2>/dev/null || true
+      - mkdir -p bin
+      - cp ../bin/qasmlsp_linux_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_linux_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_amd64.exe bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_arm64.exe bin/ 2>/dev/null || true
       - npm run build --silent
       - echo "🔥 Hot reload complete"
       - echo "💡 If using F5 debug mode, just reload the extension host window"
@@ -556,11 +696,16 @@ tasks:
 
   vscode:quick-cycle:
     desc: Quick development cycle (build → package → install)
-    deps: [build]
+    deps: [build:all]
     dir: vscode-qasm
     cmds:
       - mkdir -p bin
-      - cp ../bin/qasmlsp bin/
+      - cp ../bin/qasmlsp_linux_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_linux_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_amd64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_darwin_arm64 bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_amd64.exe bin/ 2>/dev/null || true
+      - cp ../bin/qasmlsp_win32_arm64.exe bin/ 2>/dev/null || true
       - npm run build
       - npm run package
       - code --uninstall-extension orangekame3.vscode-qasm || true

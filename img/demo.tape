@@ -7,7 +7,7 @@ Set Width 1200
 Set Height 600
 Set PlaybackSpeed 1.0
 
-Type "qasm highlight test.qasm"
+Type "qasm highlight examples/test.qasm"
 Enter
 Sleep 2s
 Type "clear"
@@ -21,7 +21,7 @@ Type "clear"
 Enter
 Sleep 1s
 
-Type "qasm lint test_bounds.qasm"
+Type "qasm lint examples/test_bounds.qasm"
 Enter
 Sleep 2s
 Type "clear"
