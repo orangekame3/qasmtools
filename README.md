@@ -469,6 +469,7 @@ The following diagram illustrates the processing flow of qasmtools:
 flowchart TD
     A[Input QASM Code] --> M[cmd/qasm.main]
     A --> VSC[VSCode Extension]
+    A --> PW[Web Playground]
     
     subgraph "CLI Tools"
         M[cmd/qasm.main]
@@ -480,8 +481,16 @@ flowchart TD
         HL --> ST[Semantic Tokens]
     end
     
+    subgraph "Web Playground"
+        PW[Browser UI] --> WASM[cmd/wasm.main]
+        WASM --> WG[WebAssembly Go Runtime]
+        WG --> WF[Format via WASM]
+        WF --> PO[Playground Output]
+    end
+    
     M --> B[parser.Parse]
     LSP --> B
+    WASM --> B
     
     subgraph "Core Processing"
         subgraph "parser package"
@@ -504,6 +513,7 @@ flowchart TD
     H --> I
     I --> J[Output Formatted QASM]
     I --> LSP
+    I --> WF
     
     LSP --> VSC
     VSC --> K[VSCode UI]
@@ -511,12 +521,15 @@ flowchart TD
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style J fill:#9ff,stroke:#333,stroke-width:2px
     style K fill:#9ff,stroke:#333,stroke-width:2px
+    style PO fill:#9ff,stroke:#333,stroke-width:2px
     style ST fill:#ff9,stroke:#333,stroke-width:2px
     
     classDef package fill:#e0f7fa,stroke:#006064
     classDef vscode fill:#007acc,stroke:#003d66,color:#fff
+    classDef playground fill:#ff6b35,stroke:#cc3d00,color:#fff
     class M,B,C,D,E,F,G,H,I package
     class VSC,LSP,HL vscode
+    class PW,WASM,WG,WF playground
 ```
 
 The diagram shows how QASM code flows through the system:
@@ -535,6 +548,14 @@ The diagram shows how QASM code flows through the system:
 3. Syntax highlighting and semantic tokens enhance the editing experience
 4. Formatting requests flow through the same formatter package
 5. Real-time feedback is provided to the VSCode UI
+
+### Web Playground Flow
+
+1. Browser UI receives QASM code input from users
+2. Code is processed by the WebAssembly build (cmd/wasm.main)
+3. WebAssembly Go runtime executes the same formatting logic as CLI/LSP
+4. Formatted output is returned to the browser for display
+5. Same core parser and formatter packages ensure consistency across all platforms
 
 ## Examples
 
