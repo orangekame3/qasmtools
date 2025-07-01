@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.5](https://github.com/orangekame3/qasmtools/compare/v0.2.4...v0.2.5) - 2025-07-01
+- Update dependencies and improve archive configurations by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/55
+
 ## [v0.2.4](https://github.com/orangekame3/qasmtools/compare/v0.2.3...v0.2.4) - 2025-07-01
 - Remove parser generation dependency from build and test tasks by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/53
 
