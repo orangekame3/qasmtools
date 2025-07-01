@@ -49,6 +49,13 @@ jobs:
       - name: Generate parser code
         run: task gen
 
+      - name: Commit generated parser files (if any changes)
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add parser/gen/*.go || true
+          git diff --staged --quiet || git commit -m "chore: update generated parser files for release [skip ci]" || true
+
       - name: Run tests
         run: task test
 
@@ -68,7 +75,8 @@ jobs:
           version: '~> v2'
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
