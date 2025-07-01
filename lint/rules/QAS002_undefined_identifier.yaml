@@ -1,0 +1,30 @@
+id: QAS002
+name: undefined-identifier
+description: "Identifier is used without being declared."
+level: error
+enabled: true
+
+match:
+  type: usage
+  kind: identifier
+
+check:
+- type: declaration_exists
+
+message: "Identifier '{{ name }}' is not declared."
+tags:
+- qasm3
+- scope
+- semantic
+
+fixable: false
+
+examples:
+  incorrect: |
+    h q[0];  // q is undefined
+  correct: |
+    qubit q;
+    h q[0];
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS002.md
+specification_url: https://openqasm.com/versions/3.0/language/scope.html

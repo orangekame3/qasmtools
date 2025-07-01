@@ -263,13 +263,23 @@ cat messy.qasm | qasm fmt | qasm lint
 
 #### Built-in Rules
 
-The linter includes 5 built-in rules to ensure code quality and correctness:
+The linter includes 12 comprehensive built-in rules to ensure code quality and correctness:
 
+**Semantic Analysis:**
 - **QAS001** `unused-qubit` - Detects qubits that are declared but never used in gates or measurements
-- **QAS002** `insufficient-classical-bits` - Detects when the number of classical bits is insufficient for measurements
-- **QAS003** `constant-measured-bit` - Detects measurements of qubits that have not been affected by any gates, resulting in constant outcomes
-- **QAS004** `exceeding-qubit-limits` - Detects when qubit or classical bit array indices exceed declared bounds
-- **QAS005** `naming-convention-violation` - Detects violations of OpenQASM naming conventions for variables and circuits
+- **QAS002** `undefined-identifier` - Error when using undeclared variables, functions, or gates
+- **QAS003** `constant-measured-bit` - Warning when measuring qubits with no gates applied (result always |0⟩)
+- **QAS004** `out-of-bounds-index` - Error when using out-of-bounds indices on arrays or registers
+- **QAS006** `gate-register-size-mismatch` - Error when quantum register lengths do not match in gate calls
+- **QAS007** `gate-parameter-indexing` - Error when using index access on gate parameters (prohibited)
+- **QAS008** `qubit-declared-in-local-scope` - Error when declaring qubits in local scope (functions, gates, blocks)
+- **QAS009** `illegal-break-continue` - Error when using break or continue outside of loops
+- **QAS010** `invalid-instruction-in-gate` - Error when including non-unitary operations in gate definitions
+- **QAS011** `reserved-prefix-usage` - Error when using reserved prefix (__) in identifiers
+
+**Style and Conventions:**
+- **QAS005** `naming-convention-violation` - Warning for violations of OpenQASM naming conventions
+- **QAS012** `snake-case-required` - Warning to enforce snake_case naming for identifiers
 
 Each rule violation includes a documentation URL for detailed explanations and examples.
 
@@ -277,9 +287,10 @@ Each rule violation includes a documentation URL for detailed explanations and e
 
 ```
 input.qasm:5:7: warning [QAS001] Qubit 'unused_qubit' is declared but never used. (https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS001.md)
-input.qasm:8:12: error [QAS002] Insufficient classical bits for measurements. Need 2 but only 1 declared. (https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS002.md)
+input.qasm:8:12: error [QAS002] Identifier 'undefined_gate' is not declared. (https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS002.md)
+input.qasm:10:3: error [QAS004] Index out of bounds: accessing '2' on 'q' of length 2. (https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS004.md)
 
-📊 Found 2 issues: 1 errors, 1 warnings, 0 info
+📊 Found 3 issues: 2 errors, 1 warnings, 0 info
 ```
 
 #### Rule Documentation
@@ -450,7 +461,7 @@ task vscode:logs
   * `gen/`: Contains generated parser code
 * `formatter/`: Implements the QASM 3.0 formatting logic
 * `lint/`: QASM 3.0 linting engine with YAML-based rules
-  * `rules/`: Built-in rule definitions (QAS001-QAS005) with documentation URLs
+  * `rules/`: Built-in rule definitions (QAS001-QAS012) with documentation URLs, specification URLs, and examples
   * `runner.go`: Core linter engine and rule execution
   * `rule.go`: Rule definitions, violation structures, and checker interfaces
   * `factory.go`: Rule checker factory for creating specific rule implementations
@@ -582,9 +593,9 @@ The diagram shows how QASM code flows through the system:
 ### Linting Flow
 
 1. AST and Comments from parser package are fed into the lint.Linter
-2. Linter loads YAML-based rule definitions (QAS001-QAS005)
+2. Linter loads YAML-based rule definitions (QAS001-QAS012)
 3. Rule checkers analyze AST nodes for style and semantic violations
-4. Violations are generated with file positions, severity levels, and documentation URLs
+4. Violations are generated with file positions, severity levels, documentation URLs, and specification URLs
 5. Output is formatted as colored text or JSON for CLI consumption
 6. In VSCode, violations are converted to LSP diagnostics for real-time display
 

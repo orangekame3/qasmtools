@@ -1,0 +1,37 @@
+id: QAS012
+name: snake-case-required
+description: "Identifiers should be named in snake_case (lower_snake_case)."
+level: warning
+enabled: true
+
+match:
+  type: declaration
+  kind: any
+
+check:
+- type: naming_pattern
+  pattern: ^[a-z][a-z0-9_]*$
+  apply_to:
+  - bit
+  - qubit
+  - gate
+  - circuit
+
+message: "Identifier '{{ name }}' should be written in snake_case."
+tags:
+- qasm3
+- style
+- naming
+
+fixable: false
+
+examples:
+  incorrect: |
+    qubit myQubit;  // camelCase
+    gate MyGate(q) { h q; }  // PascalCase
+  correct: |
+    qubit my_qubit;  // snake_case
+    gate my_gate(q) { h q; }  // snake_case
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS012.md
+specification_url: https://openqasm.com/versions/3.0/language/lexical.html#identifiers

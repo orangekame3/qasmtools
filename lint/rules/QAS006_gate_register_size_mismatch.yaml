@@ -1,0 +1,35 @@
+id: QAS006
+name: gate-register-size-mismatch
+description: "Quantum register sizes do not match during gate call, preventing broadcasting."
+level: error
+enabled: true
+
+match:
+  type: statement
+  kind: gate_call
+
+check:
+- type: register_size_match
+
+message: "Register lengths passed to gate '{{ gate }}' do not match."
+tags:
+- qasm3
+- semantic
+- gate
+
+fixable: false
+
+examples:
+  incorrect: |
+    gate mygate(a, b) { ... }
+    qubit[2] q1;
+    qubit[3] q2;
+    mygate q1, q2;  // size mismatch: 2 vs 3
+  correct: |
+    gate mygate(a, b) { ... }
+    qubit[2] q1;
+    qubit[2] q2;
+    mygate q1, q2;  // both size 2
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS006.md
+specification_url: https://openqasm.com/versions/3.0/language/gates.html#broadcasting

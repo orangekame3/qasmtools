@@ -1,0 +1,33 @@
+id: QAS007
+name: gate-parameter-indexing
+description: "Index access on registers passed as gate arguments is not allowed in gate body."
+level: error
+enabled: true
+
+match:
+  type: statement
+  kind: gate_body
+
+check:
+- type: disallow_index_on_params
+
+message: "Cannot perform index access on gate argument '{{ name }}'."
+tags:
+- qasm3
+- gate
+- syntax
+
+fixable: false
+
+examples:
+  incorrect: |
+    gate mygate(a) {
+      h a[0];  // prohibited index access
+    }
+  correct: |
+    gate mygate(a) {
+      h a;  // use parameter directly
+    }
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS007.md
+specification_url: https://openqasm.com/versions/3.0/language/gates.html#hierarchical-gates-definitions

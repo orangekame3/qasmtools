@@ -8,13 +8,27 @@ func CreateChecker(rule *Rule) RuleChecker {
 	case "QAS001":
 		return &UnusedQubitChecker{}
 	case "QAS002":
-		return &InsufficientClassicalBitsChecker{}
+		return &UndefinedIdentifierChecker{}
 	case "QAS003":
 		return &ConstantMeasuredBitChecker{}
 	case "QAS004":
-		return NewExceedingQubitLimitsChecker(100) // Default limit
+		return &OutOfBoundsIndexChecker{}
 	case "QAS005":
-		return NewNamingConventionChecker("^[a-z][a-zA-Z0-9_]*$")
+		return &NamingConventionViolationChecker{}
+	case "QAS006":
+		return &GateRegisterSizeMismatchChecker{}
+	case "QAS007":
+		return &GateParameterIndexingChecker{}
+	case "QAS008":
+		return &QubitDeclaredInLocalScopeChecker{}
+	case "QAS009":
+		return &IllegalBreakContinueChecker{}
+	case "QAS010":
+		return &InvalidInstructionInGateChecker{}
+	case "QAS011":
+		return &ReservedPrefixUsageChecker{}
+	case "QAS012":
+		return &SnakeCaseRequiredChecker{}
 	default:
 		return &NoOpChecker{}
 	}

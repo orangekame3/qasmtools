@@ -1,0 +1,33 @@
+id: QAS010
+name: invalid-instruction-in-gate
+description: "Using non-unitary instructions (measurement, reset, etc.) within gate definition."
+level: error
+enabled: true
+
+match:
+  type: statement
+  kind: gate_body
+
+check:
+- type: unitary_only
+
+message: "Invalid instruction '{{ stmt }}' used within gate definition."
+tags:
+- qasm3
+- gate
+- syntax
+
+fixable: false
+
+examples:
+  incorrect: |
+    gate g(a) {
+      measure a -> c;  // measurement is non-unitary, not allowed
+    }
+  correct: |
+    gate g(a) {
+      h a;  // unitary operations only
+    }
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS010.md
+specification_url: https://openqasm.com/versions/3.0/language/gates.html#hierarchical-gates-definitions

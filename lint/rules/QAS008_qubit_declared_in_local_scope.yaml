@@ -1,0 +1,35 @@
+id: QAS008
+name: qubit-declared-in-local-scope
+description: "Qubits can only be declared in global scope."
+level: error
+enabled: true
+
+match:
+  type: declaration
+  kind: qubit
+
+check:
+- type: scope_check
+  allowed_scope: global
+
+message: "Qubit '{{ name }}' can only be declared in global scope."
+tags:
+- qasm3
+- scope
+- qubit
+
+fixable: false
+
+examples:
+  incorrect: |
+    def foo() {
+      qubit q;  // cannot declare in local scope
+    }
+  correct: |
+    qubit q;  // global scope declaration
+    def foo() {
+      // use q here
+    }
+
+documentation_url: https://github.com/orangekame3/qasmtools/blob/main/docs/rules/QAS008.md
+specification_url: https://openqasm.com/versions/3.0/language/types.html#qubits
