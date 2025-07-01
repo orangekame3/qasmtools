@@ -47,14 +47,14 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
+      - goos: windows
+        goarch: amd64
     ldflags:
       - -s -w
 
 archives:
   - id: qasm
-    builds:
-      - qasm
-    format: tar.gz
+    builds: [qasm]
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -65,14 +65,16 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+      - goos: linux
+        format: tar.gz
+      - goos: darwin
+        format: tar.gz
     files:
       - README.md
       - LICENSE
 
   - id: qasmlsp
-    builds:
-      - qasmlsp
-    format: tar.gz
+    builds: [qasmlsp]
     name_template: >-
       {{ .ProjectName }}-lsp_
       {{- title .Os }}_
@@ -83,6 +85,10 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+      - goos: linux
+        format: tar.gz
+      - goos: darwin
+        format: tar.gz
     files:
       - README.md
       - LICENSE
@@ -91,12 +97,11 @@ checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 nfpms:
   - id: qasm
-    builds:
-      - qasm
+    builds: [qasm]
     package_name: qasmtools
     vendor: orangekame3
     homepage: https://github.com/orangekame3/qasmtools
@@ -135,13 +140,12 @@ changelog:
     - title: Others
       order: 999
 
-brews:
+homebrew:
   - repository:
       owner: orangekame3
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-    ids:
-      - qasm
+    ids: [qasm]
     homepage: "https://github.com/orangekame3/qasmtools"
     description: "QASM tools for formatting, linting, and parsing OpenQASM 3.0 files"
     license: "Apache-2.0"
