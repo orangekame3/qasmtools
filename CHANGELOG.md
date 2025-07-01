@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.2.10](https://github.com/orangekame3/qasmtools/compare/v0.2.9...v0.2.10) - 2025-07-01
+- Add demo documentation for CLI functionality by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/68
+- Add Web Playground flow diagram and description by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/70
+- Enhance linting documentation and flow diagram by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/71
+- Refactor code structure for readability and maintainability by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/72
+
 ## [v0.2.9](https://github.com/orangekame3/qasmtools/compare/v0.2.8...v0.2.9) - 2025-07-01
 - Add installation procedure for qasmtools by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/63
 - Add demo tape for QASM commands and linting showcase by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/65
