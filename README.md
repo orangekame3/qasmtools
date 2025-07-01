@@ -309,6 +309,8 @@ The QASM Tools Playground provides an interactive web-based environment for form
 * **Syntax Highlighting**: Monaco Editor integration with custom QASM language support
 * **WebAssembly Backend**: Powered by the same Go formatter compiled to WASM for consistency
 
+![Playground Demo](img/playground.gif)
+
 ### Usage
 
 1. Navigate to the playground web interface
@@ -390,6 +392,11 @@ The `vscode-qasm` extension provides comprehensive OpenQASM 3.0 language support
 * **Built-in Linting**: Powered by the same YAML-based rule engine as the CLI tool
 
 ### Installation
+
+#### From Visual Studio Code Marketplace
+1. Visit the [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=orangekame3.vscode-qasm)
+2. Click "Install" to add the extension to VSCode
+3. Alternatively, search for "OpenQASM 3.0" in the VSCode Extensions view (`Ctrl+Shift+X`)
 
 #### From VSIX Package
 1. Download the latest `.vsix` file from the releases
