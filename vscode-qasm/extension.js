@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const { LanguageClient } = require('vscode-languageclient/node');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 let client;
@@ -20,8 +21,20 @@ function activate(context) {
         
         // Show a notification to confirm activation
         vscode.window.showInformationMessage('QASM Extension activated successfully!');
-    
-    const serverPath = context.asAbsolutePath('bin/qasmlsp');
+
+    const platform = os.platform();
+    let arch = os.arch();
+
+    if (arch === 'x64') {
+        arch = 'amd64';
+    }
+
+    let serverBinary = `qasmlsp_${platform}_${arch}`;
+    if (platform === 'win32') {
+        serverBinary += '.exe';
+    }
+
+    const serverPath = context.asAbsolutePath(path.join('bin', serverBinary));
     outputChannel.appendLine(`QASM Extension: Server path: ${serverPath}`);
     
     // Check if server binary exists
