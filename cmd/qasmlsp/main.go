@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,13 +21,15 @@ import (
 const lsName = "qasm"
 
 var (
-	version        string = "0.0.1"
-	handler        protocol.Handler
-	log            = commonlog.GetLogger("qasm")
-	documents      = make(map[protocol.DocumentUri]string)
-	lastFormatTime = make(map[protocol.DocumentUri]time.Time)
-	formatMutex    sync.RWMutex
-	linter         *lint.Linter
+	version            string = "0.0.1"
+	handler            protocol.Handler
+	log                = commonlog.GetLogger("qasm")
+	documents          = make(map[protocol.DocumentUri]string)
+	lastFormatTime     = make(map[protocol.DocumentUri]time.Time)
+	formatMutex        sync.RWMutex
+	linter             *lint.Linter
+	recentlyFormatted  = make(map[protocol.DocumentUri]time.Time)
+	formattingMutex    sync.RWMutex
 )
 
 func main() {
@@ -118,6 +121,17 @@ func textDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocu
 func textDocumentDidChange(context *glsp.Context, params *protocol.DidChangeTextDocumentParams) error {
 	log.Info("Document changed", "uri", params.TextDocument.URI, "version", params.TextDocument.Version, "changes", len(params.ContentChanges))
 
+	// Check if this document was recently formatted - if so, ignore incremental changes for a short period
+	formattingMutex.RLock()
+	if lastFormat, exists := recentlyFormatted[params.TextDocument.URI]; exists {
+		if time.Since(lastFormat) < 2*time.Second {
+			log.Info("Ignoring changes shortly after formatting to prevent feedback loop", "time_since_format", time.Since(lastFormat))
+			formattingMutex.RUnlock()
+			return nil
+		}
+	}
+	formattingMutex.RUnlock()
+
 	if len(params.ContentChanges) > 0 {
 		// Look for full document changes first
 		for i, changeInterface := range params.ContentChanges {
@@ -142,9 +156,25 @@ func textDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 			}
 		}
 
-		// If we only have incremental changes from formatting, don't update the cache
-		// The formatter has already updated the cache, so incremental changes might be inconsistent
-		log.Info("Only incremental changes detected - skipping document cache update to preserve formatter consistency")
+		// Handle incremental changes - apply them to the document and run linting
+		currentContent, exists := documents[params.TextDocument.URI]
+		if !exists {
+			log.Error("Document not found for incremental changes", "uri", params.TextDocument.URI)
+			return nil
+		}
+
+		// Apply incremental changes
+		updatedContent := applyIncrementalChanges(currentContent, params.ContentChanges)
+		documents[params.TextDocument.URI] = updatedContent
+		log.Info("Applied incremental changes", "new_length", len(updatedContent))
+
+		// Run linting on updated content
+		if linter != nil {
+			log.Info("Running linting on incrementally changed document", "uri", params.TextDocument.URI)
+			violations := runLinting(updatedContent, string(params.TextDocument.URI))
+			log.Info("Linting completed", "violations_count", len(violations))
+			publishDiagnostics(context, params.TextDocument.URI, violations)
+		}
 	}
 	return nil
 }
@@ -319,6 +349,11 @@ func textDocumentFormatting(context *glsp.Context, params *protocol.DocumentForm
 	documents[params.TextDocument.URI] = formatted
 	log.Info("Updated document cache with formatted content", "length", len(formatted))
 
+	// Mark document as recently formatted to prevent feedback loop
+	formattingMutex.Lock()
+	recentlyFormatted[params.TextDocument.URI] = time.Now()
+	formattingMutex.Unlock()
+
 	log.Info("=== FORMATTING REQUEST END ===")
 
 	return []protocol.TextEdit{edit}, nil
@@ -429,4 +464,114 @@ func splitLines(text string) []string {
 		lines = append(lines, text[start:])
 	}
 	return lines
+}
+
+// applyIncrementalChanges applies a series of incremental changes to document content
+func applyIncrementalChanges(content string, changes []interface{}) string {
+	lines := splitLines(content)
+	
+	// Sort changes by position (reverse order to maintain positions)
+	var textChanges []protocol.TextDocumentContentChangeEvent
+	for _, changeInterface := range changes {
+		if change, ok := changeInterface.(protocol.TextDocumentContentChangeEvent); ok && change.Range != nil {
+			textChanges = append(textChanges, change)
+		}
+	}
+	
+	// Apply changes in reverse order to maintain line/column positions
+	for i := len(textChanges) - 1; i >= 0; i-- {
+		change := textChanges[i]
+		lines = applyTextChange(lines, change)
+	}
+	
+	return strings.Join(lines, "\n")
+}
+
+// applyTextChange applies a single text change to the lines array
+func applyTextChange(lines []string, change protocol.TextDocumentContentChangeEvent) []string {
+	if change.Range == nil {
+		// Full document replacement
+		return splitLines(change.Text)
+	}
+	
+	startLine := int(change.Range.Start.Line)
+	startChar := int(change.Range.Start.Character)
+	endLine := int(change.Range.End.Line)
+	endChar := int(change.Range.End.Character)
+	
+	// Ensure we don't go out of bounds
+	if startLine >= len(lines) {
+		// Extend lines if necessary
+		for len(lines) <= startLine {
+			lines = append(lines, "")
+		}
+	}
+	
+	if endLine >= len(lines) {
+		for len(lines) <= endLine {
+			lines = append(lines, "")
+		}
+	}
+	
+	newText := change.Text
+	newLines := splitLines(newText)
+	
+	// Build the result
+	var result []string
+	
+	// Add lines before the change
+	result = append(result, lines[:startLine]...)
+	
+	// Handle the change
+	if startLine == endLine {
+		// Single line change
+		line := lines[startLine]
+		if startChar > len(line) {
+			startChar = len(line)
+		}
+		if endChar > len(line) {
+			endChar = len(line)
+		}
+		
+		newLine := line[:startChar] + strings.Join(newLines, "\n") + line[endChar:]
+		if len(newLines) == 1 {
+			result = append(result, newLine)
+		} else {
+			// Multi-line replacement in single line
+			firstNewLine := line[:startChar] + newLines[0]
+			result = append(result, firstNewLine)
+			result = append(result, newLines[1:len(newLines)-1]...)
+			lastNewLine := newLines[len(newLines)-1] + line[endChar:]
+			result = append(result, lastNewLine)
+		}
+	} else {
+		// Multi-line change
+		startLineText := lines[startLine]
+		endLineText := lines[endLine]
+		
+		if startChar > len(startLineText) {
+			startChar = len(startLineText)
+		}
+		if endChar > len(endLineText) {
+			endChar = len(endLineText)
+		}
+		
+		if len(newLines) == 1 {
+			// Replace multiple lines with single line
+			newLine := startLineText[:startChar] + newLines[0] + endLineText[endChar:]
+			result = append(result, newLine)
+		} else {
+			// Replace multiple lines with multiple lines
+			firstLine := startLineText[:startChar] + newLines[0]
+			result = append(result, firstLine)
+			result = append(result, newLines[1:len(newLines)-1]...)
+			lastLine := newLines[len(newLines)-1] + endLineText[endChar:]
+			result = append(result, lastLine)
+		}
+	}
+	
+	// Add lines after the change
+	result = append(result, lines[endLine+1:]...)
+	
+	return result
 }
