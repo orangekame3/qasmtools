@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,13 +26,11 @@ func (c *OutOfBoundsIndexChecker) CheckProgram(context *CheckContext) []*Violati
 func (c *OutOfBoundsIndexChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content for text-based analysis
+	text, err := context.GetContent()
 	if err != nil {
 		return violations
 	}
-
-	text := string(content)
 	lines := strings.Split(text, "\n")
 
 	// First pass: collect all array declarations and their sizes

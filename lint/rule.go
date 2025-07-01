@@ -2,6 +2,7 @@ package lint
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
@@ -92,4 +93,18 @@ type CheckContext struct {
 	Content  string  // Raw file content for text-based analysis
 	Program  *parser.Program
 	UsageMap map[string][]parser.Node // For tracking symbol usage
+}
+
+// GetContent returns the content for analysis, preferring provided content over file reading
+func (c *CheckContext) GetContent() (string, error) {
+	if c.Content != "" {
+		return c.Content, nil
+	}
+	
+	content, err := os.ReadFile(c.File)
+	if err != nil {
+		return "", err
+	}
+	
+	return string(content), nil
 }

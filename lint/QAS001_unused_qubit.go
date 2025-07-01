@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
@@ -34,13 +33,11 @@ func (c *UnusedQubitChecker) extractQubitName(identifier string) string {
 func (c *UnusedQubitChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content for text-based analysis
+	text, err := context.GetContent()
 	if err != nil {
 		return violations
 	}
-
-	text := string(content)
 	lines := strings.Split(text, "\n")
 
 	// Find qubit declarations

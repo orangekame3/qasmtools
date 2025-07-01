@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
@@ -26,13 +25,11 @@ func (c *UndefinedIdentifierChecker) CheckProgram(context *CheckContext) []*Viol
 func (c *UndefinedIdentifierChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content for text-based analysis
+	text, err := context.GetContent()
 	if err != nil {
 		return violations
 	}
-
-	text := string(content)
 	lines := strings.Split(text, "\n")
 
 	// First pass: collect all declared identifiers
