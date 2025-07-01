@@ -450,7 +450,10 @@ task vscode:logs
   * `gen/`: Contains generated parser code
 * `formatter/`: Implements the QASM 3.0 formatting logic
 * `lint/`: QASM 3.0 linting engine with YAML-based rules
-  * `rules/`: Built-in rule definitions (QAS001-QAS005)
+  * `rules/`: Built-in rule definitions (QAS001-QAS005) with documentation URLs
+  * `runner.go`: Core linter engine and rule execution
+  * `rule.go`: Rule definitions, violation structures, and checker interfaces
+  * `factory.go`: Rule checker factory for creating specific rule implementations
 * `highlight/`: Syntax highlighting implementation for LSP
 * `playground/`: Web-based QASM formatter with WebAssembly backend
   * `src/`: React/TypeScript frontend components
@@ -479,6 +482,7 @@ flowchart TD
         VSC[VSCode Extension] --> LSP[cmd/qasmlsp.main]
         LSP --> HL[highlight.Highlight]
         HL --> ST[Semantic Tokens]
+        LSP --> DIAG[Diagnostic Publishing]
     end
     
     subgraph "Web Playground"
@@ -505,6 +509,14 @@ flowchart TD
             H[Format AST]
             I[Generate Code]
         end
+        
+        subgraph "lint package"
+            L[lint.Linter] --> LR[Load Rules]
+            LR --> LY[YAML Rule Definitions]
+            L --> LC[Rule Checkers]
+            LC --> LV[Generate Violations]
+            LV --> LO[Colored Output / JSON]
+        end
     end
     
     D --> G
@@ -515,21 +527,31 @@ flowchart TD
     I --> LSP
     I --> WF
     
+    D --> L
+    F --> L
+    
     LSP --> VSC
     VSC --> K[VSCode UI]
+    L --> DIAG
+    DIAG --> VSC
     
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style J fill:#9ff,stroke:#333,stroke-width:2px
     style K fill:#9ff,stroke:#333,stroke-width:2px
     style PO fill:#9ff,stroke:#333,stroke-width:2px
+    style LO fill:#9ff,stroke:#333,stroke-width:2px
     style ST fill:#ff9,stroke:#333,stroke-width:2px
+    style DIAG fill:#ff9,stroke:#333,stroke-width:2px
+    style LY fill:#ff9,stroke:#333,stroke-width:2px
     
     classDef package fill:#e0f7fa,stroke:#006064
     classDef vscode fill:#007acc,stroke:#003d66,color:#fff
     classDef playground fill:#ff6b35,stroke:#cc3d00,color:#fff
+    classDef lint fill:#dc3545,stroke:#a71e2b,color:#fff
     class M,B,C,D,E,F,G,H,I package
     class VSC,LSP,HL vscode
     class PW,WASM,WG,WF playground
+    class L,LR,LC,LV lint
 ```
 
 The diagram shows how QASM code flows through the system:
@@ -556,6 +578,15 @@ The diagram shows how QASM code flows through the system:
 3. WebAssembly Go runtime executes the same formatting logic as CLI/LSP
 4. Formatted output is returned to the browser for display
 5. Same core parser and formatter packages ensure consistency across all platforms
+
+### Linting Flow
+
+1. AST and Comments from parser package are fed into the lint.Linter
+2. Linter loads YAML-based rule definitions (QAS001-QAS005)
+3. Rule checkers analyze AST nodes for style and semantic violations
+4. Violations are generated with file positions, severity levels, and documentation URLs
+5. Output is formatted as colored text or JSON for CLI consumption
+6. In VSCode, violations are converted to LSP diagnostics for real-time display
 
 ## Examples
 
