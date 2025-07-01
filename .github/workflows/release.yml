@@ -46,7 +46,10 @@ jobs:
           echo 'java -jar /usr/local/lib/antlr-4.13.1-complete.jar "$@"' | sudo tee -a /usr/local/bin/antlr4
           sudo chmod +x /usr/local/bin/antlr4
 
-      - name: Run tests (parser generation handled by GoReleaser)
+      - name: Generate parser code
+        run: task gen
+
+      - name: Run tests
         run: task test
 
       - name: Set up Docker Buildx
