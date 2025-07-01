@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.13](https://github.com/orangekame3/qasmtools/compare/v0.2.12...v0.2.13) - 2025-07-01
+- updaet lsp by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/77
+
 ## [v0.2.12](https://github.com/orangekame3/qasmtools/compare/v0.2.11...v0.2.12) - 2025-07-01
 - Refactor linting code for improved content retrieval by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/75
 
