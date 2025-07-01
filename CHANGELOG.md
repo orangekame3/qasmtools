@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.6](https://github.com/orangekame3/qasmtools/compare/v0.2.5...v0.2.6) - 2025-07-01
+- Simplify .goreleaser.yml by removing unused configurations by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/57
+
 ## [v0.2.5](https://github.com/orangekame3/qasmtools/compare/v0.2.4...v0.2.5) - 2025-07-01
 - Update dependencies and improve archive configurations by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/55
 
