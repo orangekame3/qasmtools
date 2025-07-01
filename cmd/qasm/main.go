@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"strconv"
 
 	"github.com/charmbracelet/fang"
 	"github.com/orangekame3/qasmtools/formatter"
@@ -31,12 +33,20 @@ func init() {
 		Short: "Format QASM files",
 		Long:  `Format one or more QASM files according to the standard style.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("at least one file is required")
+			stdin, _ := cmd.Flags().GetBool("stdin")
+			if !stdin && len(args) == 0 {
+				return fmt.Errorf("at least one file is required (or use --stdin flag)")
+			}
+			if stdin && len(args) > 0 {
+				return fmt.Errorf("cannot specify files when using --stdin flag")
 			}
 			config, err := getConfigFromFlags(cmd)
 			if err != nil {
 				return err
+			}
+
+			if stdin {
+				return runFormatStdin(cmd, config)
 			}
 
 			if config.Check {
@@ -53,6 +63,8 @@ func init() {
 	fmtCmd.Flags().BoolP("newline", "n", true, "ensure files end with a newline")
 	fmtCmd.Flags().BoolP("verbose", "v", false, "verbose output")
 	fmtCmd.Flags().Bool("diff", false, "display diffs instead of rewriting files")
+	fmtCmd.Flags().Bool("stdin", false, "read input from stdin instead of files")
+	fmtCmd.Flags().Bool("unescape", false, "unescape JSON-style escaped strings (\\n, \\\") before formatting")
 
 	// Add highlight subcommand
 	highlightCmd := &cobra.Command{
@@ -133,14 +145,49 @@ func getConfigFromFlags(cmd *cobra.Command) (*formatter.Config, error) {
 		return nil, err
 	}
 
+	unescape, err := cmd.Flags().GetBool("unescape")
+	if err != nil {
+		return nil, err
+	}
+
 	return &formatter.Config{
-		Write:   write,
-		Check:   check,
-		Indent:  indent,
-		Newline: newline,
-		Verbose: verbose,
-		Diff:    diff,
+		Write:    write,
+		Check:    check,
+		Indent:   indent,
+		Newline:  newline,
+		Verbose:  verbose,
+		Diff:     diff,
+		Unescape: unescape,
 	}, nil
+}
+
+func runFormatStdin(cmd *cobra.Command, config *formatter.Config) error {
+	// Read all input from stdin
+	input, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("failed to read from stdin: %w", err)
+	}
+
+	content := string(input)
+
+	// Apply unescaping if requested
+	if config.Unescape {
+		unescaped, err := strconv.Unquote(content)
+		if err != nil {
+			return fmt.Errorf("failed to unescape input: %w", err)
+		}
+		content = unescaped
+	}
+
+	// Format the content
+	formatted, err := formatter.FormatQASMWithConfig(content, config)
+	if err != nil {
+		return fmt.Errorf("failed to format QASM: %w", err)
+	}
+
+	// Output to stdout
+	fmt.Print(formatted)
+	return nil
 }
 
 func runFormatWithConfig(cmd *cobra.Command, args []string, config *formatter.Config) error {
@@ -213,12 +260,23 @@ func formatFileWithConfig(filename string, config *formatter.Config) (bool, erro
 		return false, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	formatted, err := formatter.FormatQASMWithConfig(string(content), config)
+	inputContent := string(content)
+
+	// Apply unescaping if requested
+	if config.Unescape {
+		unescaped, err := strconv.Unquote(inputContent)
+		if err != nil {
+			return false, fmt.Errorf("failed to unescape file content: %w", err)
+		}
+		inputContent = unescaped
+	}
+
+	formatted, err := formatter.FormatQASMWithConfig(inputContent, config)
 	if err != nil {
 		return false, fmt.Errorf("failed to format QASM: %w", err)
 	}
 
-	modified := string(content) != formatted
+	modified := inputContent != formatted
 
 	if config.Write {
 		if modified {
@@ -229,7 +287,7 @@ func formatFileWithConfig(filename string, config *formatter.Config) (bool, erro
 	}
 
 	if config.Diff {
-		err := showDiff(filename, string(content), formatted)
+		err := showDiff(filename, inputContent, formatted)
 		return modified, err
 	}
 
@@ -243,12 +301,23 @@ func checkFileWithConfig(filename string, config *formatter.Config) (bool, error
 		return false, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	formatted, err := formatter.FormatQASMWithConfig(string(content), config)
+	inputContent := string(content)
+
+	// Apply unescaping if requested
+	if config.Unescape {
+		unescaped, err := strconv.Unquote(inputContent)
+		if err != nil {
+			return false, fmt.Errorf("failed to unescape file content: %w", err)
+		}
+		inputContent = unescaped
+	}
+
+	formatted, err := formatter.FormatQASMWithConfig(inputContent, config)
 	if err != nil {
 		return false, fmt.Errorf("failed to format QASM: %w", err)
 	}
 
-	return string(content) == formatted, nil
+	return inputContent == formatted, nil
 }
 
 func runHighlight(filename string) error {

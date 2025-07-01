@@ -43,7 +43,7 @@ export interface LintResult {
 }
 
 interface WasmModule {
-  formatQASM: (code: string) => WasmResult;
+  formatQASM: (code: string, unescape?: boolean) => WasmResult;
   highlightQASM: (code: string) => HighlightResult;
   lintQASM: (code: string) => LintResult;
 }
@@ -111,7 +111,7 @@ export const useWasm = () => {
     }
   }, [isReady, isLoading]);
 
-  const formatQASM = useCallback((code: string): Promise<WasmResult> => {
+  const formatQASM = useCallback((code: string, unescape?: boolean): Promise<WasmResult> => {
     return new Promise((resolve) => {
       if (!wasmModule) {
         resolve({ success: false, error: 'WASM module not loaded' });
@@ -125,7 +125,7 @@ export const useWasm = () => {
           return;
         }
 
-        const result = wasmModule.formatQASM(code);
+        const result = wasmModule.formatQASM(code, unescape);
         resolve(result);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';

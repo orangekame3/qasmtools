@@ -673,7 +673,10 @@ tasks:
     deps: [build:wasm]
     dir: playground  
     cmds:
-      - cp -r ../bin/wasm public/
+      - mkdir -p public/wasm public/qasmtools/wasm
+      - cp ../bin/wasm/qasmtools.wasm public/wasm/
+      - cp ../bin/wasm/qasmtools.wasm public/qasmtools/wasm/
+      - cp ../bin/wasm/wasm_exec.js public/wasm/
       - npm run dev
 
   playground:build:
@@ -681,7 +684,10 @@ tasks:
     deps: [build:wasm]
     dir: playground
     cmds:
-      - cp -r ../bin/wasm public/
+      - mkdir -p public/wasm public/qasmtools/wasm
+      - cp ../bin/wasm/qasmtools.wasm public/wasm/
+      - cp ../bin/wasm/qasmtools.wasm public/qasmtools/wasm/
+      - cp ../bin/wasm/wasm_exec.js public/wasm/
       - npm run build
 
   playground:clean:

@@ -47,6 +47,7 @@ export default function Playground() {
   const [monacoInstance, setMonacoInstance] = useState<typeof import('monaco-editor') | null>(null);
   const editorRef = useRef<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = useRef<string[]>([]);
+  const [unescapeMode, setUnescapeMode] = useState(false);
 
   const { isLoading: wasmLoading, isReady: wasmReady, error: wasmError, formatQASM, highlightQASM, lintQASM } = useWasm();
 
@@ -57,7 +58,7 @@ export default function Playground() {
     setFormatError(null);
 
     try {
-      const result = await formatQASM(inputCode);
+      const result = await formatQASM(inputCode, unescapeMode);
 
       if (result.success && result.formatted) {
         setOutputCode(result.formatted);
@@ -72,7 +73,7 @@ export default function Playground() {
     } finally {
       setIsFormatting(false);
     }
-  }, [inputCode, wasmReady, formatQASM]);
+  }, [inputCode, wasmReady, formatQASM, unescapeMode]);
 
   const updateSyntaxHighlighting = useCallback(async (code: string) => {
     if (!wasmReady || !code.trim() || !editorRef.current || !monacoInstance) return;
@@ -320,7 +321,18 @@ export default function Playground() {
           <div className="bg-[#2d2d2d] px-2 md:px-4 py-3 border-b border-[#2d2d2d] rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Input QASM Code</h2>
-              <p className="text-xs opacity-70 hidden sm:block">Write or paste your OpenQASM 3.0 code here</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <p className="text-xs opacity-70">Write or paste your OpenQASM 3.0 code here</p>
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-sm"
+                    checked={unescapeMode}
+                    onChange={(e) => setUnescapeMode(e.target.checked)}
+                  />
+                  <span className="opacity-80">Unescape JSON strings</span>
+                </label>
+              </div>
             </div>
             <div className="flex gap-1 md:gap-2">
               <button
