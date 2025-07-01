@@ -301,6 +301,8 @@ Detailed documentation for each rule is available at [docs/rules/](docs/rules/RE
 
 The QASM Tools Playground provides an interactive web-based environment for formatting OpenQASM 3.0 code directly in your browser.
 
+**🌐 Try it online: [https://www.orangekame3.net/qasmtools/](https://www.orangekame3.net/qasmtools/)**
+
 ### Features
 
 * **Real-time Formatting**: Format QASM code instantly with the same engine used by the CLI
