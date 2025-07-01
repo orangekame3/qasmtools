@@ -4,27 +4,38 @@ on:
   push:
     tags:
       - 'v*'
-    branches-ignore: ['**']
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   goreleaser:
     name: Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
+          cache: true
 
       - name: Install Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           version: '3.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Java (for ANTLR)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Install ANTLR
         run: |
@@ -35,22 +46,30 @@ jobs:
           echo 'java -jar /usr/local/lib/antlr-4.13.1-complete.jar "$@"' | sudo tee -a /usr/local/bin/antlr4
           sudo chmod +x /usr/local/bin/antlr4
 
-      - name: Generate parser code
-        run: task gen
-
-      - name: Run tests
+      - name: Run tests (parser generation handled by GoReleaser)
         run: task test
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          version: latest
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
+        if: failure()
         with:
           name: dist
           path: dist/

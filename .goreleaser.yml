@@ -1,9 +1,14 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
+    - task gen  # Generate parser files before building
 
 builds:
-  - main: ./cmd/qasm
+  # Main CLI tool
+  - id: qasm
+    main: ./cmd/qasm
     binary: qasm
     env:
       - CGO_ENABLED=0
@@ -19,12 +24,34 @@ builds:
         goarch: arm64
     ldflags:
       - -s -w
-      - -X github.com/orangekame3/qasmtools/cmd.Version={{.Version}}
-      - -X github.com/orangekame3/qasmtools/cmd.Commit={{.Commit}}
-      - -X github.com/orangekame3/qasmtools/cmd.BuildDate={{.Date}}
+      - -X main.Version={{.Version}}
+      - -X main.GitCommit={{.FullCommit}}
+      - -X main.BuildDate={{.Date}}
+
+  # LSP Server
+  - id: qasmlsp
+    main: ./cmd/qasmlsp
+    binary: qasmlsp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
 
 archives:
-  - format: tar.gz
+  - id: qasm
+    builds:
+      - qasm
+    format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -35,6 +62,27 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+    files:
+      - README.md
+      - LICENSE
+
+  - id: qasmlsp
+    builds:
+      - qasmlsp
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}-lsp_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
 
 checksum:
   name_template: 'checksums.txt'
@@ -42,38 +90,132 @@ checksum:
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
+nfpms:
+  - id: qasm
+    builds:
+      - qasm
+    package_name: qasmtools
+    vendor: orangekame3
+    homepage: https://github.com/orangekame3/qasmtools
+    maintainer: orangekame3 <orange.three333@gmail.com>
+    description: |-
+      QASM tools for formatting, linting, and parsing OpenQASM 3.0 files.
+      Provides command-line tools for quantum assembly language development.
+    license: Apache 2.0
+    formats:
+      - deb
+      - rpm
+
 changelog:
   sort: asc
+  use: github
   filters:
     exclude:
       - '^docs:'
       - '^test:'
       - '^ci:'
       - '^chore:'
+      - '^refactor:'
+      - '^style:'
       - Merge pull request
       - Merge branch
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Performance improvements'
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
 
 brews:
   - repository:
       owner: orangekame3
       name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    ids:
+      - qasm
     homepage: "https://github.com/orangekame3/qasmtools"
-    description: "QASM tools for formatting and parsing QASM files"
+    description: "QASM tools for formatting, linting, and parsing OpenQASM 3.0 files"
+    license: "Apache-2.0"
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
-    install: |
-      bin.install "qasm"
     test: |
       system "#{bin}/qasm", "--version"
+    install: |
+      bin.install "qasm"
 
 dockers:
   - image_templates:
       - "ghcr.io/orangekame3/qasmtools:{{ .Version }}"
       - "ghcr.io/orangekame3/qasmtools:latest"
-    dockerfile: Dockerfile
+    dockerfile: |
+      FROM alpine:latest
+      RUN apk --no-cache add ca-certificates git
+      WORKDIR /root/
+      COPY qasm /usr/local/bin/
+      ENTRYPOINT ["/usr/local/bin/qasm"]
     build_flag_templates:
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/orangekame3/qasmtools"
+      - "--label=org.opencontainers.image.description=QASM tools for formatting, linting, and parsing OpenQASM 3.0 files"
+      - "--label=org.opencontainers.image.licenses=Apache-2.0"
+    ids:
+      - qasm
+
+release:
+  github:
+    owner: orangekame3
+    name: qasmtools
+  header: |
+    ## QASM Tools {{ .Tag }}
+
+    This release includes:
+    - CLI tool (`qasm`) for formatting, linting, and syntax highlighting
+    - LSP server (`qasmlsp`) for VSCode integration
+    - Web playground with WebAssembly support
+    - VSCode extension for OpenQASM 3.0 language support
+
+    ### Installation
+
+    #### Homebrew (macOS/Linux)
+    ```bash
+    brew install orangekame3/tap/qasmtools
+    ```
+
+    #### Direct Download
+    Download the appropriate archive for your platform from the assets below.
+
+    #### Docker
+    ```bash
+    docker run --rm -v $(pwd):/workspace ghcr.io/orangekame3/qasmtools:{{ .Tag }} fmt /workspace/*.qasm
+    ```
+
+  footer: |
+    **Full Changelog**: https://github.com/orangekame3/qasmtools/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ---
+
+    🚀 Try the [Web Playground](https://orangekame3.github.io/qasmtools/) for interactive QASM formatting!
+
+    📦 VSCode Extension: Search for "QASM" in the VSCode Extension Marketplace or install from the `.vsix` file included in this release.
+
+  extra_files:
+    - glob: ./vscode-qasm/*.vsix
+      name_template: "{{ .ProjectName }}-vscode-extension-{{ .Version }}.vsix"
+
+announce:
+  skip: "{{ gt .Patch 0 }}"  # Only announce major and minor releases
+
+milestones:
+  - close: true
+    fail_on_error: false
+    name_template: "{{ .Tag }}"
