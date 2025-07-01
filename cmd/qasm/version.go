@@ -3,7 +3,7 @@ package main
 // Version information for the QASM CLI tool
 var (
 	// Version is the current version of the qasm CLI
-	Version = "0.2.8"
+	Version = "0.2.9"
 
 	// BuildDate is the date when the binary was built
 	BuildDate = "unknown"

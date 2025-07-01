@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.2.9](https://github.com/orangekame3/qasmtools/compare/v0.2.8...v0.2.9) - 2025-07-01
+- Add installation procedure for qasmtools by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/63
+- Add demo tape for QASM commands and linting showcase by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/65
+- Update build process and dependencies for cross-platform support by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/66
+- Update README and enhance VSCode extension features by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/67
+
 ## [v0.2.8](https://github.com/orangekame3/qasmtools/compare/v0.2.7...v0.2.8) - 2025-07-01
 - Restore Dockerfile and update image build configuration by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/61
 
