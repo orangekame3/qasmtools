@@ -471,6 +471,7 @@ tasks:
     dir: vscode-qasm
     cmds:
       - npx vsce publish
+      - task: clean
 
   vscode:publish:test:
     desc: Test publish without actually publishing
