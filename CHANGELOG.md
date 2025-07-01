@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.11](https://github.com/orangekame3/qasmtools/compare/v0.2.10...v0.2.11) - 2025-07-01
+- Enhance functionality and performance of QASM Tools Playground by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/73
+
 ## [v0.2.10](https://github.com/orangekame3/qasmtools/compare/v0.2.9...v0.2.10) - 2025-07-01
 - Add demo documentation for CLI functionality by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/68
 - Add Web Playground flow diagram and description by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/70
