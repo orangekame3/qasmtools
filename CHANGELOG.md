@@ -1,0 +1,48 @@
+# Changelog
+
+## [v0.2.0](https://github.com/orangekame3/qasmtools/commits/v0.2.0) - 2025-07-01
+- Add initial quantum circuit in QASM format by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/1
+- Update README with usage instructions and project structure by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/2
+- Add OpenQASM 3.0 parser examples and error handling by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/3
+- Update project configuration and enhance documentation by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/4
+- Remove unnecessary qasm3Parser.tokens file and update imports by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/5
+- Add QASM 3 parser token definitions by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/6
+- Implement QASM 3 formatter with comment extraction and timing expressions support by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/7
+- Refactor QASM formatter tests and add new test cases by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/8
+- Add architecture diagram to README.md by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/9
+- Add QASM test cases and enhance highlighter support by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/10
+- Add QASM Language Server support for VSCode extension by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/11
+- Refactor QASM parser and formatter for improved syntax handling and validation by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/12
+- Fix formatter test and improve comment handling by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/13
+- Update .gitignore and enhance test output for color verification by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/14
+- Refactor code structure for improved readability and maintainability by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/15
+- Clean up whitespace in main.go and highlight.go for consistency by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/16
+- Refactor code structure for improved readability and maintainability by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/17
+- Enhance functionality and improve performance of QASM Tools by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/18
+- Fix image link in README.md for correct display by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/19
+- Update version to 0.1.3 for enhanced functionality and performance improvements by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/20
+- Update version and improve image link for vscode-qasm by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/21
+- Enhance QASM extension with formatting and debugging capabilities by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/22
+- Refactor code structure for improved readability and maintainability by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/23
+- Improve QASM formatting and add idempotency tests by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/24
+- Refactor code structure for improved readability and maintainability by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/25
+- Refactor code structure for improved readability and maintainability by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/26
+- Add linting capabilities for QASM files and clean up formatting by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/27
+- Remove unused expandMessage function from Rule struct by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/28
+- Refactor linting rules and add new checks by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/29
+- Add documentation generation tasks and enhance lint rules with documentation URLs by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/30
+- Enhance linting documentation with detailed rule descriptions and examples by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/31
+- Refactor code structure for readability and maintainability by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/32
+- Initialize QASM Tools Playground with core components by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/33
+- Remove unnecessary Pages setup in deployment workflow by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/34
+- Update WASM loading to use dynamic base path from router by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/35
+- Update base path for QASM Tools and adjust WASM loading logic by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/36
+- Implement QASM syntax highlighting and enhance WASM integration by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/37
+- Add linting functionality to QASM Tools and update Playground component by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/38
+- Update QASM theme to dark mode with enhanced syntax highlighting by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/39
+- Update theme to dark mode and enhance Header styling by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/40
+- Implement responsive font size adjustment in Playground component by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/41
+- Enhance QASM formatting with unescape functionality by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/42
+- Add support for escaped string samples in QASMSample interface by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/43
+- Update GitHub Actions and GoReleaser configuration for releases by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/44
+- Add GitHub Actions workflow for automated tagging on main branch by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/45
