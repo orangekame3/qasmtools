@@ -21,15 +21,15 @@ import (
 const lsName = "qasm"
 
 var (
-	version            string = "0.0.1"
-	handler            protocol.Handler
-	log                = commonlog.GetLogger("qasm")
-	documents          = make(map[protocol.DocumentUri]string)
-	lastFormatTime     = make(map[protocol.DocumentUri]time.Time)
-	formatMutex        sync.RWMutex
-	linter             *lint.Linter
-	recentlyFormatted  = make(map[protocol.DocumentUri]time.Time)
-	formattingMutex    sync.RWMutex
+	version           string = "0.0.1"
+	handler           protocol.Handler
+	log               = commonlog.GetLogger("qasm")
+	documents         = make(map[protocol.DocumentUri]string)
+	lastFormatTime    = make(map[protocol.DocumentUri]time.Time)
+	formatMutex       sync.RWMutex
+	linter            *lint.Linter
+	recentlyFormatted = make(map[protocol.DocumentUri]time.Time)
+	formattingMutex   sync.RWMutex
 )
 
 func main() {
@@ -469,7 +469,7 @@ func splitLines(text string) []string {
 // applyIncrementalChanges applies a series of incremental changes to document content
 func applyIncrementalChanges(content string, changes []interface{}) string {
 	lines := splitLines(content)
-	
+
 	// Sort changes by position (reverse order to maintain positions)
 	var textChanges []protocol.TextDocumentContentChangeEvent
 	for _, changeInterface := range changes {
@@ -477,13 +477,13 @@ func applyIncrementalChanges(content string, changes []interface{}) string {
 			textChanges = append(textChanges, change)
 		}
 	}
-	
+
 	// Apply changes in reverse order to maintain line/column positions
 	for i := len(textChanges) - 1; i >= 0; i-- {
 		change := textChanges[i]
 		lines = applyTextChange(lines, change)
 	}
-	
+
 	return strings.Join(lines, "\n")
 }
 
@@ -493,12 +493,12 @@ func applyTextChange(lines []string, change protocol.TextDocumentContentChangeEv
 		// Full document replacement
 		return splitLines(change.Text)
 	}
-	
+
 	startLine := int(change.Range.Start.Line)
 	startChar := int(change.Range.Start.Character)
 	endLine := int(change.Range.End.Line)
 	endChar := int(change.Range.End.Character)
-	
+
 	// Ensure we don't go out of bounds
 	if startLine >= len(lines) {
 		// Extend lines if necessary
@@ -506,22 +506,22 @@ func applyTextChange(lines []string, change protocol.TextDocumentContentChangeEv
 			lines = append(lines, "")
 		}
 	}
-	
+
 	if endLine >= len(lines) {
 		for len(lines) <= endLine {
 			lines = append(lines, "")
 		}
 	}
-	
+
 	newText := change.Text
 	newLines := splitLines(newText)
-	
+
 	// Build the result
 	var result []string
-	
+
 	// Add lines before the change
 	result = append(result, lines[:startLine]...)
-	
+
 	// Handle the change
 	if startLine == endLine {
 		// Single line change
@@ -532,7 +532,7 @@ func applyTextChange(lines []string, change protocol.TextDocumentContentChangeEv
 		if endChar > len(line) {
 			endChar = len(line)
 		}
-		
+
 		newLine := line[:startChar] + strings.Join(newLines, "\n") + line[endChar:]
 		if len(newLines) == 1 {
 			result = append(result, newLine)
@@ -548,14 +548,14 @@ func applyTextChange(lines []string, change protocol.TextDocumentContentChangeEv
 		// Multi-line change
 		startLineText := lines[startLine]
 		endLineText := lines[endLine]
-		
+
 		if startChar > len(startLineText) {
 			startChar = len(startLineText)
 		}
 		if endChar > len(endLineText) {
 			endChar = len(endLineText)
 		}
-		
+
 		if len(newLines) == 1 {
 			// Replace multiple lines with single line
 			newLine := startLineText[:startChar] + newLines[0] + endLineText[endChar:]
@@ -569,9 +569,9 @@ func applyTextChange(lines []string, change protocol.TextDocumentContentChangeEv
 			result = append(result, lastLine)
 		}
 	}
-	
+
 	// Add lines after the change
 	result = append(result, lines[endLine+1:]...)
-	
+
 	return result
 }
