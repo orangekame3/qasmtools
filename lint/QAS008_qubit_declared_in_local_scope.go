@@ -37,7 +37,7 @@ func (c *QubitDeclaredInLocalScopeChecker) CheckFile(context *CheckContext) []*V
 
 	// Track scope depth and find qubit declarations
 	scopeDepth := 0
-	
+
 	for i, line := range lines {
 		// Skip comments and empty lines
 		trimmedLine := strings.TrimSpace(line)
@@ -47,15 +47,15 @@ func (c *QubitDeclaredInLocalScopeChecker) CheckFile(context *CheckContext) []*V
 
 		// Remove comments from the line for processing
 		codeOnly := c.removeComments(line)
-		
+
 		// For same-line braces and declarations, we need special handling
 		// Check if this line has both a brace and a qubit declaration
 		openBraces := strings.Count(codeOnly, "{")
 		closeBraces := strings.Count(codeOnly, "}")
-		
+
 		// Check for qubit declarations first, before updating scope
 		qubitDeclarations := c.findQubitDeclarations(codeOnly)
-		
+
 		// For same-line handling: if we have both an opening brace and a qubit declaration,
 		// the declaration is likely in the local scope
 		effectiveScopeDepth := scopeDepth
@@ -70,7 +70,7 @@ func (c *QubitDeclaredInLocalScopeChecker) CheckFile(context *CheckContext) []*V
 				} else {
 					effectiveScopeDepth = scopeDepth
 				}
-				
+
 				// Check if we're in local scope (not global)
 				if effectiveScopeDepth > 0 {
 					violation := &Violation{
@@ -102,7 +102,7 @@ func (c *QubitDeclaredInLocalScopeChecker) CheckFile(context *CheckContext) []*V
 				}
 			}
 		}
-		
+
 		// Update scope depth for next line
 		scopeDepth += openBraces - closeBraces
 	}
@@ -114,7 +114,6 @@ type qubitDeclaration struct {
 	name   string
 	column int
 }
-
 
 // findQubitDeclarations finds all qubit declarations in a line
 func (c *QubitDeclaredInLocalScopeChecker) findQubitDeclarations(line string) []qubitDeclaration {
@@ -138,7 +137,7 @@ func (c *QubitDeclaredInLocalScopeChecker) findQubitDeclarations(line string) []
 				qubitPos := strings.Index(line[matchStart:], qubitName)
 				if qubitPos != -1 {
 					column := matchStart + qubitPos + 1 // Convert to 1-based indexing
-					
+
 					declarations = append(declarations, qubitDeclaration{
 						name:   qubitName,
 						column: column,
@@ -150,7 +149,6 @@ func (c *QubitDeclaredInLocalScopeChecker) findQubitDeclarations(line string) []
 
 	return declarations
 }
-
 
 // removeComments removes comments from a line
 func (c *QubitDeclaredInLocalScopeChecker) removeComments(line string) string {

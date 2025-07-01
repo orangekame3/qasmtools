@@ -47,7 +47,7 @@ func (c *ExceedingQubitLimitsChecker) checkFileTextBased(context *CheckContext) 
 
 	// Build map of declared arrays and their sizes
 	arrayDeclarations := c.findArrayDeclarations(lines)
-	
+
 	// Check all array accesses for bounds violations
 	for i, line := range lines {
 		violations = append(violations, c.checkLineForBoundsViolations(line, i+1, arrayDeclarations, context)...)
@@ -65,11 +65,11 @@ type arrayDeclaration struct {
 
 func (c *ExceedingQubitLimitsChecker) findArrayDeclarations(lines []string) map[string]arrayDeclaration {
 	declarations := make(map[string]arrayDeclaration)
-	
+
 	// Patterns for array declarations
 	qubitArrayPattern := regexp.MustCompile(`^\s*qubit\[(\d+)\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`)
 	bitArrayPattern := regexp.MustCompile(`^\s*bit\[(\d+)\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`)
-	
+
 	for i, line := range lines {
 		// Check qubit array declarations
 		if matches := qubitArrayPattern.FindStringSubmatch(line); len(matches) > 2 {
@@ -81,8 +81,8 @@ func (c *ExceedingQubitLimitsChecker) findArrayDeclarations(lines []string) map[
 				}
 			}
 		}
-		
-		// Check bit array declarations  
+
+		// Check bit array declarations
 		if matches := bitArrayPattern.FindStringSubmatch(line); len(matches) > 2 {
 			if size, err := strconv.Atoi(matches[1]); err == nil {
 				declarations[matches[2]] = arrayDeclaration{
@@ -93,22 +93,22 @@ func (c *ExceedingQubitLimitsChecker) findArrayDeclarations(lines []string) map[
 			}
 		}
 	}
-	
+
 	return declarations
 }
 
 func (c *ExceedingQubitLimitsChecker) checkLineForBoundsViolations(line string, lineNum int, declarations map[string]arrayDeclaration, context *CheckContext) []*Violation {
 	var violations []*Violation
-	
+
 	// Pattern for array access: identifier[index]
 	arrayAccessPattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)\[(\d+)\]`)
-	
+
 	matches := arrayAccessPattern.FindAllStringSubmatch(line, -1)
 	for _, match := range matches {
 		if len(match) > 2 {
 			arrayName := match[1]
 			indexStr := match[2]
-			
+
 			if index, err := strconv.Atoi(indexStr); err == nil {
 				if decl, exists := declarations[arrayName]; exists {
 					// Check if index is out of bounds (arrays are 0-indexed)
@@ -127,6 +127,6 @@ func (c *ExceedingQubitLimitsChecker) checkLineForBoundsViolations(line string, 
 			}
 		}
 	}
-	
+
 	return violations
 }

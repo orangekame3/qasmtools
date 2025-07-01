@@ -24,8 +24,8 @@ func main() {
 	// Export formatQASM function to JavaScript
 	formatFunc := js.FuncOf(formatQASM)
 	js.Global().Set("formatQASM", formatFunc)
-	
-	// Export highlightQASM function to JavaScript  
+
+	// Export highlightQASM function to JavaScript
 	// Temporarily disabled to debug issues
 	highlightFunc := js.FuncOf(highlightQASM)
 	js.Global().Set("highlightQASM", highlightFunc)
@@ -151,11 +151,11 @@ func convertTokensToJS(tokens []highlight.TokenInfo) []map[string]interface{} {
 	result := make([]map[string]interface{}, len(tokens))
 	for i, token := range tokens {
 		result[i] = map[string]interface{}{
-			"type":     token.TypeName,
-			"content":  token.Content,
-			"line":     token.Line,
-			"column":   token.Column,
-			"length":   token.Length,
+			"type":    token.TypeName,
+			"content": token.Content,
+			"line":    token.Line,
+			"column":  token.Column,
+			"length":  token.Length,
 		}
 	}
 	return result

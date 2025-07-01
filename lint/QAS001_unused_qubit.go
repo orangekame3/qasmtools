@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
@@ -34,13 +33,11 @@ func (c *UnusedQubitChecker) extractQubitName(identifier string) string {
 func (c *UnusedQubitChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content for text-based analysis
+	text, err := context.GetContent()
 	if err != nil {
 		return violations
 	}
-
-	text := string(content)
 	lines := strings.Split(text, "\n")
 
 	// Find qubit declarations
@@ -109,26 +106,26 @@ func (c *UnusedQubitChecker) isQubitUsed(qubitName string, content string) bool 
 	// Look for usage patterns, but exclude declarations
 	// Split content into lines to analyze individually
 	lines := strings.Split(content, "\n")
-	
+
 	for _, line := range lines {
 		// Skip declaration lines
 		declPattern := `^\s*(qubit(\[\d+\])?\s+` + regexp.QuoteMeta(qubitName) + `\s*;)`
 		if matched, _ := regexp.MatchString(declPattern, line); matched {
 			continue
 		}
-		
+
 		// Look for usage patterns in this line:
 		// 1. Array access: qubit_name[0]
 		// 2. Gate calls: h qubit_name;
 		// 3. Gate parameters: cx qubit1, qubit_name;
 		// 4. Measurements: measure qubit_name
-		
+
 		patterns := []string{
-			`\b` + regexp.QuoteMeta(qubitName) + `\[\d+\]`,           // Array access
-			`\b[a-z]+\s+` + regexp.QuoteMeta(qubitName) + `\b`,       // Gate application
-			`\b` + regexp.QuoteMeta(qubitName) + `\s*,`,              // Usage in gate parameters (first param)
-			`,\s*` + regexp.QuoteMeta(qubitName) + `\b`,              // Usage in gate parameters (second param)
-			`\bmeasure\s+` + regexp.QuoteMeta(qubitName) + `\b`,      // Measurement
+			`\b` + regexp.QuoteMeta(qubitName) + `\[\d+\]`,      // Array access
+			`\b[a-z]+\s+` + regexp.QuoteMeta(qubitName) + `\b`,  // Gate application
+			`\b` + regexp.QuoteMeta(qubitName) + `\s*,`,         // Usage in gate parameters (first param)
+			`,\s*` + regexp.QuoteMeta(qubitName) + `\b`,         // Usage in gate parameters (second param)
+			`\bmeasure\s+` + regexp.QuoteMeta(qubitName) + `\b`, // Measurement
 		}
 
 		for _, pattern := range patterns {

@@ -57,9 +57,9 @@ func TestUnescapeIntegration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binPath, tt.args...)
 			cmd.Stdin = bytes.NewBufferString(tt.input)
-			
+
 			output, err := cmd.Output()
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("Expected error but command succeeded")

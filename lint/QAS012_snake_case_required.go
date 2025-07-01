@@ -45,7 +45,7 @@ func (c *SnakeCaseRequiredChecker) CheckFile(context *CheckContext) []*Violation
 
 		// Find identifier declarations and check for snake_case
 		identifiers := c.findIdentifierDeclarations(line)
-		
+
 		for _, identifier := range identifiers {
 			if !c.isSnakeCase(identifier.name) {
 				violation := &Violation{
@@ -101,7 +101,7 @@ func (c *SnakeCaseRequiredChecker) findIdentifierDeclarations(line string) []ide
 				identifierPos := strings.Index(codeOnly[matchStart:], identifierName)
 				if identifierPos != -1 {
 					column := matchStart + identifierPos + 1 // Convert to 1-based indexing
-					
+
 					declarations = append(declarations, identifierDeclarationSnakeCase{
 						name:   identifierName,
 						column: column,
@@ -119,28 +119,28 @@ func (c *SnakeCaseRequiredChecker) isSnakeCase(name string) bool {
 	// Pattern: must start with lowercase letter, followed by lowercase letters, digits, or underscores
 	// No consecutive underscores, no ending underscore
 	snakeCasePattern := regexp.MustCompile(`^[a-z][a-z0-9_]*[a-z0-9]$|^[a-z]$`)
-	
+
 	// Check basic pattern
 	if !snakeCasePattern.MatchString(name) {
 		return false
 	}
-	
+
 	// Additional checks for proper snake_case:
 	// 1. No consecutive underscores
 	if strings.Contains(name, "__") {
 		return false
 	}
-	
+
 	// 2. No ending with underscore (unless single character)
 	if len(name) > 1 && strings.HasSuffix(name, "_") {
 		return false
 	}
-	
+
 	// 3. No starting with underscore (handled by pattern but double-check)
 	if strings.HasPrefix(name, "_") {
 		return false
 	}
-	
+
 	return true
 }
 

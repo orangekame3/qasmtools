@@ -55,7 +55,6 @@ func (l *Linter) LintContent(content string, filename string) ([]*Violation, err
 	if result.HasErrors() && result.Program == nil {
 		return nil, fmt.Errorf("failed to parse content: %v", result.Errors)
 	}
-	
 
 	// Build usage map for symbol tracking
 	usageMap := l.buildUsageMap(result.Program)
@@ -75,12 +74,12 @@ func (l *Linter) LintContent(content string, filename string) ([]*Violation, err
 		if !rule.Enabled {
 			continue
 		}
-		
+
 		checker := l.checkers[rule.ID]
 		if checker == nil {
 			continue
 		}
-		
+
 		violations := l.runRuleOnProgram(rule, checker, result.Program, context)
 
 		// Set rule reference for each violation

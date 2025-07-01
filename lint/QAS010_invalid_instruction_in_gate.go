@@ -37,16 +37,16 @@ func (c *InvalidInstructionInGateChecker) CheckFile(context *CheckContext) []*Vi
 
 	// Find all gate definitions and check their bodies
 	gateDefinitions := c.findGateDefinitions(lines)
-	
+
 	for _, gateDef := range gateDefinitions {
 		// Check each line within the gate body for invalid instructions
 		for i := gateDef.startLine; i <= gateDef.endLine; i++ {
 			if i < len(lines) {
 				line := lines[i]
-				
+
 				// Find any invalid instructions in this line
 				invalidInstructions := c.findInvalidInstructions(line)
-				
+
 				for _, instruction := range invalidInstructions {
 					violation := &Violation{
 						Rule:     nil, // Will be set by the runner
@@ -80,10 +80,10 @@ type invalidInstruction struct {
 // findGateDefinitions finds all gate definitions in the file
 func (c *InvalidInstructionInGateChecker) findGateDefinitions(lines []string) []gateDefWithInstructions {
 	var gates []gateDefWithInstructions
-	
+
 	// Pattern for gate definitions: gate name(params...) qubits... {
 	gateStartPattern := regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\([^)]*\))?\s+[^{]*\s*\{`)
-	
+
 	for i, line := range lines {
 		// Skip comments and empty lines
 		trimmedLine := strings.TrimSpace(line)
@@ -94,10 +94,10 @@ func (c *InvalidInstructionInGateChecker) findGateDefinitions(lines []string) []
 		matches := gateStartPattern.FindStringSubmatch(line)
 		if len(matches) >= 2 {
 			gateName := matches[1]
-			
+
 			// Find the end of this gate definition
 			endLine := c.findGateEnd(lines, i)
-			
+
 			gates = append(gates, gateDefWithInstructions{
 				name:      gateName,
 				startLine: i,
@@ -105,7 +105,7 @@ func (c *InvalidInstructionInGateChecker) findGateDefinitions(lines []string) []
 			})
 		}
 	}
-	
+
 	return gates
 }
 
@@ -113,15 +113,15 @@ func (c *InvalidInstructionInGateChecker) findGateDefinitions(lines []string) []
 func (c *InvalidInstructionInGateChecker) findGateEnd(lines []string, startLine int) int {
 	braceCount := 0
 	foundOpenBrace := false
-	
+
 	for i := startLine; i < len(lines); i++ {
 		line := lines[i]
-		
+
 		// Remove comments
 		if idx := strings.Index(line, "//"); idx != -1 {
 			line = line[:idx]
 		}
-		
+
 		// Count braces
 		for _, char := range line {
 			if char == '{' {
@@ -135,7 +135,7 @@ func (c *InvalidInstructionInGateChecker) findGateEnd(lines []string, startLine 
 			}
 		}
 	}
-	
+
 	// If no closing brace found, return the last line
 	return len(lines) - 1
 }
@@ -143,10 +143,10 @@ func (c *InvalidInstructionInGateChecker) findGateEnd(lines []string, startLine 
 // findInvalidInstructions finds all invalid (non-unitary) instructions in a line
 func (c *InvalidInstructionInGateChecker) findInvalidInstructions(line string) []invalidInstruction {
 	var instructions []invalidInstruction
-	
+
 	// Remove comments from the line
 	codeOnly := c.removeComments(line)
-	
+
 	// List of non-unitary instructions that are invalid in gate definitions
 	invalidInstructionPatterns := []*regexp.Regexp{
 		// measure statement: measure qubit -> bit;
@@ -164,16 +164,16 @@ func (c *InvalidInstructionInGateChecker) findInvalidInstructions(line string) [
 		// Function calls (generally not allowed in gates unless they're unitary gates)
 		// Note: This is more complex and may need refinement based on OpenQASM 3.0 spec
 	}
-	
+
 	for _, pattern := range invalidInstructionPatterns {
 		matches := pattern.FindAllStringSubmatch(codeOnly, -1)
 		indices := pattern.FindAllStringIndex(codeOnly, -1)
-		
+
 		for i, match := range matches {
 			if len(match) >= 2 {
 				instructionName := match[1]
 				column := indices[i][0] + 1 // Convert to 1-based indexing
-				
+
 				instructions = append(instructions, invalidInstruction{
 					instruction: instructionName,
 					column:      column,
@@ -181,7 +181,7 @@ func (c *InvalidInstructionInGateChecker) findInvalidInstructions(line string) [
 			}
 		}
 	}
-	
+
 	return instructions
 }
 

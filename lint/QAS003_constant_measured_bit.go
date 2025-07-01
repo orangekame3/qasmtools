@@ -48,7 +48,7 @@ func (c *ConstantMeasuredBitChecker) CheckFile(context *CheckContext) []*Violati
 
 		// Find measurements in this line
 		measurements := c.findMeasurements(line)
-		
+
 		for _, measurement := range measurements {
 			// Check if the measured qubit has any gates applied
 			if !qubitGateMap[measurement.qubitName] {
@@ -111,7 +111,7 @@ func (c *ConstantMeasuredBitChecker) analyzeQubitGateUsage(lines []string) map[s
 			for _, match := range matches {
 				if len(match) >= 3 {
 					gateName := match[1]
-					
+
 					// Skip non-gate keywords
 					if c.isNonGateKeyword(gateName) {
 						continue
@@ -144,7 +144,7 @@ func (c *ConstantMeasuredBitChecker) findQubitDeclarations(line string) []string
 
 	// Patterns for qubit declarations
 	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`^\s*qubit\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),        // single qubit
+		regexp.MustCompile(`^\s*qubit\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),              // single qubit
 		regexp.MustCompile(`^\s*qubit\[\s*\d+\s*\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`), // array qubit
 	}
 

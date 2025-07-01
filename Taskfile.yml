@@ -261,8 +261,8 @@ tasks:
   lint:
     desc: Run linters
     cmds:
-      - go fmt $(go list ./... | grep -v 'gen')
-      - go vet $(go list ./... | grep -v 'gen')
+      - go fmt ./cmd/qasm ./cmd/qasmlsp ./cmd/tools ./formatter ./highlight ./lint ./parser
+      - go vet ./cmd/qasm ./cmd/qasmlsp ./cmd/tools ./formatter ./highlight ./lint ./parser
       - task: lint:golangci
 
   lint:golangci:

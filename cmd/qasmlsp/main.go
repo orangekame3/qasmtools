@@ -32,7 +32,7 @@ var (
 func main() {
 	commonlog.Configure(1, nil) // Lower log level for more verbose output
 	log.Info("qasmlsp server starting")
-	
+
 	// Initialize linter
 	linter = lint.NewLinter("")
 	if err := linter.LoadRules(); err != nil {
@@ -103,7 +103,7 @@ func textDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocu
 	log.Info("Document opened", "uri", params.TextDocument.URI)
 	documents[params.TextDocument.URI] = params.TextDocument.Text
 	log.Info("Document content stored", "uri", params.TextDocument.URI, "content_length", len(params.TextDocument.Text))
-	
+
 	// Run linting on newly opened document
 	if linter != nil {
 		log.Info("Running linting on opened document", "uri", params.TextDocument.URI)
@@ -111,7 +111,7 @@ func textDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocu
 		log.Info("Linting completed", "violations_count", len(violations))
 		publishDiagnostics(context, params.TextDocument.URI, violations)
 	}
-	
+
 	return nil
 }
 
@@ -129,7 +129,7 @@ func textDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 					// Full document replacement - this is what we want for format results
 					documents[params.TextDocument.URI] = change.Text
 					log.Info("Full document replacement applied", "new_length", len(change.Text))
-					
+
 					// Run linting on updated document content
 					if linter != nil {
 						log.Info("Running linting on changed document", "uri", params.TextDocument.URI)
@@ -342,7 +342,7 @@ func min(a, b int) int {
 // convertViolationsToDiagnostics converts lint violations to LSP diagnostics
 func convertViolationsToDiagnostics(violations []*lint.Violation) []protocol.Diagnostic {
 	var diagnostics []protocol.Diagnostic
-	
+
 	for _, violation := range violations {
 		severity := protocol.DiagnosticSeverityInformation
 		switch violation.Severity {
@@ -353,15 +353,15 @@ func convertViolationsToDiagnostics(violations []*lint.Violation) []protocol.Dia
 		case lint.SeverityInfo:
 			severity = protocol.DiagnosticSeverityInformation
 		}
-		
+
 		// Convert 1-based line/column to 0-based for LSP
 		line := uint32(violation.Line - 1)
 		column := uint32(violation.Column)
-		
+
 		// Create code as IntegerOrString
 		code := protocol.IntegerOrString{Value: violation.Rule.ID}
 		source := "qasm-lint"
-		
+
 		diagnostic := protocol.Diagnostic{
 			Range: protocol.Range{
 				Start: protocol.Position{Line: line, Character: column},
@@ -372,22 +372,22 @@ func convertViolationsToDiagnostics(violations []*lint.Violation) []protocol.Dia
 			Source:   &source,
 			Message:  violation.Message,
 		}
-		
+
 		diagnostics = append(diagnostics, diagnostic)
 	}
-	
+
 	return diagnostics
 }
 
 // publishDiagnostics sends diagnostics to the client
 func publishDiagnostics(context *glsp.Context, uri protocol.DocumentUri, violations []*lint.Violation) {
 	diagnostics := convertViolationsToDiagnostics(violations)
-	
+
 	params := protocol.PublishDiagnosticsParams{
 		URI:         uri,
 		Diagnostics: diagnostics,
 	}
-	
+
 	context.Notify(protocol.ServerTextDocumentPublishDiagnostics, params)
 	log.Info("Published diagnostics", "uri", uri, "count", len(diagnostics))
 }
@@ -398,21 +398,21 @@ func runLinting(content string, filename string) []*lint.Violation {
 		log.Error("Linter not initialized")
 		return nil
 	}
-	
+
 	log.Info("Starting lint process", "filename", filename, "content_length", len(content))
 	log.Info("Linter state", "linter_ptr", fmt.Sprintf("%p", linter), "rules_count", len(linter.GetRules()))
-	
+
 	violations, err := linter.LintContent(content, filename)
 	if err != nil {
 		log.Error("Linting failed", "error", err)
 		return nil
 	}
-	
+
 	log.Info("Lint process completed", "violations_found", len(violations))
 	for i, violation := range violations {
 		log.Info("Violation found", "index", i, "rule", violation.Rule.ID, "message", violation.Message, "line", violation.Line, "column", violation.Column)
 	}
-	
+
 	return violations
 }
 

@@ -45,7 +45,7 @@ func (c *ReservedPrefixUsageChecker) CheckFile(context *CheckContext) []*Violati
 
 		// Find identifier declarations and check for reserved prefixes
 		identifiers := c.findIdentifierDeclarations(line)
-		
+
 		for _, identifier := range identifiers {
 			if c.hasReservedPrefix(identifier.name) {
 				violation := &Violation{
@@ -109,7 +109,7 @@ func (c *ReservedPrefixUsageChecker) findIdentifierDeclarations(line string) []i
 				identifierPos := strings.Index(codeOnly[matchStart:], identifierName)
 				if identifierPos != -1 {
 					column := matchStart + identifierPos + 1 // Convert to 1-based indexing
-					
+
 					declarations = append(declarations, identifierDeclarationWithPrefix{
 						name:   identifierName,
 						column: column,

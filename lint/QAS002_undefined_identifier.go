@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
@@ -26,13 +25,11 @@ func (c *UndefinedIdentifierChecker) CheckProgram(context *CheckContext) []*Viol
 func (c *UndefinedIdentifierChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content for text-based analysis
+	text, err := context.GetContent()
 	if err != nil {
 		return violations
 	}
-
-	text := string(content)
 	lines := strings.Split(text, "\n")
 
 	// First pass: collect all declared identifiers
@@ -48,7 +45,7 @@ func (c *UndefinedIdentifierChecker) CheckFile(context *CheckContext) []*Violati
 
 		// Find all identifier usages in this line
 		usages := c.findIdentifierUsages(line)
-		
+
 		for _, usage := range usages {
 			// Check if the identifier is declared
 			if !declared[usage.name] {
@@ -87,18 +84,18 @@ func (c *UndefinedIdentifierChecker) findDeclaredIdentifiers(lines []string) map
 		// Constants
 		"pi", "euler", "tau",
 	}
-	
+
 	for _, builtin := range builtins {
 		declared[builtin] = true
 	}
 
 	// Declaration patterns
 	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`^\s*qubit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),        // qubit declarations
-		regexp.MustCompile(`^\s*bit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),          // bit declarations
-		regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*[\(\s]`),                     // gate definitions (followed by space or parentheses)
-		regexp.MustCompile(`^\s*def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(`),                           // function definitions
-		regexp.MustCompile(`^\s*include\s+"([^"]+)"`),                                            // include statements
+		regexp.MustCompile(`^\s*qubit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`), // qubit declarations
+		regexp.MustCompile(`^\s*bit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),   // bit declarations
+		regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*[\(\s]`),               // gate definitions (followed by space or parentheses)
+		regexp.MustCompile(`^\s*def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(`),                    // function definitions
+		regexp.MustCompile(`^\s*include\s+"([^"]+)"`),                                    // include statements
 	}
 
 	for _, line := range lines {
@@ -112,12 +109,12 @@ func (c *UndefinedIdentifierChecker) findDeclaredIdentifiers(lines []string) map
 			if len(matches) > 1 {
 				identifier := matches[1]
 				declared[identifier] = true
-				
+
 				// Special handling for include statements
 				if strings.Contains(line, "include") && strings.Contains(identifier, "stdgates") {
 					// Add standard gates when stdgates.qasm is included
 					stdGates := []string{
-						"h", "x", "y", "z", "s", "sdg", "t", "tdg", 
+						"h", "x", "y", "z", "s", "sdg", "t", "tdg",
 						"rx", "ry", "rz", "p", "cx", "cy", "cz", "swap",
 						"ccx", "cswap", "u1", "u2", "u3",
 					}
@@ -219,7 +216,7 @@ func (c *UndefinedIdentifierChecker) isKeyword(identifier string) bool {
 		"const":    true,
 		"input":    true,
 		"output":   true,
-		
+
 		// Types
 		"int":      true,
 		"uint":     true,
@@ -227,7 +224,7 @@ func (c *UndefinedIdentifierChecker) isKeyword(identifier string) bool {
 		"angle":    true,
 		"bool":     true,
 		"duration": true,
-		
+
 		// Boolean values
 		"true":  true,
 		"false": true,
