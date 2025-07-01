@@ -18,19 +18,19 @@ const (
 
 // Rule represents a lint rule loaded from YAML
 type Rule struct {
-	ID          string   `yaml:"id"`
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Level       Severity `yaml:"level"`
-	Enabled     bool     `yaml:"enabled"`
-	Match       Match    `yaml:"match"`
-	Check       []Check  `yaml:"check"`
-	Message           string   `yaml:"message"`
-	Tags              []string `yaml:"tags"`
-	Fixable           bool     `yaml:"fixable"`
-	DocumentationURL  string   `yaml:"documentation_url"`
-	SpecificationURL  string   `yaml:"specification_url"`
-	Examples          Examples `yaml:"examples"`
+	ID               string   `yaml:"id"`
+	Name             string   `yaml:"name"`
+	Description      string   `yaml:"description"`
+	Level            Severity `yaml:"level"`
+	Enabled          bool     `yaml:"enabled"`
+	Match            Match    `yaml:"match"`
+	Check            []Check  `yaml:"check"`
+	Message          string   `yaml:"message"`
+	Tags             []string `yaml:"tags"`
+	Fixable          bool     `yaml:"fixable"`
+	DocumentationURL string   `yaml:"documentation_url"`
+	SpecificationURL string   `yaml:"specification_url"`
+	Examples         Examples `yaml:"examples"`
 }
 
 // Match defines what AST nodes to match
@@ -69,11 +69,11 @@ type Violation struct {
 func (v *Violation) String() string {
 	result := fmt.Sprintf("%s:%d:%d: %s [%s] %s",
 		v.File, v.Line, v.Column, v.Severity, v.Rule.ID, v.Message)
-	
+
 	if v.Rule.DocumentationURL != "" {
 		result += fmt.Sprintf(" (%s)", v.Rule.DocumentationURL)
 	}
-	
+
 	return result
 }
 
@@ -90,7 +90,7 @@ type ProgramChecker interface {
 // CheckContext provides context for rule checking
 type CheckContext struct {
 	File     string
-	Content  string  // Raw file content for text-based analysis
+	Content  string // Raw file content for text-based analysis
 	Program  *parser.Program
 	UsageMap map[string][]parser.Node // For tracking symbol usage
 }
@@ -100,11 +100,11 @@ func (c *CheckContext) GetContent() (string, error) {
 	if c.Content != "" {
 		return c.Content, nil
 	}
-	
+
 	content, err := os.ReadFile(c.File)
 	if err != nil {
 		return "", err
 	}
-	
+
 	return string(content), nil
 }

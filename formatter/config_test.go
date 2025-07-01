@@ -39,7 +39,7 @@ func TestConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test that the config struct can be created and accessed
 			c := tt.config
-			
+
 			// Verify all fields are accessible
 			_ = c.Write
 			_ = c.Check
@@ -48,12 +48,12 @@ func TestConfig(t *testing.T) {
 			_ = c.Verbose
 			_ = c.Diff
 			_ = c.Unescape
-			
+
 			// Test specific values
 			if c.Unescape != tt.config.Unescape {
 				t.Errorf("Config.Unescape = %v, want %v", c.Unescape, tt.config.Unescape)
 			}
-			
+
 			if c.Indent != tt.config.Indent {
 				t.Errorf("Config.Indent = %v, want %v", c.Indent, tt.config.Indent)
 			}
@@ -64,7 +64,7 @@ func TestConfig(t *testing.T) {
 func TestConfigDefaults(t *testing.T) {
 	// Test zero value of Config struct
 	var config Config
-	
+
 	// All bool fields should be false by default
 	if config.Write != false ||
 		config.Check != false ||
@@ -73,12 +73,12 @@ func TestConfigDefaults(t *testing.T) {
 		config.Unescape != false {
 		t.Errorf("Config zero value has unexpected non-false bool fields: %+v", config)
 	}
-	
+
 	// Numeric fields should be zero
 	if config.Indent != 0 {
 		t.Errorf("Config.Indent zero value = %v, want 0", config.Indent)
 	}
-	
+
 	// Newline defaults to false (Go zero value)
 	if config.Newline != false {
 		t.Errorf("Config.Newline zero value = %v, want false", config.Newline)

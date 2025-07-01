@@ -38,7 +38,7 @@ func (c *GateRegisterSizeMismatchChecker) CheckFile(context *CheckContext) []*Vi
 
 	// First pass: collect all register declarations and their sizes
 	registerSizes := c.findRegisterDeclarations(lines)
-	
+
 	// Second pass: collect all gate definitions and their parameter counts
 	gateParams := c.findGateDefinitions(lines)
 
@@ -52,7 +52,7 @@ func (c *GateRegisterSizeMismatchChecker) CheckFile(context *CheckContext) []*Vi
 
 		// Find gate calls in this line
 		gateCalls := c.findGateCalls(line)
-		
+
 		for _, call := range gateCalls {
 			// Check register size consistency for this gate call
 			if violation := c.checkRegisterSizes(call, registerSizes, gateParams, context.File, i+1); violation != nil {
@@ -104,14 +104,14 @@ func (c *GateRegisterSizeMismatchChecker) findRegisterDeclarations(lines []strin
 			if len(matches) >= 3 {
 				sizeStr := matches[1]
 				registerName := matches[2]
-				
+
 				size := 1 // Default for single registers
 				if sizeStr != "" {
 					if s, err := strconv.Atoi(sizeStr); err == nil {
 						size = s
 					}
 				}
-				
+
 				registerSizes[registerName] = size
 			}
 		}
@@ -138,7 +138,7 @@ func (c *GateRegisterSizeMismatchChecker) findGateDefinitions(lines []string) ma
 		if len(matches) >= 3 {
 			gateName := matches[1]
 			qubitParams := strings.TrimSpace(matches[2])
-			
+
 			// Count the number of qubit parameters
 			if qubitParams != "" {
 				// Split by commas and count parameters
@@ -150,7 +150,7 @@ func (c *GateRegisterSizeMismatchChecker) findGateDefinitions(lines []string) ma
 						paramCount++
 					}
 				}
-				
+
 				gateParams[gateName] = gateDefinition{
 					name:       gateName,
 					paramCount: paramCount,
@@ -177,7 +177,7 @@ func (c *GateRegisterSizeMismatchChecker) findGateCalls(line string) []gateCall 
 		// Non-parameterized gate calls: gatename registers;
 		regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)\s+((?:[a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]*\])?\s*,?\s*)+)\s*;`),
 	}
-	
+
 	for _, pattern := range patterns {
 		matches := pattern.FindAllStringSubmatch(codeOnly, -1)
 		indices := pattern.FindAllStringIndex(codeOnly, -1)
@@ -186,18 +186,18 @@ func (c *GateRegisterSizeMismatchChecker) findGateCalls(line string) []gateCall 
 			if len(match) >= 3 {
 				gateName := match[1]
 				registerList := strings.TrimSpace(match[2])
-				
+
 				// Skip certain keywords that are not gate calls
 				if c.isKeyword(gateName) {
 					continue
 				}
-				
+
 				// Parse the register list
 				registers := c.parseRegisterList(registerList)
-				
+
 				if len(registers) > 1 { // Only check multi-register gate calls
 					column := indices[i][0] + 1 // Convert to 1-based indexing
-					
+
 					calls = append(calls, gateCall{
 						gateName:  gateName,
 						registers: registers,
@@ -214,7 +214,7 @@ func (c *GateRegisterSizeMismatchChecker) findGateCalls(line string) []gateCall 
 // parseRegisterList parses a comma-separated list of registers
 func (c *GateRegisterSizeMismatchChecker) parseRegisterList(registerList string) []string {
 	var registers []string
-	
+
 	// Split by commas and clean up
 	parts := strings.Split(registerList, ",")
 	for _, part := range parts {
@@ -225,7 +225,7 @@ func (c *GateRegisterSizeMismatchChecker) parseRegisterList(registerList string)
 			registers = append(registers, part)
 		}
 	}
-	
+
 	return registers
 }
 
@@ -270,7 +270,7 @@ func (c *GateRegisterSizeMismatchChecker) isKeyword(name string) bool {
 		"input":    true,
 		"output":   true,
 	}
-	
+
 	return keywords[name]
 }
 
@@ -290,7 +290,7 @@ func (c *GateRegisterSizeMismatchChecker) checkRegisterSizes(call gateCall, regi
 
 	var sizes []int
 	var sizeNames []string
-	
+
 	// Get sizes for all registers in the call
 	for _, registerName := range call.registers {
 		baseRegisterName := c.extractRegisterName(registerName)
@@ -304,7 +304,7 @@ func (c *GateRegisterSizeMismatchChecker) checkRegisterSizes(call gateCall, regi
 	if len(sizes) >= 2 {
 		firstSize := sizes[0]
 		hasMismatch := false
-		
+
 		for i := 1; i < len(sizes); i++ {
 			// Allow broadcasting: single registers (size 1) can work with any size
 			// But array registers must match exactly
@@ -313,7 +313,7 @@ func (c *GateRegisterSizeMismatchChecker) checkRegisterSizes(call gateCall, regi
 				break
 			}
 		}
-		
+
 		if hasMismatch {
 			return &Violation{
 				Rule:     nil, // Will be set by the runner

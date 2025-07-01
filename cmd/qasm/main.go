@@ -471,7 +471,7 @@ func outputTextWithColor(violations []*lint.Violation, useColor bool) error {
 	for _, violation := range violations {
 		// Format colored output
 		filePart := fileStyle.Render(fmt.Sprintf("%s:%d:%d:", violation.File, violation.Line, violation.Column))
-		
+
 		var severityPart string
 		switch violation.Severity {
 		case lint.SeverityError:
@@ -481,9 +481,9 @@ func outputTextWithColor(violations []*lint.Violation, useColor bool) error {
 		case lint.SeverityInfo:
 			severityPart = infoStyle.Render(string(violation.Severity))
 		}
-		
+
 		rulePart := ruleStyle.Render(fmt.Sprintf("[%s]", violation.Rule.ID))
-		
+
 		var result string
 		if violation.Rule.DocumentationURL != "" {
 			urlPart := urlStyle.Render(fmt.Sprintf("(%s)", violation.Rule.DocumentationURL))
@@ -491,7 +491,7 @@ func outputTextWithColor(violations []*lint.Violation, useColor bool) error {
 		} else {
 			result = fmt.Sprintf("%s %s %s %s", filePart, severityPart, rulePart, violation.Message)
 		}
-		
+
 		fmt.Println(result)
 	}
 
@@ -524,24 +524,24 @@ func outputTextWithColor(violations []*lint.Violation, useColor bool) error {
 
 func outputJSON(violations []*lint.Violation) error {
 	type jsonViolation struct {
-		File            string `json:"file"`
-		Line            int    `json:"line"`
-		Column          int    `json:"column"`
-		Severity        string `json:"severity"`
-		RuleID          string `json:"rule_id"`
-		Message         string `json:"message"`
+		File             string `json:"file"`
+		Line             int    `json:"line"`
+		Column           int    `json:"column"`
+		Severity         string `json:"severity"`
+		RuleID           string `json:"rule_id"`
+		Message          string `json:"message"`
 		DocumentationURL string `json:"documentation_url,omitempty"`
 	}
 
 	var jsonViolations []jsonViolation
 	for _, v := range violations {
 		jsonViolations = append(jsonViolations, jsonViolation{
-			File:            v.File,
-			Line:            v.Line,
-			Column:          v.Column,
-			Severity:        string(v.Severity),
-			RuleID:          v.Rule.ID,
-			Message:         v.Message,
+			File:             v.File,
+			Line:             v.Line,
+			Column:           v.Column,
+			Severity:         string(v.Severity),
+			RuleID:           v.Rule.ID,
+			Message:          v.Message,
 			DocumentationURL: v.Rule.DocumentationURL,
 		})
 	}
@@ -608,4 +608,3 @@ func runLintStdin(cmd *cobra.Command) error {
 		return outputTextWithColor(filteredViolations, !noColor)
 	}
 }
-

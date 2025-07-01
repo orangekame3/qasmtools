@@ -19,7 +19,7 @@ func NewNamingConventionChecker(pattern string) *NamingConventionChecker {
 		// Fallback to default pattern
 		regex = regexp.MustCompile("^[a-z][a-zA-Z0-9_]*$")
 	}
-	
+
 	return &NamingConventionChecker{
 		Pattern: regex,
 	}

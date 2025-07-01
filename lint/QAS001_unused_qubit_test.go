@@ -8,8 +8,8 @@ import (
 
 func TestQAS001_UnusedQubit(t *testing.T) {
 	tests := []struct {
-		name           string
-		input          string
+		name               string
+		input              string
 		expectedViolations int
 		expectedMessage    string
 	}{
@@ -138,7 +138,7 @@ qubit q;
 qubit unused_qubit;
 
 h q;`
-	
+
 	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}

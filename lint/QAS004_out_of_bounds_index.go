@@ -46,7 +46,7 @@ func (c *OutOfBoundsIndexChecker) CheckFile(context *CheckContext) []*Violation 
 
 		// Find array accesses in this line
 		accesses := c.findArrayAccesses(line)
-		
+
 		for _, access := range accesses {
 			// Check if the array exists and index is within bounds
 			if size, exists := arraySizes[access.arrayName]; exists {
@@ -103,7 +103,7 @@ func (c *OutOfBoundsIndexChecker) findArrayDeclarations(lines []string) map[stri
 			if len(matches) >= 3 {
 				sizeStr := matches[1]
 				arrayName := matches[2]
-				
+
 				if size, err := strconv.Atoi(sizeStr); err == nil {
 					arraySizes[arrayName] = size
 				}
@@ -130,10 +130,10 @@ func (c *OutOfBoundsIndexChecker) findArrayAccesses(line string) []arrayAccess {
 		if len(match) >= 3 {
 			arrayName := match[1]
 			indexStr := match[2]
-			
+
 			if index, err := strconv.Atoi(indexStr); err == nil {
 				column := indices[i][0] + 1 // Convert to 1-based indexing
-				
+
 				accesses = append(accesses, arrayAccess{
 					arrayName: arrayName,
 					index:     index,

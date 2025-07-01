@@ -63,7 +63,7 @@ func TestGetConfigFromFlags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := &cobra.Command{}
-			
+
 			// Set up flags
 			cmd.Flags().Bool("write", false, "")
 			cmd.Flags().Bool("check", false, "")
@@ -160,7 +160,7 @@ func TestRunFormatStdin(t *testing.T) {
 			cmd.Flags().Bool("verbose", false, "")
 			cmd.Flags().Bool("diff", false, "")
 			cmd.Flags().Bool("unescape", tt.unescape, "")
-			
+
 			if tt.unescape {
 				cmd.Flags().Set("unescape", "true")
 			}
@@ -202,11 +202,11 @@ func TestRunFormatStdin(t *testing.T) {
 
 func TestFormatFileWithConfig(t *testing.T) {
 	tests := []struct {
-		name         string
-		fileContent  string
-		unescape     bool
-		expectedMod  bool
-		expectError  bool
+		name        string
+		fileContent string
+		unescape    bool
+		expectedMod bool
+		expectError bool
 	}{
 		{
 			name:        "simple_formatted",

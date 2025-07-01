@@ -30,7 +30,7 @@ func (dg *DocumentationGenerator) GenerateRuleDocumentation(rule *Rule) (string,
 	sb.WriteString(fmt.Sprintf("**Severity:** %s  \n", rule.Level))
 	sb.WriteString(fmt.Sprintf("**Category:** %s  \n", strings.Join(rule.Tags, ", ")))
 	sb.WriteString(fmt.Sprintf("**Fixable:** %t  \n", rule.Fixable))
-	
+
 	// Add specification URL if available
 	if rule.SpecificationURL != "" {
 		sb.WriteString(fmt.Sprintf("**OpenQASM Specification:** [View Details](%s)  \n", rule.SpecificationURL))

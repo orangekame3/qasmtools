@@ -45,7 +45,7 @@ func (c *NamingConventionViolationChecker) CheckFile(context *CheckContext) []*V
 
 		// Find identifier declarations and check naming conventions
 		identifiers := c.findIdentifierDeclarations(line)
-		
+
 		for _, identifier := range identifiers {
 			if !c.isValidIdentifierName(identifier.name) {
 				violation := &Violation{
@@ -110,7 +110,7 @@ func (c *NamingConventionViolationChecker) findIdentifierDeclarations(line strin
 				identifierPos := strings.Index(codeOnly[matchStart:], identifierName)
 				if identifierPos != -1 {
 					column := matchStart + identifierPos + 1 // Convert to 1-based indexing
-					
+
 					declarations = append(declarations, identifierDeclaration{
 						name:   identifierName,
 						column: column,

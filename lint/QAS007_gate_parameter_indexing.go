@@ -37,16 +37,16 @@ func (c *GateParameterIndexingChecker) CheckFile(context *CheckContext) []*Viola
 
 	// Find all gate definitions and check their bodies
 	gateDefinitions := c.findGateDefinitions(lines)
-	
+
 	for _, gateDef := range gateDefinitions {
 		// Check each line within the gate body for parameter indexing
 		for i := gateDef.startLine; i <= gateDef.endLine; i++ {
 			if i < len(lines) {
 				line := lines[i]
-				
+
 				// Find any index accesses in this line
 				indexAccesses := c.findIndexAccesses(line)
-				
+
 				for _, access := range indexAccesses {
 					// Check if the accessed register is a gate parameter
 					if c.isGateParameter(access.registerName, gateDef.parameters) {
@@ -85,10 +85,10 @@ type indexAccess struct {
 // findGateDefinitions finds all gate definitions in the file
 func (c *GateParameterIndexingChecker) findGateDefinitions(lines []string) []gateDefWithBody {
 	var gates []gateDefWithBody
-	
+
 	// Pattern for gate definitions: gate name(params...) qubits... {
 	gateStartPattern := regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\([^)]*\))?\s+([^{]+)\s*\{`)
-	
+
 	for i, line := range lines {
 		// Skip comments and empty lines
 		trimmedLine := strings.TrimSpace(line)
@@ -100,13 +100,13 @@ func (c *GateParameterIndexingChecker) findGateDefinitions(lines []string) []gat
 		if len(matches) >= 3 {
 			gateName := matches[1]
 			qubitParams := strings.TrimSpace(matches[2])
-			
+
 			// Parse qubit parameters
 			parameters := c.parseGateParameters(qubitParams)
-			
+
 			// Find the end of this gate definition
 			endLine := c.findGateEnd(lines, i)
-			
+
 			gates = append(gates, gateDefWithBody{
 				name:       gateName,
 				parameters: parameters,
@@ -115,18 +115,18 @@ func (c *GateParameterIndexingChecker) findGateDefinitions(lines []string) []gat
 			})
 		}
 	}
-	
+
 	return gates
 }
 
 // parseGateParameters parses the qubit parameters from a gate definition
 func (c *GateParameterIndexingChecker) parseGateParameters(paramStr string) []string {
 	var parameters []string
-	
+
 	if paramStr == "" {
 		return parameters
 	}
-	
+
 	// Split by commas and extract parameter names
 	parts := strings.Split(paramStr, ",")
 	for _, part := range parts {
@@ -139,7 +139,7 @@ func (c *GateParameterIndexingChecker) parseGateParameters(paramStr string) []st
 			}
 		}
 	}
-	
+
 	return parameters
 }
 
@@ -148,14 +148,14 @@ func (c *GateParameterIndexingChecker) extractParameterName(param string) string
 	// Parameter can be just a name: "q" or "qubit"
 	// For now, assume it's just the identifier
 	param = strings.TrimSpace(param)
-	
+
 	// Simple pattern to match identifier
 	pattern := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)`)
 	matches := pattern.FindStringSubmatch(param)
 	if len(matches) >= 2 {
 		return matches[1]
 	}
-	
+
 	return ""
 }
 
@@ -163,15 +163,15 @@ func (c *GateParameterIndexingChecker) extractParameterName(param string) string
 func (c *GateParameterIndexingChecker) findGateEnd(lines []string, startLine int) int {
 	braceCount := 0
 	foundOpenBrace := false
-	
+
 	for i := startLine; i < len(lines); i++ {
 		line := lines[i]
-		
+
 		// Remove comments
 		if idx := strings.Index(line, "//"); idx != -1 {
 			line = line[:idx]
 		}
-		
+
 		// Count braces
 		for _, char := range line {
 			if char == '{' {
@@ -185,7 +185,7 @@ func (c *GateParameterIndexingChecker) findGateEnd(lines []string, startLine int
 			}
 		}
 	}
-	
+
 	// If no closing brace found, return the last line
 	return len(lines) - 1
 }
@@ -193,21 +193,21 @@ func (c *GateParameterIndexingChecker) findGateEnd(lines []string, startLine int
 // findIndexAccesses finds all index accesses in a line
 func (c *GateParameterIndexingChecker) findIndexAccesses(line string) []indexAccess {
 	var accesses []indexAccess
-	
+
 	// Remove comments from the line
 	codeOnly := c.removeComments(line)
-	
+
 	// Pattern for index access: identifier[something]
 	indexPattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]*)\]`)
 	matches := indexPattern.FindAllStringSubmatch(codeOnly, -1)
 	indices := indexPattern.FindAllStringIndex(codeOnly, -1)
-	
+
 	for i, match := range matches {
 		if len(match) >= 3 {
 			registerName := match[1]
 			indexValue := match[2]
 			column := indices[i][0] + 1 // Convert to 1-based indexing
-			
+
 			accesses = append(accesses, indexAccess{
 				registerName: registerName,
 				index:        indexValue,
@@ -215,7 +215,7 @@ func (c *GateParameterIndexingChecker) findIndexAccesses(line string) []indexAcc
 			})
 		}
 	}
-	
+
 	return accesses
 }
 
