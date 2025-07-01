@@ -29,7 +29,7 @@ tasks:
       - task vscode:dev
 
   debug:
-    desc: 🐛 Quick debug setup (alias for vscode:debug:extension)  
+    desc: 🐛 Quick debug setup (alias for vscode:debug:extension)
     cmds:
       - task vscode:debug:extension
 
@@ -403,7 +403,7 @@ tasks:
       - npx vsce package
 
   vscode:install:
-    desc: Install VSCode extension locally  
+    desc: Install VSCode extension locally
     deps: [vscode:package]
     dir: vscode-qasm
     cmds:
@@ -676,7 +676,7 @@ tasks:
   playground:dev:
     desc: Start playground development server
     deps: [build:wasm]
-    dir: playground  
+    dir: playground
     cmds:
       - mkdir -p public/wasm public/qasmtools/wasm
       - cp ../bin/wasm/qasmtools.wasm public/wasm/
@@ -701,3 +701,8 @@ tasks:
     cmds:
       - rm -rf .next out node_modules
       - rm -rf public/wasm
+
+  demo:generate:
+    desc: Generate CLI demo GIF using vhs
+    cmds:
+      - vhs img/demo.tape -o img/demo.gif
