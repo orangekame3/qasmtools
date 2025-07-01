@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.1](https://github.com/orangekame3/qasmtools/compare/v0.2.0...v0.2.1) - 2025-07-01
+- Refactor parser generation in release workflow and GoReleaser configuration by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/47
+
 ## [v0.2.0](https://github.com/orangekame3/qasmtools/commits/v0.2.0) - 2025-07-01
 - Add initial quantum circuit in QASM format by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/1
 - Update README with usage instructions and project structure by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/2
