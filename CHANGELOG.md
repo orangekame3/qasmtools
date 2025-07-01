@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.12](https://github.com/orangekame3/qasmtools/compare/v0.2.11...v0.2.12) - 2025-07-01
+- Refactor linting code for improved content retrieval by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/75
+
 ## [v0.2.11](https://github.com/orangekame3/qasmtools/compare/v0.2.10...v0.2.11) - 2025-07-01
 - Enhance functionality and performance of QASM Tools Playground by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/73
 
