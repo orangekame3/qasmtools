@@ -90,7 +90,6 @@ tasks:
   # Build tasks
   build:
     desc: Build the application
-    deps: [gen]
     cmds:
       - mkdir -p {{.BUILD_DIR}}
       - go build -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" -o {{.BUILD_DIR}}/{{.BINARY_NAME}} ./cmd/qasm
@@ -112,7 +111,6 @@ tasks:
 
   build:all:
     desc: Build for all platforms
-    deps: [gen]
     cmds:
       - mkdir -p {{.BUILD_DIR}}
       - task: build:linux
@@ -180,26 +178,22 @@ tasks:
   # Testing tasks
   test:
     desc: Run tests
-    deps: [gen]
     cmds:
       - go test -v ./cmd/qasm ./formatter ./highlight ./lint
 
   test:coverage:
     desc: Run tests with coverage
-    deps: [gen]
     cmds:
       - go test -v -coverprofile=coverage.out ./cmd/qasm ./formatter ./highlight ./lint
       - go tool cover -html=coverage.out -o coverage.html
 
   test:race:
     desc: Run tests with race detection
-    deps: [gen]
     cmds:
       - go test -v -race ./cmd/qasm ./formatter ./highlight ./lint
 
   bench:
     desc: Run benchmarks
-    deps: [gen]
     cmds:
       - go test -v -bench=. -benchmem ./cmd/qasm ./formatter ./highlight ./lint
 
