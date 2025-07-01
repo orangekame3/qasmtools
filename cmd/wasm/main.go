@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"strconv"
 	"strings"
 	"syscall/js"
 
@@ -51,10 +52,10 @@ func formatQASM(this js.Value, args []js.Value) interface{} {
 		}
 	}()
 
-	if len(args) != 1 {
+	if len(args) < 1 || len(args) > 2 {
 		return map[string]interface{}{
 			"success": false,
-			"error":   "Expected exactly one argument (QASM code)",
+			"error":   "Expected 1-2 arguments (QASM code, optional unescape flag)",
 		}
 	}
 
@@ -64,6 +65,24 @@ func formatQASM(this js.Value, args []js.Value) interface{} {
 			"success": false,
 			"error":   "Input QASM code is empty",
 		}
+	}
+
+	// Check if unescape is requested (second argument)
+	unescape := false
+	if len(args) > 1 && !args[1].IsNull() && !args[1].IsUndefined() {
+		unescape = args[1].Bool()
+	}
+
+	// Apply unescaping if requested
+	if unescape {
+		unescaped, err := strconv.Unquote(qasmCode)
+		if err != nil {
+			return map[string]interface{}{
+				"success": false,
+				"error":   fmt.Sprintf("Failed to unescape input: %v", err),
+			}
+		}
+		qasmCode = unescaped
 	}
 
 	// Create formatter with default configuration

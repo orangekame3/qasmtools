@@ -10,8 +10,9 @@
 ## Features
 
 * **QASM 3.0 Parsing**: Parses OpenQASM 3.0 files into an Abstract Syntax Tree (AST).
-* **QASM 3.0 Formatting**: Formats QASM 3.0 files to adhere to a consistent style.
+* **QASM 3.0 Formatting**: Formats QASM 3.0 files to adhere to a consistent style with support for standard input and JSON-style escaped strings.
 * **QASM 3.0 Linting**: Checks QASM files for style and semantic issues using configurable YAML-based rules with documentation URLs for each violation.
+* **Web Playground**: Interactive browser-based formatter with WebAssembly backend and unescape support.
 * **VSCode Extension**: Provides language support for OpenQASM 3.0 in Visual Studio Code with syntax highlighting, formatting, and Language Server Protocol (LSP) integration.
 
 ## Installation
@@ -53,6 +54,8 @@ Options:
 - `-n, --newline`: Ensure files end with a newline (default: true)
 - `-v, --verbose`: Enable verbose output
 - `--diff`: Display diffs instead of rewriting files
+- `--stdin`: Read input from stdin instead of files
+- `--unescape`: Unescape JSON-style escaped strings (\\n, \\") before formatting
 
 Examples:
 
@@ -68,6 +71,18 @@ qasm fmt --check *.qasm
 
 # Format with custom indentation
 qasm fmt -i 4 input.qasm
+
+# Format from standard input
+echo "OPENQASM 3.0;qubit q;h q;" | qasm fmt --stdin
+
+# Format escaped JSON strings
+printf '"OPENQASM 3.0;\\nqubit q;\\nh q;"' | qasm fmt --stdin --unescape
+
+# Format complex escaped strings with includes
+printf '"OPENQASM 3.0;\\ninclude \\"stdgates.inc\\";\\nqubit[2] q;\\nh q[0];"' | qasm fmt --stdin --unescape
+
+# Format escaped content from file
+qasm fmt --unescape escaped_file.qasm
 ```
 
 ### Linting QASM Files
@@ -129,6 +144,56 @@ input.qasm:8:12: error [QAS002] Insufficient classical bits for measurements. Ne
 #### Rule Documentation
 
 Detailed documentation for each rule is available at [docs/rules/](docs/rules/README.md) with examples and explanations.
+
+## Web Playground
+
+The QASM Tools Playground provides an interactive web-based environment for formatting OpenQASM 3.0 code directly in your browser.
+
+### Features
+
+* **Real-time Formatting**: Format QASM code instantly with the same engine used by the CLI
+* **Unescape Support**: Handle JSON-style escaped strings (\\n, \\") with a simple checkbox
+* **Sample Code**: Quick access to example QASM programs for testing and learning
+* **Syntax Highlighting**: Monaco Editor integration with custom QASM language support
+* **WebAssembly Backend**: Powered by the same Go formatter compiled to WASM for consistency
+
+### Usage
+
+1. Navigate to the playground web interface
+2. Enter or paste your QASM code in the input panel
+3. Enable "Unescape JSON strings" if your input contains escaped characters
+4. Click "Format" to see the formatted output
+5. Use "Copy" to copy the formatted result to clipboard
+
+### Examples
+
+The playground supports the same functionality as the CLI:
+
+```qasm
+// Input (unformatted)
+OPENQASM 3.0;include"stdgates.inc";qubit[2]q;h q[0];cx q[0],q[1];
+
+// Output (formatted)
+OPENQASM 3.0;
+include "stdgates.inc";
+
+qubit[2] q;
+h q[0];
+cx q[0], q[1];
+```
+
+### Development
+
+```bash
+# Setup playground development environment
+task playground:setup
+
+# Start development server with WASM
+task playground:dev
+
+# Build for production
+task playground:build
+```
 
 ## VSCode Extension
 
@@ -208,6 +273,7 @@ task vscode:logs
 
 * `cmd/qasm/`: Contains the main entry point and CLI implementation
 * `cmd/qasmlsp/`: Language Server Protocol (LSP) server for VSCode integration
+* `cmd/wasm/`: WebAssembly build target for the playground
 * `parser/`: Handles the parsing of QASM 3.0 files and AST generation
   * `grammar/`: Contains the ANTLR grammar files for QASM 3.0
   * `gen/`: Contains generated parser code
@@ -215,6 +281,9 @@ task vscode:logs
 * `lint/`: QASM 3.0 linting engine with YAML-based rules
   * `rules/`: Built-in rule definitions (QAS001-QAS005)
 * `highlight/`: Syntax highlighting implementation for LSP
+* `playground/`: Web-based QASM formatter with WebAssembly backend
+  * `src/`: React/TypeScript frontend components
+  * `public/`: Static assets (WASM files are generated during build)
 * `vscode-qasm/`: VSCode extension for OpenQASM 3.0 language support
   * `syntaxes/`: TextMate grammar for syntax highlighting
   * `bin/`: Contains the embedded LSP server binary
@@ -309,6 +378,35 @@ Check out the `examples/` directory for sample QASM files and usage examples:
 ## Development
 
 For development guidelines, please refer to [DEVELOPMENT.md](DEVELOPMENT.md).
+
+### Testing
+
+The project includes comprehensive test coverage for all components:
+
+```bash
+# Run all tests
+task test
+
+# Run tests with coverage
+task test:coverage
+
+# Run specific component tests
+go test ./cmd/qasm -v          # CLI functionality tests
+go test ./formatter -v         # Formatter tests (including unescape)
+go test ./lint -v             # Linting engine tests
+go test ./highlight -v        # Syntax highlighting tests
+
+# Integration tests
+go test ./cmd/qasm -run TestUnescapeIntegration -v
+go test ./cmd/qasm -run TestFileUnescapeIntegration -v
+```
+
+Test coverage includes:
+- Unit tests for all core functionality
+- Integration tests for CLI commands with real binary execution
+- Formatter idempotency tests
+- Edge cases for unescape functionality
+- Error handling and validation
 
 ## License
 

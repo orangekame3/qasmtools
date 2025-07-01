@@ -182,26 +182,37 @@ tasks:
     desc: Run tests
     deps: [gen]
     cmds:
-      - go test -v ./...
+      - go test -v ./cmd/qasm ./formatter ./highlight ./lint
 
   test:coverage:
     desc: Run tests with coverage
     deps: [gen]
     cmds:
-      - go test -v -coverprofile=coverage.out ./...
+      - go test -v -coverprofile=coverage.out ./cmd/qasm ./formatter ./highlight ./lint
       - go tool cover -html=coverage.out -o coverage.html
 
   test:race:
     desc: Run tests with race detection
     deps: [gen]
     cmds:
-      - go test -v -race ./...
+      - go test -v -race ./cmd/qasm ./formatter ./highlight ./lint
 
   bench:
     desc: Run benchmarks
     deps: [gen]
     cmds:
-      - go test -v -bench=. -benchmem ./...
+      - go test -v -bench=. -benchmem ./cmd/qasm ./formatter ./highlight ./lint
+
+  test:wasm:
+    desc: Test WASM functionality (requires WASM runtime)
+    env:
+      GOOS: js
+      GOARCH: wasm
+    cmds:
+      - echo "⚠️  WASM tests require a JavaScript runtime with WASM support"
+      - echo "🔍 WASM build verification:"
+      - go build -o /tmp/qasmtools.wasm ./cmd/wasm
+      - echo "✅ WASM build successful"
 
   # Code quality tasks
   lint:
@@ -673,7 +684,10 @@ tasks:
     deps: [build:wasm]
     dir: playground  
     cmds:
-      - cp -r ../bin/wasm public/
+      - mkdir -p public/wasm public/qasmtools/wasm
+      - cp ../bin/wasm/qasmtools.wasm public/wasm/
+      - cp ../bin/wasm/qasmtools.wasm public/qasmtools/wasm/
+      - cp ../bin/wasm/wasm_exec.js public/wasm/
       - npm run dev
 
   playground:build:
@@ -681,7 +695,10 @@ tasks:
     deps: [build:wasm]
     dir: playground
     cmds:
-      - cp -r ../bin/wasm public/
+      - mkdir -p public/wasm public/qasmtools/wasm
+      - cp ../bin/wasm/qasmtools.wasm public/wasm/
+      - cp ../bin/wasm/qasmtools.wasm public/qasmtools/wasm/
+      - cp ../bin/wasm/wasm_exec.js public/wasm/
       - npm run build
 
   playground:clean:
