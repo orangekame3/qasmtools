@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { useWasm, TokenInfo, Violation } from '@/hooks/useWasm';
+import { useWasm, TokenInfo, Violation, LintResult } from '@/hooks/useWasm';
 import Header from './Header';
 import SampleSelector from './SampleSelector';
 import Footer from './Footer';
@@ -48,6 +48,7 @@ export default function Playground() {
   const editorRef = useRef<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = useRef<string[]>([]);
   const [unescapeMode, setUnescapeMode] = useState(false);
+  const [isLinting, setIsLinting] = useState(false);
 
   const { isLoading: wasmLoading, isReady: wasmReady, error: wasmError, formatQASM, highlightQASM, lintQASM } = useWasm();
 
@@ -105,6 +106,8 @@ export default function Playground() {
     }
   }, [wasmReady, highlightQASM, monacoInstance]);
 
+  const [lintResult, setLintResult] = useState<LintResult | null>(null);
+
   const updateLinting = useCallback(async (code: string) => {
     if (!wasmReady || !code.trim() || !editorRef.current || !monacoInstance) return;
 
@@ -116,7 +119,9 @@ export default function Playground() {
         return;
       }
 
-      if (result.success && result.violations) {
+      setLintResult(result);
+
+      if (result.violations) {
         setViolations(result.violations);
 
         // Convert violations to Monaco markers
@@ -125,13 +130,13 @@ export default function Playground() {
           startColumn: violation.column,
           endLineNumber: violation.line,
           endColumn: violation.column + 10, // Estimate end column
-          message: `${violation.message} (${violation.rule.id})`,
+          message: `${violation.message} (${violation.rule_id})`,
           severity: violation.severity === 'error' ?
             monacoInstance.MarkerSeverity.Error :
             violation.severity === 'warning' ?
               monacoInstance.MarkerSeverity.Warning :
               monacoInstance.MarkerSeverity.Info,
-          code: violation.rule.id,
+          code: violation.rule_id,
           source: 'qasm-lint'
         }));
 
@@ -163,24 +168,14 @@ export default function Playground() {
     // Register QASM language
     registerQasmLanguage(monaco);
 
-    // Initial syntax highlighting
-    // Temporarily disabled to debug WASM issues
-    // if (inputCode) {
-    //   updateSyntaxHighlighting(inputCode);
-    // }
   }, [inputCode, updateSyntaxHighlighting]);
 
   const handleCodeChange = useCallback((value: string | undefined) => {
     const newCode = value || '';
     setInputCode(newCode);
 
-    // Update syntax highlighting and linting with debouncing
-    if (wasmReady && newCode.trim()) {
-      setTimeout(() => {
-        // updateSyntaxHighlighting(newCode); // Temporarily disabled
-        // updateLinting(newCode); // Temporarily disabled to debug WASM stability
-      }, 500); // 500ms debounce for linting (a bit slower than highlighting)
-    } else if (!newCode.trim()) {
+    // Update linting with debouncing
+    if (!newCode.trim()) {
       // Clear violations when code is empty
       setViolations([]);
       if (editorRef.current && monacoInstance) {
@@ -193,12 +188,11 @@ export default function Playground() {
   }, [wasmReady, updateSyntaxHighlighting, updateLinting, monacoInstance]);
 
   // Update linting when WASM becomes ready
-  // Temporarily disabled to debug WASM stability
-  // useEffect(() => {
-  //   if (wasmReady && inputCode.trim()) {
-  //     updateLinting(inputCode);
-  //   }
-  // }, [wasmReady, inputCode, updateLinting]);
+  useEffect(() => {
+    if (wasmReady && inputCode.trim()) {
+      updateLinting(inputCode);
+    }
+  }, [wasmReady, inputCode, updateLinting]);
 
   const handleCopyOutput = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -315,10 +309,12 @@ export default function Playground() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row mx-0">
+      <div className="flex-1 flex flex-col lg:flex-row mx-0">
         {/* Input Panel */}
-        <div className="flex-1 flex flex-col border-r-0 md:border-r border-[#2d2d2d] min-h-0 bg-[#252526] rounded-t-lg md:rounded-l-lg md:rounded-tr-none shadow-sm">
-          <div className="bg-[#2d2d2d] px-2 md:px-4 py-3 border-b border-[#2d2d2d] rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div className="flex-1 flex flex-col border-r-0 lg:border-r border-[#2d2d2d] min-h-0 bg-[#252526] rounded-t-lg lg:rounded-l-lg lg:rounded-tr-none shadow-sm">
+          {/* Code Editor Section */}
+          <div className="flex-1 flex flex-col min-h-0">
+          <div className="bg-[#2d2d2d] px-2 lg:px-4 py-3 border-b border-[#2d2d2d] rounded-t-lg lg:rounded-tl-lg lg:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Input QASM Code</h2>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -370,50 +366,175 @@ export default function Playground() {
               </button>
             </div>
           </div>
-          <div className="flex-1 p-0 min-h-0 editor-container bg-[#1e1e1e]">
-            <MonacoEditor
-              height="100%"
-              language="qasm"
-              theme="vs-dark"
-              value={inputCode}
-              onChange={handleCodeChange}
-              onMount={handleEditorDidMount}
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: true,
-                fontSize: fontSize,
-                lineNumbers: 'on',
-                roundedSelection: false,
-                scrollbar: { useShadows: false },
-                automaticLayout: true,
-                tabSize: 2,
-                insertSpaces: true,
-                wordWrap: 'on',
-                contextmenu: true,
-                selectOnLineNumbers: true,
-                glyphMargin: true,
-                folding: true,
-                lineDecorationsWidth: 5,
-                lineNumbersMinChars: 3,
-                suggest: {
-                  showKeywords: true,
-                  showSnippets: true,
-                  showFunctions: true,
-                  showConstants: true,
-                },
-                quickSuggestions: {
-                  other: true,
-                  comments: false,
-                  strings: false,
-                },
-              }}
-            />
+            <div className="flex-1 p-0 min-h-0 editor-container bg-[#1e1e1e]">
+              <MonacoEditor
+                height="100%"
+                language="qasm"
+                theme="vs-dark"
+                value={inputCode}
+                onChange={handleCodeChange}
+                onMount={handleEditorDidMount}
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: true,
+                  fontSize: fontSize,
+                  lineNumbers: 'on',
+                  roundedSelection: false,
+                  scrollbar: { useShadows: false },
+                  automaticLayout: true,
+                  tabSize: 2,
+                  insertSpaces: true,
+                  wordWrap: 'on',
+                  contextmenu: true,
+                  selectOnLineNumbers: true,
+                  glyphMargin: true,
+                  folding: true,
+                  lineDecorationsWidth: 5,
+                  lineNumbersMinChars: 3,
+                  suggest: {
+                    showKeywords: true,
+                    showSnippets: true,
+                    showFunctions: true,
+                    showConstants: true,
+                  },
+                  quickSuggestions: {
+                    other: true,
+                    comments: false,
+                    strings: false,
+                  },
+                }}
+              />
+            </div>
           </div>
+
+          {/* Problems Pane */}
+          <div className="border-t border-[#2d2d2d] bg-[#252526] h-72 sm:h-80 min-h-0 flex flex-col">
+            <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#2d2d2d] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <h3 className="font-semibold text-sm">Problems</h3>
+                {violations.length > 0 && (
+                  <span className="text-xs opacity-70">
+                    {violations.length} issue{violations.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {lintResult?.summary && (
+                  <div className="flex items-center gap-2 text-xs opacity-70 mr-2">
+                    <span className="text-red-400">
+                      {lintResult.summary.errors} error{lintResult.summary.errors !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-yellow-400">
+                      {lintResult.summary.warnings} warning{lintResult.summary.warnings !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-blue-400">
+                      {lintResult.summary.info} info
+                    </span>
+                  </div>
+                )}
+                <button
+                  className={`btn btn-xs btn-primary ${isLinting ? 'loading' : ''}`}
+                  onClick={async () => {
+                    if (!wasmReady || !inputCode.trim() || isLinting) return;
+                    setIsLinting(true);
+                    await updateLinting(inputCode);
+                    setIsLinting(false);
+                  }}
+                  disabled={!wasmReady || !inputCode.trim() || isLinting}
+                >
+                  {!isLinting && (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                  {isLinting ? 'Linting...' : 'Lint'}
+                </button>
+                {violations.length > 0 && (
+                  <button
+                    className="btn btn-xs btn-ghost"
+                    onClick={() => {
+                      setViolations([]);
+                      // Clear markers from editor
+                      if (editorRef.current && monacoInstance) {
+                        const model = editorRef.current.getModel();
+                        if (model) {
+                          monacoInstance.editor.setModelMarkers(model, 'qasm-lint', []);
+                        }
+                      }
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+              <div className="flex-1 overflow-y-auto p-2">
+                {violations.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-center text-gray-500">
+                    <div>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-sm">No problems found</p>
+                      <p className="text-xs opacity-70 mt-1">Click "Lint" to check for issues</p>
+                    </div>
+                  </div>
+                ) : (
+                  violations.map((violation, index) => (
+                  <div
+                    key={index}
+                    className="group flex items-center gap-2 px-2 py-1.5 hover:bg-[#2d2d2d] transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (editorRef.current) {
+                        editorRef.current.revealLineInCenter(violation.line);
+                        editorRef.current.setPosition({ lineNumber: violation.line, column: violation.column });
+                        editorRef.current.focus();
+                      }
+                    }}
+                  >
+                    <div className={`shrink-0 px-1.5 rounded text-[10px] font-medium ${
+                      violation.severity === 'error' ? 'bg-red-100 text-red-700' :
+                      violation.severity === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {violation.severity}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] opacity-70">
+                        <span>[{violation.line}:{violation.column}]</span>
+                        <span className="font-mono">{violation.rule_id}</span>
+                      </div>
+                      <div className="text-xs text-white">{violation.message}</div>
+                    </div>
+                    {violation.documentation_url && (
+                      <a
+                        href={violation.documentation_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                  ))
+                )}
+              </div>
+            </div>
         </div>
 
         {/* Output Panel */}
-        <div className="flex-1 flex flex-col border-t md:border-t-0 border-[#2d2d2d] min-h-0 bg-[#252526] rounded-b-lg md:rounded-r-lg md:rounded-bl-none shadow-sm">
-          <div className="bg-[#2d2d2d] px-2 md:px-4 py-3 border-b border-[#2d2d2d] md:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div className="flex-1 flex flex-col border-t lg:border-t-0 border-[#2d2d2d] min-h-0 bg-[#252526] rounded-b-lg lg:rounded-r-lg lg:rounded-bl-none shadow-sm">
+          <div className="bg-[#2d2d2d] px-2 lg:px-4 py-3 border-b border-[#2d2d2d] lg:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Formatted Output</h2>
               <p className="text-xs opacity-70 hidden sm:block">
@@ -478,7 +599,7 @@ export default function Playground() {
       </div>
 
       {/* Simple Status Bar */}
-      {(isFormatting || formatError || outputCode || violations.length > 0) && (
+      {(isFormatting || formatError || outputCode) && (
         <div className="bg-[#2d2d2d] border-t border-[#2d2d2d] px-2 py-1 space-y-1">
           {isFormatting && (
             <div className="flex items-center gap-2 text-info">
@@ -505,50 +626,6 @@ export default function Playground() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span className="text-sm font-medium">✨ Code formatted successfully!</span>
-            </div>
-          )}
-
-          {/* Linting Results */}
-          {violations.length > 0 && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <span className="text-sm font-medium">
-                  Found {violations.length} issue{violations.length !== 1 ? 's' : ''}:
-                  {' '}
-                  {violations.filter(v => v.severity === 'error').length} error{violations.filter(v => v.severity === 'error').length !== 1 ? 's' : ''},
-                  {' '}
-                  {violations.filter(v => v.severity === 'warning').length} warning{violations.filter(v => v.severity === 'warning').length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {violations.map((violation, index) => (
-                  <div key={index} className={`text-xs p-2 rounded ${
-                    violation.severity === 'error' ? 'bg-error/20 text-error-content' :
-                    violation.severity === 'warning' ? 'bg-warning/20 text-warning-content' :
-                    'bg-info/20 text-info-content'
-                  }`}>
-                    <div className="font-medium">
-                      Line {violation.line}, Column {violation.column}: {violation.message}
-                    </div>
-                    <div className="opacity-70">
-                      Rule: {violation.rule.id} ({violation.rule.name})
-                      {violation.rule.documentationUrl && (
-                        <a
-                          href={violation.rule.documentationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-2 underline hover:no-underline"
-                        >
-                          📖 Learn more
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
         </div>
