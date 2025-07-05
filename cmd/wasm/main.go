@@ -211,6 +211,7 @@ func lintQASM(this js.Value, args []js.Value) (result interface{}) {
 			"error":   fmt.Sprintf("Failed to format QASM: %v", err),
 		}
 	}
+	js.Global().Get("console").Call("log", "Formatted code:", formatted)
 	qasmCode = formatted
 	// Use global linter instance
 	js.Global().Get("console").Call("log", "Linting code:", qasmCode)
@@ -257,7 +258,9 @@ func lintQASM(this js.Value, args []js.Value) (result interface{}) {
 
 	// Convert violations to JavaScript array
 	jsViolations := js.Global().Get("Array").New(len(violations))
+	js.Global().Get("console").Call("log", "Found violations:", len(violations))
 	for i, v := range violations {
+		js.Global().Get("console").Call("log", fmt.Sprintf("Violation %d: %s at line %d, column %d", i+1, v.Message, v.Line, v.Column))
 		jsViolation := js.Global().Get("Object").New()
 		jsViolation.Set("file", "<stdin>") // Always use <stdin> for consistency
 		jsViolation.Set("line", v.Line)
@@ -266,6 +269,26 @@ func lintQASM(this js.Value, args []js.Value) (result interface{}) {
 		jsViolation.Set("rule_id", v.Rule.ID)
 		jsViolation.Set("message", v.Message)
 		jsViolation.Set("documentation_url", fmt.Sprintf("https://github.com/orangekame3/qasmtools/blob/main/docs/rules/%s.md", v.Rule.ID))
+
+		// Add rule details
+		jsRuleDetails := js.Global().Get("Object").New()
+		jsRuleDetails.Set("name", v.Rule.Name)
+		jsRuleDetails.Set("description", v.Rule.Description)
+		// Convert tags array to JavaScript array
+		jsTags := js.Global().Get("Array").New(len(v.Rule.Tags))
+		for i, tag := range v.Rule.Tags {
+			jsTags.SetIndex(i, tag)
+		}
+		jsRuleDetails.Set("tags", jsTags)
+		jsRuleDetails.Set("fixable", v.Rule.Fixable)
+		jsRuleDetails.Set("specification_url", v.Rule.SpecificationURL)
+
+		jsExamples := js.Global().Get("Object").New()
+		jsExamples.Set("incorrect", v.Rule.Examples.Incorrect)
+		jsExamples.Set("correct", v.Rule.Examples.Correct)
+		jsRuleDetails.Set("examples", jsExamples)
+
+		jsViolation.Set("rule_details", jsRuleDetails)
 		jsViolations.SetIndex(i, jsViolation)
 	}
 

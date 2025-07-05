@@ -30,6 +30,17 @@ export interface Violation {
   rule_id: string;
   message: string;
   documentation_url: string;
+  rule_details?: {
+    name: string;
+    description: string;
+    tags: string[];
+    fixable: boolean;
+    specification_url: string;
+    examples: {
+      incorrect: string;
+      correct: string;
+    };
+  };
 }
 
 export interface LintResult {
@@ -212,22 +223,18 @@ export const useWasm = () => {
           return;
         }
 
-        // Return the result with proper error handling
-        if (!result.success) {
-          resolve({
-            success: false,
-            error: result.error || 'Linting failed',
-            violations: [],
-            summary: {
-              total: 0,
-              errors: 0,
-              warnings: 0,
-              info: 0
-            }
-          });
-        } else {
-          resolve(result);
-        }
+        // Always return violations if they exist, even if there's an error
+        resolve({
+          success: result.success,
+          error: result.error,
+          violations: result.violations || [],
+          summary: {
+            total: result.violations?.length || 0,
+            errors: result.violations?.filter(v => v.severity === 'error').length || 0,
+            warnings: result.violations?.filter(v => v.severity === 'warning').length || 0,
+            info: result.violations?.filter(v => v.severity === 'info').length || 0
+          }
+        });
 
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';

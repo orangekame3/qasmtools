@@ -309,12 +309,12 @@ export default function Playground() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row mx-0">
+      <div className="flex-1 flex flex-col lg:flex-row mx-0">
         {/* Input Panel */}
-        <div className="flex-1 flex flex-col border-r-0 md:border-r border-[#2d2d2d] min-h-0 bg-[#252526] rounded-t-lg md:rounded-l-lg md:rounded-tr-none shadow-sm">
+        <div className="flex-1 flex flex-col border-r-0 lg:border-r border-[#2d2d2d] min-h-0 bg-[#252526] rounded-t-lg lg:rounded-l-lg lg:rounded-tr-none shadow-sm">
           {/* Code Editor Section */}
           <div className="flex-1 flex flex-col min-h-0">
-          <div className="bg-[#2d2d2d] px-2 md:px-4 py-3 border-b border-[#2d2d2d] rounded-t-lg md:rounded-tl-lg md:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="bg-[#2d2d2d] px-2 lg:px-4 py-3 border-b border-[#2d2d2d] rounded-t-lg lg:rounded-tl-lg lg:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Input QASM Code</h2>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -408,7 +408,7 @@ export default function Playground() {
           </div>
 
           {/* Problems Pane */}
-          <div className="border-t border-[#2d2d2d] bg-[#252526] h-48 min-h-0 flex flex-col">
+          <div className="border-t border-[#2d2d2d] bg-[#252526] h-72 sm:h-80 min-h-0 flex flex-col">
             <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#2d2d2d] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -474,7 +474,7 @@ export default function Playground() {
                 )}
               </div>
             </div>
-              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              <div className="flex-1 overflow-y-auto p-2">
                 {violations.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-center text-gray-500">
                     <div>
@@ -489,13 +489,8 @@ export default function Playground() {
                   violations.map((violation, index) => (
                   <div
                     key={index}
-                    className={`p-2 rounded text-xs border-l-2 cursor-pointer hover:bg-[#2d2d2d] transition-colors ${
-                      violation.severity === 'error' ? 'border-red-500 bg-red-500/10' :
-                      violation.severity === 'warning' ? 'border-yellow-500 bg-yellow-500/10' :
-                      'border-blue-500 bg-blue-500/10'
-                    }`}
+                    className="group flex items-center gap-2 px-2 py-1.5 hover:bg-[#2d2d2d] transition-colors cursor-pointer"
                     onClick={() => {
-                      // Jump to line in editor
                       if (editorRef.current) {
                         editorRef.current.revealLineInCenter(violation.line);
                         editorRef.current.setPosition({ lineNumber: violation.line, column: violation.column });
@@ -503,41 +498,34 @@ export default function Playground() {
                       }
                     }}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-white">
-                          {violation.message}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-xs opacity-70">
-                          <span>Line {violation.line}, Column {violation.column}</span>
-                          <span>•</span>
-                          <span>{violation.rule_id}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                          violation.severity === 'error' ? 'bg-red-600 text-white' :
-                          violation.severity === 'warning' ? 'bg-yellow-600 text-white' :
-                          'bg-blue-600 text-white'
-                        }`}>
-                          {violation.severity}
-                        </span>
-                        {violation.documentation_url && (
-                          <a
-                            href={violation.documentation_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
+                    <div className={`shrink-0 px-1.5 rounded text-[10px] font-medium ${
+                      violation.severity === 'error' ? 'bg-red-100 text-red-700' :
+                      violation.severity === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {violation.severity}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] opacity-70">
+                        <span>[{violation.line}:{violation.column}]</span>
+                        <span className="font-mono">{violation.rule_id}</span>
+                      </div>
+                      <div className="text-xs text-white">{violation.message}</div>
                     </div>
+                    {violation.documentation_url && (
+                      <a
+                        href={violation.documentation_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
                   ))
                 )}
               </div>
@@ -545,8 +533,8 @@ export default function Playground() {
         </div>
 
         {/* Output Panel */}
-        <div className="flex-1 flex flex-col border-t md:border-t-0 border-[#2d2d2d] min-h-0 bg-[#252526] rounded-b-lg md:rounded-r-lg md:rounded-bl-none shadow-sm">
-          <div className="bg-[#2d2d2d] px-2 md:px-4 py-3 border-b border-[#2d2d2d] md:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div className="flex-1 flex flex-col border-t lg:border-t-0 border-[#2d2d2d] min-h-0 bg-[#252526] rounded-b-lg lg:rounded-r-lg lg:rounded-bl-none shadow-sm">
+          <div className="bg-[#2d2d2d] px-2 lg:px-4 py-3 border-b border-[#2d2d2d] lg:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Formatted Output</h2>
               <p className="text-xs opacity-70 hidden sm:block">
