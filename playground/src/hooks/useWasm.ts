@@ -90,7 +90,8 @@ export const useWasm = () => {
 
       // Initialize Go WebAssembly
       const go = new (window as any).Go();
-      const wasmResponse = await fetch('/wasm/qasmtools.wasm');
+      const wasmPath = process.env.NODE_ENV === 'development' ? '/wasm/qasmtools.wasm' : '/qasmtools/wasm/qasmtools.wasm';
+      const wasmResponse = await fetch(wasmPath);
       const wasmBytes = await wasmResponse.arrayBuffer();
       const wasmModule = await WebAssembly.instantiate(wasmBytes, go.importObject);
 
