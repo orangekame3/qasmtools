@@ -22,7 +22,18 @@ const MonacoEditor = dynamic(
   }
 );
 
-const DEFAULT_QASM = qasmSamples[0].code; // Use first sample as default
+const DEFAULT_QASM = `OPENQASM 3.0;
+include "stdgates.qasm";
+
+// This example demonstrates array index out of bounds
+qubit[2] q;
+bit[2] c;
+
+// The following line will trigger a linting error
+// because q[2] is out of bounds (valid indices are 0 and 1)
+h q[2];
+
+measure q -> c;`;
 
 export default function Playground() {
   const [inputCode, setInputCode] = useState(DEFAULT_QASM);
@@ -298,7 +309,7 @@ export default function Playground() {
   }
 
   return (
-    <div className="h-screen bg-[#1e1e1e] text-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#1e1e1e] text-white flex flex-col">
       {/* Header */}
       <Header
         onLoadExample={handleLoadExample}
@@ -309,9 +320,9 @@ export default function Playground() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row mx-0">
+      <div className="flex-1 flex flex-col lg:flex-row mx-0 overflow-y-auto lg:overflow-hidden">
         {/* Input Panel */}
-        <div className="flex-1 flex flex-col border-r-0 lg:border-r border-[#2d2d2d] min-h-0 bg-[#252526] rounded-t-lg lg:rounded-l-lg lg:rounded-tr-none shadow-sm">
+        <div className="w-full lg:w-1/2 flex flex-col border-r-0 lg:border-r border-[#2d2d2d] bg-[#252526] rounded-t-lg lg:rounded-l-lg lg:rounded-tr-none shadow-sm">
           {/* Code Editor Section */}
           <div className="flex-1 flex flex-col min-h-0">
           <div className="bg-[#2d2d2d] px-2 lg:px-4 py-3 border-b border-[#2d2d2d] rounded-t-lg lg:rounded-tl-lg lg:rounded-tr-none flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -366,7 +377,7 @@ export default function Playground() {
               </button>
             </div>
           </div>
-            <div className="flex-1 p-0 min-h-0 editor-container bg-[#1e1e1e]">
+            <div className="h-[40vh] lg:h-[60vh] p-0 editor-container bg-[#1e1e1e]">
               <MonacoEditor
                 height="100%"
                 language="qasm"
@@ -408,7 +419,7 @@ export default function Playground() {
           </div>
 
           {/* Problems Pane */}
-          <div className="border-t border-[#2d2d2d] bg-[#252526] h-72 sm:h-80 min-h-0 flex flex-col">
+          <div className="border-t border-[#2d2d2d] bg-[#252526] h-[20vh] lg:h-[30vh] flex flex-col">
             <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#2d2d2d] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -533,7 +544,7 @@ export default function Playground() {
         </div>
 
         {/* Output Panel */}
-        <div className="flex-1 flex flex-col border-t lg:border-t-0 border-[#2d2d2d] min-h-0 bg-[#252526] rounded-b-lg lg:rounded-r-lg lg:rounded-bl-none shadow-sm">
+        <div className="w-full lg:w-1/2 flex flex-col border-t lg:border-t-0 border-[#2d2d2d] bg-[#252526] rounded-b-lg lg:rounded-r-lg lg:rounded-bl-none shadow-sm">
           <div className="bg-[#2d2d2d] px-2 lg:px-4 py-3 border-b border-[#2d2d2d] lg:rounded-tr-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Formatted Output</h2>
@@ -553,7 +564,7 @@ export default function Playground() {
               </button>
             )}
           </div>
-          <div className="flex-1 p-0 min-h-0 editor-container bg-[#1e1e1e]">
+          <div className="h-[40vh] lg:h-[60vh] p-0 editor-container bg-[#1e1e1e]">
             {!outputCode && !formatError ? (
               <div className="flex items-center justify-center h-full text-center">
                 <div className="px-4">
