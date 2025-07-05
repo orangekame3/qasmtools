@@ -74,6 +74,8 @@ export default function Playground() {
 
       if (result.success && result.formatted) {
         setOutputCode(result.formatted);
+        // Clear any previous formatting errors
+        setFormatError(null);
       } else {
         setFormatError(result.error || 'Unknown formatting error');
         setOutputCode('');
@@ -119,8 +121,8 @@ export default function Playground() {
 
   const [lintResult, setLintResult] = useState<LintResult | null>(null);
 
-  const updateLinting = useCallback(async (code: string) => {
-    if (!wasmReady || !code.trim() || !editorRef.current || !monacoInstance) return;
+  const updateLinting = useCallback(async (code: string, isOutputCode: boolean = false) => {
+    if (!wasmReady || !code.trim() || !monacoInstance) return;
 
     try {
       const result = await lintQASM(code);
@@ -135,35 +137,41 @@ export default function Playground() {
       if (result.violations) {
         setViolations(result.violations);
 
-        // Convert violations to Monaco markers
-        const markers = result.violations.map(violation => ({
-          startLineNumber: violation.line,
-          startColumn: violation.column,
-          endLineNumber: violation.line,
-          endColumn: violation.column + 10, // Estimate end column
-          message: `${violation.message} (${violation.rule_id})`,
-          severity: violation.severity === 'error' ?
-            monacoInstance.MarkerSeverity.Error :
-            violation.severity === 'warning' ?
-              monacoInstance.MarkerSeverity.Warning :
-              monacoInstance.MarkerSeverity.Info,
-          code: violation.rule_id,
-          source: 'qasm-lint'
-        }));
+        // Only set markers on the input editor if we're not linting output
+        // When linting output, we don't set markers since output editor is read-only
+        if (!isOutputCode && editorRef.current) {
+          // Convert violations to Monaco markers
+          const markers = result.violations.map(violation => ({
+            startLineNumber: violation.line,
+            startColumn: violation.column,
+            endLineNumber: violation.line,
+            endColumn: violation.column + 10, // Estimate end column
+            message: `${violation.message} (${violation.rule_id})`,
+            severity: violation.severity === 'error' ?
+              monacoInstance.MarkerSeverity.Error :
+              violation.severity === 'warning' ?
+                monacoInstance.MarkerSeverity.Warning :
+                monacoInstance.MarkerSeverity.Info,
+            code: violation.rule_id,
+            source: 'qasm-lint'
+          }));
 
-        // Set markers on the model
-        const model = editorRef.current.getModel();
-        if (model) {
-          monacoInstance.editor.setModelMarkers(model, 'qasm-lint', markers);
+          // Set markers on the model
+          const model = editorRef.current.getModel();
+          if (model) {
+            monacoInstance.editor.setModelMarkers(model, 'qasm-lint', markers);
+          }
         }
       } else if (!result.success) {
         console.warn('Linting failed:', result.error);
         setViolations([]);
 
-        // Clear markers
-        const model = editorRef.current.getModel();
-        if (model) {
-          monacoInstance.editor.setModelMarkers(model, 'qasm-lint', []);
+        // Clear markers only if we're not linting output
+        if (!isOutputCode && editorRef.current) {
+          const model = editorRef.current.getModel();
+          if (model) {
+            monacoInstance.editor.setModelMarkers(model, 'qasm-lint', []);
+          }
         }
       }
     } catch (error) {
@@ -185,25 +193,25 @@ export default function Playground() {
     const newCode = value || '';
     setInputCode(newCode);
 
-    // Update linting with debouncing
-    if (!newCode.trim()) {
-      // Clear violations when code is empty
-      setViolations([]);
-      if (editorRef.current && monacoInstance) {
-        const model = editorRef.current.getModel();
-        if (model) {
-          monacoInstance.editor.setModelMarkers(model, 'qasm-lint', []);
-        }
+    // Clear violations when input code changes - we'll lint the output instead
+    setViolations([]);
+    if (editorRef.current && monacoInstance) {
+      const model = editorRef.current.getModel();
+      if (model) {
+        monacoInstance.editor.setModelMarkers(model, 'qasm-lint', []);
       }
     }
-  }, [wasmReady, updateSyntaxHighlighting, updateLinting, monacoInstance]);
+  }, [wasmReady, updateSyntaxHighlighting, monacoInstance]);
 
-  // Update linting when WASM becomes ready
+  // Update linting when output code changes
   useEffect(() => {
-    if (wasmReady && inputCode.trim()) {
-      updateLinting(inputCode);
+    if (wasmReady && outputCode.trim()) {
+      updateLinting(outputCode, true);
+    } else {
+      // Clear violations when there's no output
+      setViolations([]);
     }
-  }, [wasmReady, inputCode, updateLinting]);
+  }, [wasmReady, outputCode, updateLinting]);
 
   const handleCopyOutput = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -426,6 +434,7 @@ export default function Playground() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
                 <h3 className="font-semibold text-sm">Problems</h3>
+                <span className="text-xs opacity-60 bg-[#3d3d3d] px-2 py-1 rounded">Output</span>
                 {violations.length > 0 && (
                   <span className="text-xs opacity-70">
                     {violations.length} issue{violations.length !== 1 ? 's' : ''}
@@ -449,12 +458,12 @@ export default function Playground() {
                 <button
                   className={`btn btn-xs btn-primary ${isLinting ? 'loading' : ''}`}
                   onClick={async () => {
-                    if (!wasmReady || !inputCode.trim() || isLinting) return;
+                    if (!wasmReady || !outputCode.trim() || isLinting) return;
                     setIsLinting(true);
-                    await updateLinting(inputCode);
+                    await updateLinting(outputCode, true);
                     setIsLinting(false);
                   }}
-                  disabled={!wasmReady || !inputCode.trim() || isLinting}
+                  disabled={!wasmReady || !outputCode.trim() || isLinting}
                 >
                   {!isLinting && (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -492,8 +501,8 @@ export default function Playground() {
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <p className="text-sm">No problems found</p>
-                      <p className="text-xs opacity-70 mt-1">Click "Lint" to check for issues</p>
+                      <p className="text-sm">No problems found in output</p>
+                      <p className="text-xs opacity-70 mt-1">{outputCode ? 'Output code looks good!' : 'Format code first, then lint will run automatically'}</p>
                     </div>
                   </div>
                 ) : (
@@ -502,11 +511,9 @@ export default function Playground() {
                     key={index}
                     className="group flex items-center gap-2 px-2 py-1.5 hover:bg-[#2d2d2d] transition-colors cursor-pointer"
                     onClick={() => {
-                      if (editorRef.current) {
-                        editorRef.current.revealLineInCenter(violation.line);
-                        editorRef.current.setPosition({ lineNumber: violation.line, column: violation.column });
-                        editorRef.current.focus();
-                      }
+                      // Since we're linting output, we can't jump to the editor (it's read-only)
+                      // But we can still show the violation details
+                      console.log('Violation details:', violation);
                     }}
                   >
                     <div className={`shrink-0 px-1.5 rounded text-[10px] font-medium ${
@@ -518,8 +525,9 @@ export default function Playground() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 text-[10px] opacity-70">
-                        <span>[{violation.line}:{violation.column}]</span>
+                        <span>Line {violation.line}:{violation.column}</span>
                         <span className="font-mono">{violation.rule_id}</span>
+                        <span className="text-blue-400">in output</span>
                       </div>
                       <div className="text-xs text-white">{violation.message}</div>
                     </div>
@@ -549,7 +557,7 @@ export default function Playground() {
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-sm md:text-base">Formatted Output</h2>
               <p className="text-xs opacity-70 hidden sm:block">
-                {outputCode ? 'Formatted code ready to copy' : 'Click Format to see results'}
+                {outputCode ? 'Formatted code ready to copy • Auto-linted for issues' : 'Click Format to see results'}
               </p>
             </div>
             {outputCode && (
