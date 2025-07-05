@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
-  basePath: '/qasmtools',
+  basePath: process.env.NODE_ENV === 'development' ? '' : '/qasmtools',
   trailingSlash: true,
   images: {
     unoptimized: true

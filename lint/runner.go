@@ -52,8 +52,11 @@ func (l *Linter) LintContent(content string, filename string) ([]*Violation, err
 	// Parse the content
 	p := parser.NewParser()
 	result := p.ParseWithErrors(content)
-	if result.HasErrors() && result.Program == nil {
+	if result.HasErrors() {
 		return nil, fmt.Errorf("failed to parse content: %v", result.Errors)
+	}
+	if result.Program == nil {
+		return nil, fmt.Errorf("failed to parse content: program is nil")
 	}
 
 	// Build usage map for symbol tracking
@@ -104,8 +107,11 @@ func (l *Linter) LintFile(filename string) ([]*Violation, error) {
 	}
 
 	result := p.ParseWithErrors(string(content))
-	if result.HasErrors() && result.Program == nil {
+	if result.HasErrors() {
 		return nil, fmt.Errorf("failed to parse file: %v", result.Errors)
+	}
+	if result.Program == nil {
+		return nil, fmt.Errorf("failed to parse file: program is nil")
 	}
 
 	// Build usage map for symbol tracking

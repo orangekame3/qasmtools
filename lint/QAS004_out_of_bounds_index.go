@@ -132,7 +132,7 @@ func (c *OutOfBoundsIndexChecker) findArrayAccesses(line string) []arrayAccess {
 			indexStr := match[2]
 
 			if index, err := strconv.Atoi(indexStr); err == nil {
-				column := indices[i][0] + 1 // Convert to 1-based indexing
+				column := indices[i][0] + len(arrayName) + 1 // Add array name length to get correct column
 
 				accesses = append(accesses, arrayAccess{
 					arrayName: arrayName,
