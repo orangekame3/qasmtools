@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.2.14](https://github.com/orangekame3/qasmtools/compare/v0.2.13...v0.2.14) - 2025-07-05
+- Fix lint issues in codebase by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/79
+- Enhance WASM integration with improved linting and error handling by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/81
+- Fix WASM path for different environments by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/82
+- Update default QASM example and enhance layout for Playground component by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/83
+- Fix layout in playground component by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/84
+- Enhance Playground with linting examples and update category for samples by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/85
+- Enhance functionality and performance improvements by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/86
+
 ## [v0.2.13](https://github.com/orangekame3/qasmtools/compare/v0.2.12...v0.2.13) - 2025-07-01
 - updaet lsp by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/77
 
