@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="dark">
       <head>
-        <Script src="/wasm/wasm_exec.js" strategy="beforeInteractive" />
+        <Script src={process.env.NODE_ENV === 'development' ? '/wasm/wasm_exec.js' : '/qasmtools/wasm/wasm_exec.js'} strategy="beforeInteractive" />
       </head>
       <body className={inter.className} suppressHydrationWarning={true}>
         <div className="min-h-screen bg-base-100">
