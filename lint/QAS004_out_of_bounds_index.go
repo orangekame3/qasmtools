@@ -142,7 +142,7 @@ func (c *OutOfBoundsIndexChecker) findArrayAccesses(line string) []arrayAccess {
 						indexStartInMatch++
 					}
 					column := matchStart + indexStartInMatch + 1 // Convert to 1-based indexing
-					
+
 					accesses = append(accesses, arrayAccess{
 						arrayName: arrayName,
 						index:     index,
