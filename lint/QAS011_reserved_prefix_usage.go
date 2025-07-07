@@ -1,62 +1,70 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// ReservedPrefixUsageChecker checks for use of reserved prefixes in identifiers (QAS011)
-type ReservedPrefixUsageChecker struct{}
-
-func (c *ReservedPrefixUsageChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// ReservedPrefixUsageChecker is the new implementation using BaseChecker framework
+type ReservedPrefixUsageChecker struct {
+	*BaseChecker
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *ReservedPrefixUsageChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewReservedPrefixUsageChecker creates a new ReservedPrefixUsageChecker
+func NewReservedPrefixUsageChecker() *ReservedPrefixUsageChecker {
+	return &ReservedPrefixUsageChecker{
+		BaseChecker: NewBaseChecker("QAS011"),
+	}
 }
 
 // CheckFile performs file-level reserved prefix usage analysis
 func (c *ReservedPrefixUsageChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content using BaseChecker method
+	content, err := c.getContent(context)
 	if err != nil {
 		return violations
 	}
 
-	text := string(content)
-	lines := strings.Split(text, "\n")
+	lines := strings.Split(content, "\n")
 
 	// Check each line for identifier declarations with reserved prefixes
 	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
-		// Find identifier declarations and check for reserved prefixes
-		identifiers := c.findIdentifierDeclarations(line)
+		// Find identifier declarations using shared utility and check for reserved prefixes
+		identifiers := FindIdentifierDeclarations(line)
 
 		for _, identifier := range identifiers {
+			if c.hasReservedPrefix(identifier.Name) {
+				violation := c.NewViolationBuilder().
+					WithMessage("Identifier '"+identifier.Name+"' uses reserved prefix '__'.").
+					WithFile(context.File).
+					WithPosition(i+1, identifier.Column).
+					WithNodeName(identifier.Name).
+					AsError().
+					Build()
+				violations = append(violations, violation)
+			}
+		}
+
+		// Also check for additional declaration patterns not covered by shared utility
+		additionalIdentifiers := c.findAdditionalDeclarations(line)
+		for _, identifier := range additionalIdentifiers {
 			if c.hasReservedPrefix(identifier.name) {
-				violation := &Violation{
-					Rule:     nil, // Will be set by the runner
-					File:     context.File,
-					Line:     i + 1,
-					Column:   identifier.column,
-					NodeName: identifier.name,
-					Message:  "Identifier '" + identifier.name + "' uses reserved prefix '__'.",
-					Severity: SeverityError,
-				}
+				violation := c.NewViolationBuilder().
+					WithMessage("Identifier '"+identifier.name+"' uses reserved prefix '__'.").
+					WithFile(context.File).
+					WithPosition(i+1, identifier.column).
+					WithNodeName(identifier.name).
+					AsError().
+					Build()
 				violations = append(violations, violation)
 			}
 		}
@@ -70,27 +78,19 @@ type identifierDeclarationWithPrefix struct {
 	column int
 }
 
-// findIdentifierDeclarations finds all identifier declarations in a line
-func (c *ReservedPrefixUsageChecker) findIdentifierDeclarations(line string) []identifierDeclarationWithPrefix {
+// findAdditionalDeclarations finds additional identifier declarations not covered by shared utility
+func (c *ReservedPrefixUsageChecker) findAdditionalDeclarations(line string) []identifierDeclarationWithPrefix {
 	var declarations []identifierDeclarationWithPrefix
 
-	// Remove comments from the line
-	codeOnly := c.removeComments(line)
+	// Remove comments using shared utility
+	codeOnly := RemoveComments(line)
 
-	// Patterns for different types of declarations
+	// Additional patterns for declarations not covered by shared utility
 	patterns := []*regexp.Regexp{
-		// qubit declarations: qubit name; or qubit[size] name;
-		regexp.MustCompile(`\bqubit(?:\[\s*\d+\s*\])?\s+([^\s;]+)\s*;`),
-		// bit declarations: bit name; or bit[size] name;
-		regexp.MustCompile(`\bbit(?:\[\s*\d+\s*\])?\s+([^\s;]+)\s*;`),
-		// gate declarations: gate name(...) {...} or gate name params {...}
-		regexp.MustCompile(`\bgate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\(|[a-zA-Z_])`),
 		// function declarations: def name(...) {...}
 		regexp.MustCompile(`\bdef\s+([^\s\(]+)\s*\(`),
 		// circuit declarations: circuit name(...) {...}
 		regexp.MustCompile(`\bcircuit\s+([^\s\(]+)\s*\(`),
-		// register declarations: int name; float name; etc.
-		regexp.MustCompile(`\b(?:int|uint|float|angle|complex|bool)(?:\[\s*\d+\s*\])?\s+([^\s;]+)\s*;`),
 		// const declarations: const name = value;
 		regexp.MustCompile(`\bconst\s+([^\s=]+)\s*=`),
 		// input/output declarations: input name; output name;
@@ -128,10 +128,12 @@ func (c *ReservedPrefixUsageChecker) hasReservedPrefix(name string) bool {
 	return strings.HasPrefix(name, "__")
 }
 
-// removeComments removes comments from a line
-func (c *ReservedPrefixUsageChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *ReservedPrefixUsageChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *ReservedPrefixUsageChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

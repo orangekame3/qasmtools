@@ -1,100 +1,80 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// NamingConventionViolationChecker checks for naming convention violations (QAS005)
-type NamingConventionViolationChecker struct{}
-
-func (c *NamingConventionViolationChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// NamingConventionViolationChecker is the new implementation using BaseChecker framework
+type NamingConventionViolationChecker struct {
+	*BaseChecker
+	namingPattern *regexp.Regexp
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *NamingConventionViolationChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewNamingConventionViolationChecker creates a new NamingConventionViolationChecker
+func NewNamingConventionViolationChecker() *NamingConventionViolationChecker {
+	return &NamingConventionViolationChecker{
+		BaseChecker:   NewBaseChecker("QAS005"),
+		namingPattern: regexp.MustCompile(`^[a-z][a-zA-Z0-9_]*$`),
+	}
 }
 
 // CheckFile performs file-level naming convention analysis
 func (c *NamingConventionViolationChecker) CheckFile(context *CheckContext) []*Violation {
+	// Use the shared ProcessFileLines function with this checker as LineProcessor
+	return ProcessFileLines(context, c)
+}
+
+// ProcessLine implements LineProcessor interface for line-by-line processing
+func (c *NamingConventionViolationChecker) ProcessLine(line string, lineNum int, context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
-	if err != nil {
-		return violations
-	}
+	// Find all identifier-like declarations (including invalid ones)
+	identifiers := c.findAllIdentifierDeclarations(line)
 
-	text := string(content)
-	lines := strings.Split(text, "\n")
-
-	// Check each line for identifier declarations
-	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
-			continue
-		}
-
-		// Find identifier declarations and check naming conventions
-		identifiers := c.findIdentifierDeclarations(line)
-
-		for _, identifier := range identifiers {
-			if !c.isValidIdentifierName(identifier.name) {
-				violation := &Violation{
-					Rule:     nil, // Will be set by the runner
-					File:     context.File,
-					Line:     i + 1,
-					Column:   identifier.column,
-					NodeName: identifier.name,
-					Message:  "Identifier '" + identifier.name + "' violates naming conventions. Follow pattern: ^[a-z][a-zA-Z0-9_]*$.",
-					Severity: SeverityWarning,
-				}
-				violations = append(violations, violation)
-			}
+	for _, identifier := range identifiers {
+		if !c.isValidIdentifierName(identifier.Name) {
+			violation := c.NewViolationBuilder().
+				WithMessage("Identifier '"+identifier.Name+"' violates naming conventions. Follow pattern: ^[a-z][a-zA-Z0-9_]*$.").
+				WithFile(context.File).
+				WithPosition(lineNum, identifier.Column).
+				WithNodeName(identifier.Name).
+				AsWarning().
+				Build()
+			violations = append(violations, violation)
 		}
 	}
 
 	return violations
 }
 
-type identifierDeclaration struct {
-	name   string
-	column int
-}
-
-// findIdentifierDeclarations finds all identifier declarations in a line
-func (c *NamingConventionViolationChecker) findIdentifierDeclarations(line string) []identifierDeclaration {
-	var declarations []identifierDeclaration
+// findAllIdentifierDeclarations finds both valid and invalid identifier declarations
+func (c *NamingConventionViolationChecker) findAllIdentifierDeclarations(line string) []IdentifierDeclaration {
+	var declarations []IdentifierDeclaration
 
 	// Remove comments from the line
-	codeOnly := c.removeComments(line)
+	codeOnly := RemoveComments(line)
 
-	// Patterns for different types of declarations
-	// Use more permissive pattern to capture any identifier-like token
+	// Patterns that capture both valid and invalid identifiers in declarations
+	// Use broader patterns that can match invalid identifiers too
 	patterns := []*regexp.Regexp{
-		// qubit declarations: qubit name; or qubit[size] name;
+		// qubit declarations: qubit name; or qubit[size] name; (including invalid names)
 		regexp.MustCompile(`\bqubit(?:\[\s*\d+\s*\])?\s+([^\s;]+)\s*;`),
-		// bit declarations: bit name; or bit[size] name;
+		// bit declarations: bit name; or bit[size] name; (including invalid names)
 		regexp.MustCompile(`\bbit(?:\[\s*\d+\s*\])?\s+([^\s;]+)\s*;`),
-		// gate declarations: gate name(...) {...}
-		regexp.MustCompile(`\bgate\s+([^\s\(]+)\s*\(`),
-		// function declarations: def name(...) {...}
+		// gate declarations: gate name(...) {...} (including invalid names)
+		regexp.MustCompile(`\bgate\s+([^\s\(]+)\s*(?:\(|[a-zA-Z0-9_])`),
+		// function declarations: def name(...) {...} (including invalid names)
 		regexp.MustCompile(`\bdef\s+([^\s\(]+)\s*\(`),
-		// circuit declarations: circuit name(...) {...}
+		// circuit declarations: circuit name(...) {...} (including invalid names)
 		regexp.MustCompile(`\bcircuit\s+([^\s\(]+)\s*\(`),
-		// register declarations: int name; float name; etc.
+		// register declarations: int name; float name; etc. (including invalid names)
 		regexp.MustCompile(`\b(?:int|uint|float|angle|complex|bool)(?:\[\s*\d+\s*\])?\s+([^\s;]+)\s*;`),
-		// const declarations: const name = value;
+		// const declarations: const name = value; (including invalid names)
 		regexp.MustCompile(`\bconst\s+([^\s=]+)\s*=`),
-		// input/output declarations: input name; output name;
+		// input/output declarations: input name; output name; (including invalid names)
 		regexp.MustCompile(`\b(?:input|output)\s+([^\s;]+)\s*;`),
 	}
 
@@ -111,9 +91,9 @@ func (c *NamingConventionViolationChecker) findIdentifierDeclarations(line strin
 				if identifierPos != -1 {
 					column := matchStart + identifierPos + 1 // Convert to 1-based indexing
 
-					declarations = append(declarations, identifierDeclaration{
-						name:   identifierName,
-						column: column,
+					declarations = append(declarations, IdentifierDeclaration{
+						Name:   identifierName,
+						Column: column,
 					})
 				}
 			}
@@ -125,15 +105,16 @@ func (c *NamingConventionViolationChecker) findIdentifierDeclarations(line strin
 
 // isValidIdentifierName checks if an identifier follows the naming convention
 func (c *NamingConventionViolationChecker) isValidIdentifierName(name string) bool {
-	// Pattern: must start with lowercase letter, followed by letters, digits, or underscores
-	pattern := regexp.MustCompile(`^[a-z][a-zA-Z0-9_]*$`)
-	return pattern.MatchString(name)
+	// Use the precompiled regex pattern
+	return c.namingPattern.MatchString(name)
 }
 
-// removeComments removes comments from a line
-func (c *NamingConventionViolationChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *NamingConventionViolationChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *NamingConventionViolationChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

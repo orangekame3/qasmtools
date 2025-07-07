@@ -7,58 +7,17 @@ import (
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// UnusedQubitChecker checks for unused qubit declarations (QAS001)
-type UnusedQubitChecker struct{}
-
-func (c *UnusedQubitChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// UnusedQubitChecker is the new implementation using the BaseChecker framework
+type UnusedQubitChecker struct {
+	*BaseChecker
+	qubitDeclarations []qubitDecl
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *UnusedQubitChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Always use text-based analysis since AST parsing has issues (see CLAUDE.md)
-	return c.CheckFile(context)
-}
-
-// extractQubitName extracts the base name from qubit identifier (removes array brackets)
-func (c *UnusedQubitChecker) extractQubitName(identifier string) string {
-	if idx := strings.Index(identifier, "["); idx != -1 {
-		return identifier[:idx]
+// NewUnusedQubitChecker creates a new UnusedQubitChecker
+func NewUnusedQubitChecker() *UnusedQubitChecker {
+	return &UnusedQubitChecker{
+		BaseChecker: NewBaseChecker("QAS001"),
 	}
-	return identifier
-}
-
-// CheckFile performs file-level unused qubit analysis as fallback when AST parsing fails
-func (c *UnusedQubitChecker) CheckFile(context *CheckContext) []*Violation {
-	var violations []*Violation
-
-	// Get content for text-based analysis
-	text, err := context.GetContent()
-	if err != nil {
-		return violations
-	}
-	lines := strings.Split(text, "\n")
-
-	// Find qubit declarations
-	qubitDeclarations := c.findQubitDeclarations(lines)
-
-	// Check each declared qubit for usage
-	for _, decl := range qubitDeclarations {
-		if !c.isQubitUsed(decl.name, text) {
-			violation := &Violation{
-				File:     context.File,
-				Line:     decl.line,
-				Column:   decl.column,
-				NodeName: decl.name,
-				Message:  "Qubit '" + decl.name + "' is declared but never used.",
-				Severity: SeverityWarning,
-			}
-			violations = append(violations, violation)
-		}
-	}
-
-	return violations
 }
 
 type qubitDecl struct {
@@ -67,34 +26,62 @@ type qubitDecl struct {
 	column int
 }
 
-func (c *UnusedQubitChecker) findQubitDeclarations(lines []string) []qubitDecl {
-	var declarations []qubitDecl
+// CheckFile performs file-level unused qubit analysis
+func (c *UnusedQubitChecker) CheckFile(context *CheckContext) []*Violation {
+	var violations []*Violation
 
-	// Regex patterns for qubit declarations
-	singleQubit := regexp.MustCompile(`^\s*qubit\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`)
-	arrayQubit := regexp.MustCompile(`^\s*qubit\[\s*\d+\s*\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`)
+	// Get content for text-based analysis using BaseChecker method
+	content, err := c.getContent(context)
+	if err != nil {
+		return violations
+	}
+
+	// First pass: collect all qubit declarations
+	c.qubitDeclarations = c.findQubitDeclarations(content)
+
+	// Second pass: check for usage
+	for _, decl := range c.qubitDeclarations {
+		if !c.isQubitUsed(decl.name, content) {
+			violation := c.NewViolationBuilder().
+				WithMessage("Qubit '"+decl.name+"' is declared but never used.").
+				WithFile(context.File).
+				WithPosition(decl.line, decl.column).
+				WithNodeName(decl.name).
+				AsWarning().
+				Build()
+			violations = append(violations, violation)
+		}
+	}
+
+	return violations
+}
+
+// findQubitDeclarations finds all qubit declarations using shared regex patterns
+func (c *UnusedQubitChecker) findQubitDeclarations(content string) []qubitDecl {
+	var declarations []qubitDecl
+	lines := strings.Split(content, "\n")
 
 	for i, line := range lines {
-		// Skip comments
-		if strings.TrimSpace(line) == "" || strings.HasPrefix(strings.TrimSpace(line), "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
-		// Check for single qubit declaration
-		if matches := singleQubit.FindStringSubmatch(line); len(matches) > 1 {
+		// Check for array qubit declarations first: qubit[size] name;
+		if matches := ArrayQubitDeclarationPattern.FindStringSubmatch(line); len(matches) > 2 {
+			varName := matches[2] // Variable name is in matches[2] for array declarations
 			declarations = append(declarations, qubitDecl{
-				name:   matches[1],
+				name:   varName,
 				line:   i + 1,
-				column: strings.Index(line, matches[1]) + 1,
+				column: strings.Index(line, varName) + 1,
 			})
-		}
-
-		// Check for array qubit declaration
-		if matches := arrayQubit.FindStringSubmatch(line); len(matches) > 1 {
+		} else if matches := QubitDeclarationPattern.FindStringSubmatch(line); len(matches) > 1 {
+			// Handle single qubit declarations only if it's not an array declaration: qubit name;
+			varName := matches[1]
 			declarations = append(declarations, qubitDecl{
-				name:   matches[1],
+				name:   varName,
 				line:   i + 1,
-				column: strings.Index(line, matches[1]) + 1,
+				column: strings.Index(line, varName) + 1,
 			})
 		}
 	}
@@ -102,9 +89,8 @@ func (c *UnusedQubitChecker) findQubitDeclarations(lines []string) []qubitDecl {
 	return declarations
 }
 
+// isQubitUsed checks if a qubit is used anywhere in the content
 func (c *UnusedQubitChecker) isQubitUsed(qubitName string, content string) bool {
-	// Look for usage patterns, but exclude declarations
-	// Split content into lines to analyze individually
 	lines := strings.Split(content, "\n")
 
 	for _, line := range lines {
@@ -114,13 +100,11 @@ func (c *UnusedQubitChecker) isQubitUsed(qubitName string, content string) bool 
 			continue
 		}
 
-		// Look for usage patterns in this line:
-		// 1. Array access: qubit_name[0]
-		// 2. Gate calls: h qubit_name;
-		// 3. Gate parameters: cx qubit1, qubit_name;
-		// 4. Measurements: measure qubit_name
+		// Remove comments using shared utility
+		cleanLine := RemoveComments(line)
 
-		patterns := []string{
+		// Look for usage patterns using shared patterns where applicable
+		usagePatterns := []string{
 			`\b` + regexp.QuoteMeta(qubitName) + `\[\d+\]`,      // Array access
 			`\b[a-z]+\s+` + regexp.QuoteMeta(qubitName) + `\b`,  // Gate application
 			`\b` + regexp.QuoteMeta(qubitName) + `\s*,`,         // Usage in gate parameters (first param)
@@ -128,13 +112,22 @@ func (c *UnusedQubitChecker) isQubitUsed(qubitName string, content string) bool 
 			`\bmeasure\s+` + regexp.QuoteMeta(qubitName) + `\b`, // Measurement
 		}
 
-		for _, pattern := range patterns {
-			matched, _ := regexp.MatchString(pattern, line)
-			if matched {
+		for _, pattern := range usagePatterns {
+			if matched, _ := regexp.MatchString(pattern, cleanLine); matched {
 				return true
 			}
 		}
 	}
 
 	return false
+}
+
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *UnusedQubitChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *UnusedQubitChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

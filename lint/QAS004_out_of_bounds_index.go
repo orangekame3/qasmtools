@@ -8,39 +8,38 @@ import (
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// OutOfBoundsIndexChecker checks for array index access that exceeds defined bounds (QAS004)
-type OutOfBoundsIndexChecker struct{}
-
-func (c *OutOfBoundsIndexChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// OutOfBoundsIndexChecker is the new implementation using BaseChecker framework
+type OutOfBoundsIndexChecker struct {
+	*BaseChecker
+	arraySizes map[string]int // maps array names to their sizes
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *OutOfBoundsIndexChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewOutOfBoundsIndexChecker creates a new OutOfBoundsIndexChecker
+func NewOutOfBoundsIndexChecker() *OutOfBoundsIndexChecker {
+	return &OutOfBoundsIndexChecker{
+		BaseChecker: NewBaseChecker("QAS004"),
+	}
 }
 
 // CheckFile performs file-level out-of-bounds index analysis
 func (c *OutOfBoundsIndexChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Get content for text-based analysis
-	text, err := context.GetContent()
+	// Get content using BaseChecker method
+	content, err := c.getContent(context)
 	if err != nil {
 		return violations
 	}
-	lines := strings.Split(text, "\n")
+
+	lines := strings.Split(content, "\n")
 
 	// First pass: collect all array declarations and their sizes
-	arraySizes := c.findArrayDeclarations(lines)
+	c.arraySizes = c.findArrayDeclarations(lines)
 
 	// Second pass: find array accesses and check bounds
 	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
@@ -48,18 +47,19 @@ func (c *OutOfBoundsIndexChecker) CheckFile(context *CheckContext) []*Violation 
 		accesses := c.findArrayAccesses(line)
 
 		for _, access := range accesses {
-			// Check if the array exists and index is within bounds
-			if size, exists := arraySizes[access.arrayName]; exists {
-				if access.index >= size {
-					violation := &Violation{
-						Rule:     nil, // Will be set by the runner
-						File:     context.File,
-						Line:     i + 1,
-						Column:   access.column,
-						NodeName: access.arrayName,
-						Message:  "Index out of bounds: accessing '" + strconv.Itoa(access.index) + "' on '" + access.arrayName + "' of length " + strconv.Itoa(size) + ".",
-						Severity: SeverityError,
-					}
+			arrayName := access.arrayName
+			index := access.index
+
+			// Check if array is declared and if index is within bounds
+			if size, exists := c.arraySizes[arrayName]; exists {
+				if index >= size {
+					violation := c.NewViolationBuilder().
+						WithMessage("Index out of bounds: accessing '"+strconv.Itoa(index)+"' on '"+arrayName+"' of length "+strconv.Itoa(size)+".").
+						WithFile(context.File).
+						WithPosition(i+1, access.column).
+						WithNodeName(arrayName).
+						AsError().
+						Build()
 					violations = append(violations, violation)
 				}
 			}
@@ -69,6 +69,7 @@ func (c *OutOfBoundsIndexChecker) CheckFile(context *CheckContext) []*Violation 
 	return violations
 }
 
+// arrayAccess represents an array access with position
 type arrayAccess struct {
 	arrayName string
 	index     int
@@ -79,33 +80,30 @@ type arrayAccess struct {
 func (c *OutOfBoundsIndexChecker) findArrayDeclarations(lines []string) map[string]int {
 	arraySizes := make(map[string]int)
 
-	// Patterns for array declarations
-	patterns := []*regexp.Regexp{
-		// qubit[size] name;
-		regexp.MustCompile(`^\s*qubit\[\s*(\d+)\s*\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
-		// bit[size] name;
-		regexp.MustCompile(`^\s*bit\[\s*(\d+)\s*\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
-		// int[size] name; (for future OpenQASM extensions)
-		regexp.MustCompile(`^\s*int\[\s*(\d+)\s*\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
-		// float[size] name; (for future OpenQASM extensions)
-		regexp.MustCompile(`^\s*float\[\s*(\d+)\s*\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
-	}
-
 	for _, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
-		for _, pattern := range patterns {
-			matches := pattern.FindStringSubmatch(line)
-			if len(matches) >= 3 {
-				sizeStr := matches[1]
-				arrayName := matches[2]
+		// Use shared patterns for array declarations
+		patterns := []*regexp.Regexp{
+			ArrayQubitDeclarationPattern, // qubit[size] name;
+			ArrayBitDeclarationPattern,   // bit[size] name;
+			// Additional patterns for other array types
+			regexp.MustCompile(`\b(?:int|uint|float|angle|complex|bool)\[\s*(\d+)\s*\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
+		}
 
-				if size, err := strconv.Atoi(sizeStr); err == nil {
-					arraySizes[arrayName] = size
+		for _, pattern := range patterns {
+			matches := pattern.FindAllStringSubmatch(line, -1)
+			for _, match := range matches {
+				if len(match) >= 3 {
+					sizeStr := match[1]
+					arrayName := match[2]
+
+					if size, err := strconv.Atoi(sizeStr); err == nil {
+						arraySizes[arrayName] = size
+					}
 				}
 			}
 		}
@@ -118,13 +116,12 @@ func (c *OutOfBoundsIndexChecker) findArrayDeclarations(lines []string) map[stri
 func (c *OutOfBoundsIndexChecker) findArrayAccesses(line string) []arrayAccess {
 	var accesses []arrayAccess
 
-	// Remove comments from the line
-	codeOnly := c.removeComments(line)
+	// Remove comments using shared utility
+	cleanLine := RemoveComments(line)
 
-	// Pattern for array access: identifier[number]
-	accessPattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)\[\s*(\d+)\s*\]`)
-	matches := accessPattern.FindAllStringSubmatch(codeOnly, -1)
-	indices := accessPattern.FindAllStringIndex(codeOnly, -1)
+	// Use shared pattern for array access
+	matches := ArrayAccessPattern.FindAllStringSubmatch(cleanLine, -1)
+	indices := ArrayAccessPattern.FindAllStringIndex(cleanLine, -1)
 
 	for i, match := range matches {
 		if len(match) >= 3 {
@@ -132,13 +129,26 @@ func (c *OutOfBoundsIndexChecker) findArrayAccesses(line string) []arrayAccess {
 			indexStr := match[2]
 
 			if index, err := strconv.Atoi(indexStr); err == nil {
-				column := indices[i][0] + len(arrayName) + 1 // Add array name length to get correct column
-
-				accesses = append(accesses, arrayAccess{
-					arrayName: arrayName,
-					index:     index,
-					column:    column,
-				})
+				// Find the position of the index number directly in the line
+				matchStart := indices[i][0]
+				fullMatch := match[0] // e.g., "q[3]"
+				// Find the bracket position and then look for the index
+				bracketPos := strings.Index(fullMatch, "[")
+				if bracketPos != -1 {
+					// Index starts after the opening bracket
+					indexStartInMatch := bracketPos + 1
+					// Skip any whitespace
+					for indexStartInMatch < len(fullMatch) && fullMatch[indexStartInMatch] == ' ' {
+						indexStartInMatch++
+					}
+					column := matchStart + indexStartInMatch + 1 // Convert to 1-based indexing
+					
+					accesses = append(accesses, arrayAccess{
+						arrayName: arrayName,
+						index:     index,
+						column:    column,
+					})
+				}
 			}
 		}
 	}
@@ -146,10 +156,12 @@ func (c *OutOfBoundsIndexChecker) findArrayAccesses(line string) []arrayAccess {
 	return accesses
 }
 
-// removeComments removes comments from a line
-func (c *OutOfBoundsIndexChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *OutOfBoundsIndexChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *OutOfBoundsIndexChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

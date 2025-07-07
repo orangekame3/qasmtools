@@ -183,7 +183,7 @@ rx(pi/2) q1, q2;  // Size mismatch in parameterized gate`,
 			tmpFile.Close()
 
 			// Create checker
-			checker := &GateRegisterSizeMismatchChecker{}
+			checker := NewGateRegisterSizeMismatchChecker()
 
 			// Create context
 			context := &CheckContext{

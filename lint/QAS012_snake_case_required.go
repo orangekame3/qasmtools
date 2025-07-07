@@ -1,110 +1,160 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// SnakeCaseRequiredChecker checks for snake_case naming in identifiers (QAS012)
-type SnakeCaseRequiredChecker struct{}
-
-func (c *SnakeCaseRequiredChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// SnakeCaseRequiredChecker is the new implementation using BaseChecker framework
+type SnakeCaseRequiredChecker struct {
+	*BaseChecker
+	snakeCasePattern *regexp.Regexp
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *SnakeCaseRequiredChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewSnakeCaseRequiredChecker creates a new SnakeCaseRequiredChecker
+func NewSnakeCaseRequiredChecker() *SnakeCaseRequiredChecker {
+	return &SnakeCaseRequiredChecker{
+		BaseChecker:      NewBaseChecker("QAS012"),
+		snakeCasePattern: regexp.MustCompile(`^[a-z][a-z0-9_]*[a-z0-9]$|^[a-z]$`),
+	}
 }
 
 // CheckFile performs file-level snake_case naming analysis
 func (c *SnakeCaseRequiredChecker) CheckFile(context *CheckContext) []*Violation {
+	// Use the shared ProcessFileLines function with this checker as LineProcessor
+	return ProcessFileLines(context, c)
+}
+
+// ProcessLine implements LineProcessor interface for line-by-line processing
+func (c *SnakeCaseRequiredChecker) ProcessLine(line string, lineNum int, context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
-	if err != nil {
-		return violations
-	}
+	// Use shared utility to find identifier declarations, but filter for specific types
+	identifiers := c.findSnakeCaseTargetDeclarations(line)
 
-	text := string(content)
-	lines := strings.Split(text, "\n")
-
-	// Check each line for identifier declarations with non-snake_case naming
-	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
-			continue
-		}
-
-		// Find identifier declarations and check for snake_case
-		identifiers := c.findIdentifierDeclarations(line)
-
-		for _, identifier := range identifiers {
-			if !c.isSnakeCase(identifier.name) {
-				violation := &Violation{
-					Rule:     nil, // Will be set by the runner
-					File:     context.File,
-					Line:     i + 1,
-					Column:   identifier.column,
-					NodeName: identifier.name,
-					Message:  "Identifier '" + identifier.name + "' should be written in snake_case.",
-					Severity: SeverityWarning,
-				}
-				violations = append(violations, violation)
-			}
+	for _, identifier := range identifiers {
+		if !c.isSnakeCase(identifier.Name) {
+			violation := c.NewViolationBuilder().
+				WithMessage("Identifier '"+identifier.Name+"' should be written in snake_case.").
+				WithFile(context.File).
+				WithPosition(lineNum, identifier.Column).
+				WithNodeName(identifier.Name).
+				AsWarning().
+				Build()
+			violations = append(violations, violation)
 		}
 	}
 
 	return violations
 }
 
-type identifierDeclarationSnakeCase struct {
-	name   string
-	column int
-}
+// findSnakeCaseTargetDeclarations finds declarations that should follow snake_case
+// This is more specific than the general FindIdentifierDeclarations
+func (c *SnakeCaseRequiredChecker) findSnakeCaseTargetDeclarations(line string) []IdentifierDeclaration {
+	var declarations []IdentifierDeclaration
 
-// findIdentifierDeclarations finds all identifier declarations in a line
-func (c *SnakeCaseRequiredChecker) findIdentifierDeclarations(line string) []identifierDeclarationSnakeCase {
-	var declarations []identifierDeclarationSnakeCase
+	// Remove comments using shared utility
+	codeOnly := RemoveComments(line)
 
-	// Remove comments from the line
-	codeOnly := c.removeComments(line)
-
-	// Patterns for different types of declarations that should follow snake_case
-	patterns := []*regexp.Regexp{
-		// qubit declarations: qubit name; or qubit[size] name;
-		regexp.MustCompile(`\bqubit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
-		// bit declarations: bit name; or bit[size] name;
-		regexp.MustCompile(`\bbit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
-		// gate declarations: gate name(...) {...} or gate name params {...}
-		regexp.MustCompile(`\bgate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\(|[a-zA-Z_])`),
-		// circuit declarations: circuit name(...) {...}
-		regexp.MustCompile(`\bcircuit\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(`),
-	}
-
-	for _, pattern := range patterns {
-		matches := pattern.FindAllStringSubmatch(codeOnly, -1)
-		indices := pattern.FindAllStringIndex(codeOnly, -1)
-
+	// Check more specific patterns first to avoid duplicates
+	// Check array declarations first
+	if matches := ArrayQubitDeclarationPattern.FindAllStringSubmatch(codeOnly, -1); len(matches) > 0 {
+		indices := ArrayQubitDeclarationPattern.FindAllStringIndex(codeOnly, -1)
 		for i, match := range matches {
-			if len(match) >= 2 {
-				identifierName := match[1]
-				// Find the position of the identifier within the match
+			if len(match) > 2 {
+				identifierName := match[2] // Variable name is in group 2 for array declarations
 				matchStart := indices[i][0]
 				identifierPos := strings.Index(codeOnly[matchStart:], identifierName)
 				if identifierPos != -1 {
-					column := matchStart + identifierPos + 1 // Convert to 1-based indexing
+					column := matchStart + identifierPos + 1
+					declarations = append(declarations, IdentifierDeclaration{
+						Name:   identifierName,
+						Column: column,
+					})
+				}
+			}
+		}
+	} else if matches := QubitDeclarationPattern.FindAllStringSubmatch(codeOnly, -1); len(matches) > 0 {
+		// Check single qubit declarations only if no array declarations found
+		indices := QubitDeclarationPattern.FindAllStringIndex(codeOnly, -1)
+		for i, match := range matches {
+			if len(match) > 1 {
+				identifierName := match[1]
+				matchStart := indices[i][0]
+				identifierPos := strings.Index(codeOnly[matchStart:], identifierName)
+				if identifierPos != -1 {
+					column := matchStart + identifierPos + 1
+					declarations = append(declarations, IdentifierDeclaration{
+						Name:   identifierName,
+						Column: column,
+					})
+				}
+			}
+		}
+	}
 
-					declarations = append(declarations, identifierDeclarationSnakeCase{
-						name:   identifierName,
-						column: column,
+	// Check array bit declarations
+	if matches := ArrayBitDeclarationPattern.FindAllStringSubmatch(codeOnly, -1); len(matches) > 0 {
+		indices := ArrayBitDeclarationPattern.FindAllStringIndex(codeOnly, -1)
+		for i, match := range matches {
+			if len(match) > 2 {
+				identifierName := match[2] // Variable name is in group 2 for array declarations
+				matchStart := indices[i][0]
+				identifierPos := strings.Index(codeOnly[matchStart:], identifierName)
+				if identifierPos != -1 {
+					column := matchStart + identifierPos + 1
+					declarations = append(declarations, IdentifierDeclaration{
+						Name:   identifierName,
+						Column: column,
+					})
+				}
+			}
+		}
+	} else if matches := BitDeclarationPattern.FindAllStringSubmatch(codeOnly, -1); len(matches) > 0 {
+		// Check single bit declarations only if no array declarations found
+		indices := BitDeclarationPattern.FindAllStringIndex(codeOnly, -1)
+		for i, match := range matches {
+			if len(match) > 1 {
+				identifierName := match[1]
+				matchStart := indices[i][0]
+				identifierPos := strings.Index(codeOnly[matchStart:], identifierName)
+				if identifierPos != -1 {
+					column := matchStart + identifierPos + 1
+					declarations = append(declarations, IdentifierDeclaration{
+						Name:   identifierName,
+						Column: column,
+					})
+				}
+			}
+		}
+	}
+
+	// Check other declaration types
+	otherPatterns := []struct {
+		pattern   *regexp.Regexp
+		nameIndex int
+	}{
+		{GateDeclarationPattern, 1}, // gate declarations: name in group 1
+		// circuit declarations: circuit name(...) {...}
+		{regexp.MustCompile(`\bcircuit\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(`), 1},
+	}
+
+	for _, patternInfo := range otherPatterns {
+		matches := patternInfo.pattern.FindAllStringSubmatch(codeOnly, -1)
+		indices := patternInfo.pattern.FindAllStringIndex(codeOnly, -1)
+
+		for i, match := range matches {
+			if len(match) > patternInfo.nameIndex {
+				identifierName := match[patternInfo.nameIndex]
+				matchStart := indices[i][0]
+				identifierPos := strings.Index(codeOnly[matchStart:], identifierName)
+				if identifierPos != -1 {
+					column := matchStart + identifierPos + 1
+					declarations = append(declarations, IdentifierDeclaration{
+						Name:   identifierName,
+						Column: column,
 					})
 				}
 			}
@@ -116,12 +166,8 @@ func (c *SnakeCaseRequiredChecker) findIdentifierDeclarations(line string) []ide
 
 // isSnakeCase checks if an identifier follows snake_case naming convention
 func (c *SnakeCaseRequiredChecker) isSnakeCase(name string) bool {
-	// Pattern: must start with lowercase letter, followed by lowercase letters, digits, or underscores
-	// No consecutive underscores, no ending underscore
-	snakeCasePattern := regexp.MustCompile(`^[a-z][a-z0-9_]*[a-z0-9]$|^[a-z]$`)
-
-	// Check basic pattern
-	if !snakeCasePattern.MatchString(name) {
+	// Check basic pattern using precompiled regex
+	if !c.snakeCasePattern.MatchString(name) {
 		return false
 	}
 
@@ -144,10 +190,12 @@ func (c *SnakeCaseRequiredChecker) isSnakeCase(name string) bool {
 	return true
 }
 
-// removeComments removes comments from a line
-func (c *SnakeCaseRequiredChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *SnakeCaseRequiredChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *SnakeCaseRequiredChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

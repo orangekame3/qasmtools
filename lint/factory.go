@@ -2,40 +2,45 @@ package lint
 
 import "github.com/orangekame3/qasmtools/parser"
 
-// CreateChecker creates appropriate checker based on rule ID
+// CreateChecker creates appropriate checker based on rule ID using new BaseChecker framework
 func CreateChecker(rule *Rule) RuleChecker {
 	switch rule.ID {
 	case "QAS001":
-		return &UnusedQubitChecker{}
+		return NewUnusedQubitChecker()
 	case "QAS002":
-		return &UndefinedIdentifierChecker{}
+		return NewUndefinedIdentifierChecker()
 	case "QAS003":
-		return &ConstantMeasuredBitChecker{}
+		return NewConstantMeasuredBitChecker()
 	case "QAS004":
-		return &OutOfBoundsIndexChecker{}
+		return NewOutOfBoundsIndexChecker()
 	case "QAS005":
-		return &NamingConventionViolationChecker{}
+		return NewNamingConventionViolationChecker()
 	case "QAS006":
-		return &GateRegisterSizeMismatchChecker{}
+		return NewGateRegisterSizeMismatchChecker()
 	case "QAS007":
-		return &GateParameterIndexingChecker{}
+		return NewGateParameterIndexingChecker()
 	case "QAS008":
-		return &QubitDeclaredInLocalScopeChecker{}
+		return NewQubitDeclaredInLocalScopeChecker()
 	case "QAS009":
-		return &IllegalBreakContinueChecker{}
+		return NewIllegalBreakContinueChecker()
 	case "QAS010":
-		return &InvalidInstructionInGateChecker{}
+		return NewInvalidInstructionInGateChecker()
 	case "QAS011":
-		return &ReservedPrefixUsageChecker{}
+		return NewReservedPrefixUsageChecker()
 	case "QAS012":
-		return &SnakeCaseRequiredChecker{}
+		return NewSnakeCaseRequiredChecker()
 	default:
-		return &NoOpChecker{}
+		return NewNoOpChecker()
 	}
 }
 
 // NoOpChecker is a checker that does nothing
 type NoOpChecker struct{}
+
+// NewNoOpChecker creates a new NoOpChecker
+func NewNoOpChecker() *NoOpChecker {
+	return &NoOpChecker{}
+}
 
 func (c *NoOpChecker) Check(node parser.Node, context *CheckContext) []*Violation {
 	return nil

@@ -180,7 +180,7 @@ def compact_function() { qubit compact_q; }  // Local scope - invalid`,
 			tmpFile.Close()
 
 			// Create checker
-			checker := &QubitDeclaredInLocalScopeChecker{}
+			checker := NewQubitDeclaredInLocalScopeChecker()
 
 			// Create context
 			context := &CheckContext{

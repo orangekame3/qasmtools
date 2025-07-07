@@ -1,52 +1,47 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// QubitDeclaredInLocalScopeChecker checks for qubit declarations in local scope (QAS008)
-type QubitDeclaredInLocalScopeChecker struct{}
-
-func (c *QubitDeclaredInLocalScopeChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// QubitDeclaredInLocalScopeChecker is the new implementation using BaseChecker framework
+type QubitDeclaredInLocalScopeChecker struct {
+	*BaseChecker
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *QubitDeclaredInLocalScopeChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewQubitDeclaredInLocalScopeChecker creates a new QubitDeclaredInLocalScopeChecker
+func NewQubitDeclaredInLocalScopeChecker() *QubitDeclaredInLocalScopeChecker {
+	return &QubitDeclaredInLocalScopeChecker{
+		BaseChecker: NewBaseChecker("QAS008"),
+	}
 }
 
 // CheckFile performs file-level qubit local scope analysis
 func (c *QubitDeclaredInLocalScopeChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content using BaseChecker method
+	content, err := c.getContent(context)
 	if err != nil {
 		return violations
 	}
 
-	text := string(content)
-	lines := strings.Split(text, "\n")
+	lines := strings.Split(content, "\n")
 
 	// Track scope depth and find qubit declarations
 	scopeDepth := 0
 
 	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
-		// Remove comments from the line for processing
-		codeOnly := c.removeComments(line)
+		// Remove comments using shared utility
+		codeOnly := RemoveComments(line)
 
 		// For same-line braces and declarations, we need special handling
 		// Check if this line has both a brace and a qubit declaration
@@ -73,15 +68,13 @@ func (c *QubitDeclaredInLocalScopeChecker) CheckFile(context *CheckContext) []*V
 
 				// Check if we're in local scope (not global)
 				if effectiveScopeDepth > 0 {
-					violation := &Violation{
-						Rule:     nil, // Will be set by the runner
-						File:     context.File,
-						Line:     i + 1,
-						Column:   decl.column,
-						NodeName: decl.name,
-						Message:  "Qubit '" + decl.name + "' can only be declared in global scope.",
-						Severity: SeverityError,
-					}
+					violation := c.NewViolationBuilder().
+						WithMessage("Qubit '"+decl.name+"' can only be declared in global scope.").
+						WithFile(context.File).
+						WithPosition(i+1, decl.column).
+						WithNodeName(decl.name).
+						AsError().
+						Build()
 					violations = append(violations, violation)
 				}
 			}
@@ -89,15 +82,13 @@ func (c *QubitDeclaredInLocalScopeChecker) CheckFile(context *CheckContext) []*V
 			// Normal case: check declarations with current scope
 			for _, decl := range qubitDeclarations {
 				if scopeDepth > 0 {
-					violation := &Violation{
-						Rule:     nil, // Will be set by the runner
-						File:     context.File,
-						Line:     i + 1,
-						Column:   decl.column,
-						NodeName: decl.name,
-						Message:  "Qubit '" + decl.name + "' can only be declared in global scope.",
-						Severity: SeverityError,
-					}
+					violation := c.NewViolationBuilder().
+						WithMessage("Qubit '"+decl.name+"' can only be declared in global scope.").
+						WithFile(context.File).
+						WithPosition(i+1, decl.column).
+						WithNodeName(decl.name).
+						AsError().
+						Build()
 					violations = append(violations, violation)
 				}
 			}
@@ -115,11 +106,11 @@ type qubitDeclaration struct {
 	column int
 }
 
-// findQubitDeclarations finds all qubit declarations in a line
+// findQubitDeclarations finds all qubit declarations in a line using custom patterns (not anchored)
 func (c *QubitDeclaredInLocalScopeChecker) findQubitDeclarations(line string) []qubitDeclaration {
 	var declarations []qubitDeclaration
 
-	// Patterns for qubit declarations
+	// Custom patterns that are not anchored to line start (for scope detection)
 	patterns := []*regexp.Regexp{
 		// qubit name; or qubit[size] name;
 		regexp.MustCompile(`\bqubit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
@@ -131,7 +122,7 @@ func (c *QubitDeclaredInLocalScopeChecker) findQubitDeclarations(line string) []
 
 		for i, match := range matches {
 			if len(match) >= 2 {
-				qubitName := match[1]
+				qubitName := match[1] // Name is at index 1 for the custom pattern
 				// Find the position of the qubit name within the match
 				matchStart := indices[i][0]
 				qubitPos := strings.Index(line[matchStart:], qubitName)
@@ -150,10 +141,12 @@ func (c *QubitDeclaredInLocalScopeChecker) findQubitDeclarations(line string) []
 	return declarations
 }
 
-// removeComments removes comments from a line
-func (c *QubitDeclaredInLocalScopeChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *QubitDeclaredInLocalScopeChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *QubitDeclaredInLocalScopeChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

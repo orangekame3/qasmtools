@@ -7,39 +7,39 @@ import (
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// UndefinedIdentifierChecker checks for undefined identifier usage (QAS002)
-type UndefinedIdentifierChecker struct{}
-
-func (c *UndefinedIdentifierChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// UndefinedIdentifierChecker is the new implementation using BaseChecker framework
+type UndefinedIdentifierChecker struct {
+	*BaseChecker
+	declaredIdentifiers map[string]bool
+	builtinIdentifiers  map[string]bool
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *UndefinedIdentifierChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewUndefinedIdentifierChecker creates a new UndefinedIdentifierChecker
+func NewUndefinedIdentifierChecker() *UndefinedIdentifierChecker {
+	return &UndefinedIdentifierChecker{
+		BaseChecker:        NewBaseChecker("QAS002"),
+		builtinIdentifiers: GetBuiltinIdentifiers(),
+	}
 }
 
 // CheckFile performs file-level undefined identifier analysis
 func (c *UndefinedIdentifierChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Get content for text-based analysis
-	text, err := context.GetContent()
+	// Get content using BaseChecker method
+	content, err := c.getContent(context)
 	if err != nil {
 		return violations
 	}
-	lines := strings.Split(text, "\n")
 
-	// First pass: collect all declared identifiers
-	declared := c.findDeclaredIdentifiers(lines)
+	// First pass: collect all declared identifiers using shared utilities
+	c.declaredIdentifiers = c.findDeclaredIdentifiers(content)
 
 	// Second pass: find usage of undefined identifiers
+	lines := strings.Split(content, "\n")
 	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
@@ -47,17 +47,15 @@ func (c *UndefinedIdentifierChecker) CheckFile(context *CheckContext) []*Violati
 		usages := c.findIdentifierUsages(line)
 
 		for _, usage := range usages {
-			// Check if the identifier is declared
-			if !declared[usage.name] {
-				violation := &Violation{
-					Rule:     nil, // Will be set by the runner
-					File:     context.File,
-					Line:     i + 1,
-					Column:   usage.column,
-					NodeName: usage.name,
-					Message:  "Identifier '" + usage.name + "' is not declared.",
-					Severity: SeverityError,
-				}
+			// Check if the identifier is declared, built-in, or a keyword
+			if !c.isIdentifierDefined(usage.name) {
+				violation := c.NewViolationBuilder().
+					WithMessage("Identifier '"+usage.name+"' is not declared.").
+					WithFile(context.File).
+					WithPosition(i+1, usage.column).
+					WithNodeName(usage.name).
+					AsError().
+					Build()
 				violations = append(violations, violation)
 			}
 		}
@@ -66,179 +64,93 @@ func (c *UndefinedIdentifierChecker) CheckFile(context *CheckContext) []*Violati
 	return violations
 }
 
+// identifierUsage represents an identifier usage with position
 type identifierUsage struct {
 	name   string
 	column int
 }
 
-// findDeclaredIdentifiers finds all declared identifiers in the file
-func (c *UndefinedIdentifierChecker) findDeclaredIdentifiers(lines []string) map[string]bool {
+// findDeclaredIdentifiers finds all declared identifiers using shared utilities
+func (c *UndefinedIdentifierChecker) findDeclaredIdentifiers(content string) map[string]bool {
 	declared := make(map[string]bool)
-
-	// Built-in identifiers that are always available
-	builtins := []string{
-		// Standard gates (these might be included via stdgates.qasm)
-		"h", "x", "y", "z", "s", "t", "cx", "cy", "cz", "ccx", "reset",
-		// Standard functions
-		"sin", "cos", "tan", "exp", "ln", "sqrt",
-		// Constants
-		"pi", "euler", "tau",
-	}
-
-	for _, builtin := range builtins {
-		declared[builtin] = true
-	}
-
-	// Declaration patterns
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`^\s*qubit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`), // qubit declarations
-		regexp.MustCompile(`^\s*bit(?:\[\s*\d+\s*\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),   // bit declarations
-		regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*[\(\s]`),               // gate definitions (followed by space or parentheses)
-		regexp.MustCompile(`^\s*def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(`),                    // function definitions
-		regexp.MustCompile(`^\s*include\s+"([^"]+)"`),                                    // include statements
-	}
+	lines := strings.Split(content, "\n")
 
 	for _, line := range lines {
-		// Skip comments
-		if strings.TrimSpace(line) == "" || strings.HasPrefix(strings.TrimSpace(line), "//") {
-			continue
-		}
-
-		for _, pattern := range patterns {
-			matches := pattern.FindStringSubmatch(line)
-			if len(matches) > 1 {
-				identifier := matches[1]
-				declared[identifier] = true
-
-				// Special handling for include statements
-				if strings.Contains(line, "include") && strings.Contains(identifier, "stdgates") {
-					// Add standard gates when stdgates.qasm is included
-					stdGates := []string{
-						"h", "x", "y", "z", "s", "sdg", "t", "tdg",
-						"rx", "ry", "rz", "p", "cx", "cy", "cz", "swap",
-						"ccx", "cswap", "u1", "u2", "u3",
-					}
-					for _, gate := range stdGates {
-						declared[gate] = true
-					}
-				}
-			}
+		// Use shared utility to find identifier declarations
+		declarations := FindIdentifierDeclarations(line)
+		for _, decl := range declarations {
+			declared[decl.Name] = true
 		}
 	}
 
 	return declared
 }
 
-// findIdentifierUsages finds all identifier usages in a line (excluding declarations)
+// findIdentifierUsages finds all identifier usages in a line
 func (c *UndefinedIdentifierChecker) findIdentifierUsages(line string) []identifierUsage {
 	var usages []identifierUsage
 
-	// Skip declaration lines
-	if c.isDeclarationLine(line) {
+	// Remove comments using shared utility
+	cleanLine := RemoveComments(line)
+
+	// Skip include statements to avoid false positives on filenames
+	if strings.Contains(cleanLine, "include") {
 		return usages
 	}
 
-	// Remove comments from the line before processing
-	codeOnly := c.removeComments(line)
-	if strings.TrimSpace(codeOnly) == "" {
+	// Skip OPENQASM version declarations
+	if strings.Contains(cleanLine, "OPENQASM") {
 		return usages
 	}
 
-	// Find all potential identifiers in the line
-	identifierPattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)\b`)
-	matches := identifierPattern.FindAllStringSubmatch(codeOnly, -1)
-	matchIndices := identifierPattern.FindAllStringIndex(codeOnly, -1)
+	// Find all identifier-like tokens
+	pattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)\b`)
+	matches := pattern.FindAllStringSubmatch(cleanLine, -1)
+	indices := pattern.FindAllStringIndex(cleanLine, -1)
 
 	for i, match := range matches {
-		if len(match) > 1 {
+		if len(match) >= 2 {
 			identifier := match[1]
-			column := matchIndices[i][0] + 1 // Convert to 1-based indexing
-
-			// Skip keywords and built-in types
-			if c.isKeyword(identifier) {
-				continue
+			// Skip keywords using shared utility
+			if !IsKeyword(identifier) {
+				column := indices[i][0] + 1 // Convert to 1-based indexing
+				usages = append(usages, identifierUsage{
+					name:   identifier,
+					column: column,
+				})
 			}
-
-			usages = append(usages, identifierUsage{
-				name:   identifier,
-				column: column,
-			})
 		}
 	}
 
 	return usages
 }
 
-// isDeclarationLine checks if a line contains a declaration
-func (c *UndefinedIdentifierChecker) isDeclarationLine(line string) bool {
-	declarationPatterns := []string{
-		`^\s*qubit`,
-		`^\s*bit`,
-		`^\s*gate\s+`,
-		`^\s*def\s+`,
-		`^\s*include\s+`,
-		`^\s*OPENQASM`,
+// isIdentifierDefined checks if an identifier is defined (declared, built-in, or keyword)
+func (c *UndefinedIdentifierChecker) isIdentifierDefined(name string) bool {
+	// Check if it's a declared identifier
+	if c.declaredIdentifiers[name] {
+		return true
 	}
 
-	for _, pattern := range declarationPatterns {
-		matched, _ := regexp.MatchString(pattern, line)
-		if matched {
-			return true
-		}
+	// Check if it's a built-in identifier using shared utility
+	if c.builtinIdentifiers[name] {
+		return true
+	}
+
+	// Check if it's a keyword using shared utility
+	if IsKeyword(name) {
+		return true
 	}
 
 	return false
 }
 
-// isKeyword checks if an identifier is a reserved keyword
-func (c *UndefinedIdentifierChecker) isKeyword(identifier string) bool {
-	keywords := map[string]bool{
-		// OpenQASM keywords
-		"OPENQASM": true,
-		"include":  true,
-		"qubit":    true,
-		"bit":      true,
-		"gate":     true,
-		"def":      true,
-		"if":       true,
-		"else":     true,
-		"for":      true,
-		"while":    true,
-		"break":    true,
-		"continue": true,
-		"measure":  true,
-		"reset":    true,
-		"barrier":  true,
-		"delay":    true,
-		"stretch":  true,
-		"box":      true,
-		"let":      true,
-		"const":    true,
-		"input":    true,
-		"output":   true,
-
-		// Types
-		"int":      true,
-		"uint":     true,
-		"float":    true,
-		"angle":    true,
-		"bool":     true,
-		"duration": true,
-
-		// Boolean values
-		"true":  true,
-		"false": true,
-	}
-
-	return keywords[identifier]
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *UndefinedIdentifierChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
 }
 
-// removeComments removes comments from a line, handling string literals properly
-func (c *UndefinedIdentifierChecker) removeComments(line string) string {
-	// Simple approach: find // and remove everything after it
-	// This doesn't handle // inside string literals, but that's rare in QASM
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// CheckProgram implements ProgramChecker interface
+func (c *UndefinedIdentifierChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

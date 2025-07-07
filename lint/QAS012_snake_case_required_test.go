@@ -206,7 +206,7 @@ gate controlled_rotation q, r {
 			tmpFile.Close()
 
 			// Create checker
-			checker := &SnakeCaseRequiredChecker{}
+			checker := NewSnakeCaseRequiredChecker()
 
 			// Create context
 			context := &CheckContext{

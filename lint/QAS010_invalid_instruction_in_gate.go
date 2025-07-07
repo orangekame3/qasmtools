@@ -1,39 +1,35 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// InvalidInstructionInGateChecker checks for non-unitary instructions in gate definitions (QAS010)
-type InvalidInstructionInGateChecker struct{}
-
-func (c *InvalidInstructionInGateChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// InvalidInstructionInGateChecker is the new implementation using BaseChecker framework
+type InvalidInstructionInGateChecker struct {
+	*BaseChecker
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *InvalidInstructionInGateChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewInvalidInstructionInGateChecker creates a new InvalidInstructionInGateChecker
+func NewInvalidInstructionInGateChecker() *InvalidInstructionInGateChecker {
+	return &InvalidInstructionInGateChecker{
+		BaseChecker: NewBaseChecker("QAS010"),
+	}
 }
 
 // CheckFile performs file-level invalid instruction in gate analysis
 func (c *InvalidInstructionInGateChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content using BaseChecker method
+	content, err := c.getContent(context)
 	if err != nil {
 		return violations
 	}
 
-	text := string(content)
-	lines := strings.Split(text, "\n")
+	lines := strings.Split(content, "\n")
 
 	// Find all gate definitions and check their bodies
 	gateDefinitions := c.findGateDefinitions(lines)
@@ -48,15 +44,13 @@ func (c *InvalidInstructionInGateChecker) CheckFile(context *CheckContext) []*Vi
 				invalidInstructions := c.findInvalidInstructions(line)
 
 				for _, instruction := range invalidInstructions {
-					violation := &Violation{
-						Rule:     nil, // Will be set by the runner
-						File:     context.File,
-						Line:     i + 1,
-						Column:   instruction.column,
-						NodeName: instruction.instruction,
-						Message:  "Invalid instruction '" + instruction.instruction + "' used within gate definition.",
-						Severity: SeverityError,
-					}
+					violation := c.NewViolationBuilder().
+						WithMessage("Invalid instruction '"+instruction.instruction+"' used within gate definition.").
+						WithFile(context.File).
+						WithPosition(i+1, instruction.column).
+						WithNodeName(instruction.instruction).
+						AsError().
+						Build()
 					violations = append(violations, violation)
 				}
 			}
@@ -85,9 +79,8 @@ func (c *InvalidInstructionInGateChecker) findGateDefinitions(lines []string) []
 	gateStartPattern := regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\([^)]*\))?\s+[^{]*\s*\{`)
 
 	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
@@ -117,10 +110,8 @@ func (c *InvalidInstructionInGateChecker) findGateEnd(lines []string, startLine 
 	for i := startLine; i < len(lines); i++ {
 		line := lines[i]
 
-		// Remove comments
-		if idx := strings.Index(line, "//"); idx != -1 {
-			line = line[:idx]
-		}
+		// Remove comments using shared utility
+		line = RemoveComments(line)
 
 		// Count braces
 		for _, char := range line {
@@ -144,8 +135,8 @@ func (c *InvalidInstructionInGateChecker) findGateEnd(lines []string, startLine 
 func (c *InvalidInstructionInGateChecker) findInvalidInstructions(line string) []invalidInstruction {
 	var instructions []invalidInstruction
 
-	// Remove comments from the line
-	codeOnly := c.removeComments(line)
+	// Remove comments using shared utility
+	codeOnly := RemoveComments(line)
 
 	// List of non-unitary instructions that are invalid in gate definitions
 	invalidInstructionPatterns := []*regexp.Regexp{
@@ -185,10 +176,12 @@ func (c *InvalidInstructionInGateChecker) findInvalidInstructions(line string) [
 	return instructions
 }
 
-// removeComments removes comments from a line
-func (c *InvalidInstructionInGateChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *InvalidInstructionInGateChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *InvalidInstructionInGateChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }
