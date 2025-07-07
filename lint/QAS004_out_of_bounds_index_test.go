@@ -134,7 +134,7 @@ h q[10];  // Invalid`,
 			tmpFile.Close()
 
 			// Create checker
-			checker := &OutOfBoundsIndexChecker{}
+			checker := NewOutOfBoundsIndexChecker()
 
 			// Create context
 			context := &CheckContext{

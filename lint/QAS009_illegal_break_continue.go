@@ -1,52 +1,47 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// IllegalBreakContinueChecker checks for break/continue statements outside loops (QAS009)
-type IllegalBreakContinueChecker struct{}
-
-func (c *IllegalBreakContinueChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// IllegalBreakContinueChecker is the new implementation using BaseChecker framework
+type IllegalBreakContinueChecker struct {
+	*BaseChecker
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *IllegalBreakContinueChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewIllegalBreakContinueChecker creates a new IllegalBreakContinueChecker
+func NewIllegalBreakContinueChecker() *IllegalBreakContinueChecker {
+	return &IllegalBreakContinueChecker{
+		BaseChecker: NewBaseChecker("QAS009"),
+	}
 }
 
 // CheckFile performs file-level break/continue analysis
 func (c *IllegalBreakContinueChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content using BaseChecker method
+	content, err := c.getContent(context)
 	if err != nil {
 		return violations
 	}
 
-	text := string(content)
-	lines := strings.Split(text, "\n")
+	lines := strings.Split(content, "\n")
 
 	// Track loop nesting depth and find break/continue statements
 	loopDepth := 0
 
 	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
-		// Remove comments from the line for processing
-		codeOnly := c.removeComments(line)
+		// Remove comments using shared utility
+		codeOnly := RemoveComments(line)
 
 		// Track loop nesting changes
 		loopDepth += c.countLoopChanges(codeOnly)
@@ -57,15 +52,13 @@ func (c *IllegalBreakContinueChecker) CheckFile(context *CheckContext) []*Violat
 		for _, stmt := range breakContinueStatements {
 			// Check if we're outside of any loop
 			if loopDepth <= 0 {
-				violation := &Violation{
-					Rule:     nil, // Will be set by the runner
-					File:     context.File,
-					Line:     i + 1,
-					Column:   stmt.column,
-					NodeName: stmt.keyword,
-					Message:  "'" + stmt.keyword + "' cannot be used outside of a loop.",
-					Severity: SeverityError,
-				}
+				violation := c.NewViolationBuilder().
+					WithMessage("'"+stmt.keyword+"' cannot be used outside of a loop.").
+					WithFile(context.File).
+					WithPosition(i+1, stmt.column).
+					WithNodeName(stmt.keyword).
+					AsError().
+					Build()
 				violations = append(violations, violation)
 			}
 		}
@@ -142,10 +135,12 @@ func (c *IllegalBreakContinueChecker) findBreakContinueStatements(line string) [
 	return statements
 }
 
-// removeComments removes comments from a line
-func (c *IllegalBreakContinueChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *IllegalBreakContinueChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *IllegalBreakContinueChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

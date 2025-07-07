@@ -90,7 +90,7 @@ measure q -> c;`,
 			tmpFile.Close()
 
 			// Create checker
-			checker := &UnusedQubitChecker{}
+			checker := NewUnusedQubitChecker()
 
 			// Create context
 			context := &CheckContext{

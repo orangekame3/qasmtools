@@ -62,32 +62,88 @@ func (f *Formatter) Format(content string) (string, error) {
 	// First try to fix common malformed patterns before parsing
 	preprocessed := f.preprocessMalformedQASM(content)
 
-	// Use the new parser library (comments are automatically extracted by default)
+	// Use the parser library with fallback for compatibility
 	p := parser.NewParser()
 	result := p.ParseWithErrors(preprocessed)
 
 	if result.HasErrors() {
-		// Try to format anyway with the partial result
+		// If completely unparseable, use simple text-based formatting
 		if result.Program == nil {
-			// If completely unparseable, try fallback formatting for malformed input
-			return f.formatWithTextBasedFallback(preprocessed), nil
+			return f.formatWithSimpleFallback(preprocessed), nil
 		}
 	}
 
-	// Check if the parser successfully parsed statements
-	expectedStatements := strings.Count(preprocessed, ";")
-	if result.Program.Version != nil {
-		expectedStatements = strings.Count(preprocessed, ";") - 1 // Exclude version statement
-	}
+	// Extract comments from the original content
+	f.comments = f.extractComments(preprocessed)
 
-	// Use text-based fallback if parser is incomplete OR if input contains comments
+	// Check if we have enough statements parsed or use fallback
 	hasComments := strings.Contains(preprocessed, "//") || strings.Contains(preprocessed, "/*")
-	if (len(result.Program.Statements) < expectedStatements && expectedStatements > 0) || hasComments {
-		// Fallback to text-based formatting if parser is incomplete or has comments
-		return f.formatWithTextBasedFallback(preprocessed), nil
+
+	// Count non-empty lines in input to detect parser issues
+	inputLines := strings.Split(strings.TrimSpace(preprocessed), "\n")
+	nonEmptyLines := 0
+	for _, line := range inputLines {
+		if strings.TrimSpace(line) != "" {
+			nonEmptyLines++
+		}
 	}
 
+	// Use fallback if we have fewer parsed statements than non-empty input lines
+	// This indicates the parser may have incorrectly combined statements
+	// BUT: Account for version statement not being counted in Program.Statements
+	expectedStatements := nonEmptyLines
+	if result.Program.Version != nil {
+		expectedStatements-- // Version is not counted in statements
+	}
+
+	if hasComments || len(result.Program.Statements) == 0 ||
+		(len(result.Program.Statements) < expectedStatements && expectedStatements > 1) {
+		return f.formatWithSimpleFallback(preprocessed), nil
+	}
+
+	// Use AST-based formatting for simple cases
 	return f.formatProgram(result.Program), nil
+}
+
+// extractComments extracts comments from the content and returns them
+func (f *Formatter) extractComments(content string) []parser.Comment {
+	var comments []parser.Comment
+	lines := strings.Split(content, "\n")
+
+	for lineNum, line := range lines {
+		// Handle line comments
+		if idx := strings.Index(line, "//"); idx != -1 {
+			comments = append(comments, parser.Comment{
+				BaseNode: parser.BaseNode{
+					Position: parser.Position{
+						Line:   lineNum + 1,
+						Column: idx + 1,
+					},
+				},
+				Text: strings.TrimSpace(line[idx:]),
+				Type: "line",
+			})
+		}
+
+		// Handle block comments (simple implementation)
+		if idx := strings.Index(line, "/*"); idx != -1 {
+			endIdx := strings.Index(line[idx:], "*/")
+			if endIdx != -1 {
+				comments = append(comments, parser.Comment{
+					BaseNode: parser.BaseNode{
+						Position: parser.Position{
+							Line:   lineNum + 1,
+							Column: idx + 1,
+						},
+					},
+					Text: strings.TrimSpace(line[idx : idx+endIdx+2]),
+					Type: "block",
+				})
+			}
+		}
+	}
+
+	return comments
 }
 
 func (f *Formatter) formatProgram(program *parser.Program) string {
@@ -100,8 +156,17 @@ func (f *Formatter) formatProgram(program *parser.Program) string {
 		lastStatementType = "version"
 	}
 
-	// Format statements
+	// Format statements with comments integration
 	for _, stmt := range program.Statements {
+		// Check for comments that belong to this statement line
+		stmtLine := stmt.Pos().Line
+		var lineComments []parser.Comment
+		for _, comment := range f.comments {
+			if comment.Pos().Line == stmtLine {
+				lineComments = append(lineComments, comment)
+			}
+		}
+
 		formatted := f.formatStatement(stmt, 0, program)
 		if strings.TrimSpace(formatted) != "" {
 			currentType := f.getStatementTypeFromStmt(stmt)
@@ -786,191 +851,249 @@ func (f *Formatter) formatAssignmentText(text string) string {
 	return re.ReplaceAllString(text, " = ")
 }
 
-// formatWithTextBasedFallback provides text-based formatting when parser is incomplete
-func (f *Formatter) formatWithTextBasedFallback(content string) string {
+// formatWithSimpleFallback provides basic text-based formatting
+func (f *Formatter) formatWithSimpleFallback(content string) string {
+	// First normalize the content and split compound statements
+	content = f.splitCompoundStatements(content)
 	lines := strings.Split(content, "\n")
-	var formattedLines []string
+	var result []string
 	var lastStatementType string
 	indentLevel := 0
-	inMultiLineComment := false
 
-	for _, line := range lines {
-		originalLine := line
-		line = strings.TrimSpace(line)
-
-		// Handle multi-line comments that are already in progress
-		if inMultiLineComment {
-			// Inside or end of multi-line comment - preserve original spacing
-			formattedLines = append(formattedLines, originalLine)
-			if strings.Contains(line, "*/") {
-				inMultiLineComment = false
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			// Don't add trailing empty lines when newline is false
+			if i == len(lines)-1 && !f.newline {
+				continue
 			}
-			continue
-		}
-
-		// Handle empty lines - preserve them as they appear in input
-		if line == "" {
-			formattedLines = append(formattedLines, "")
-			continue
-		}
-
-		// Determine current type (need this for empty line logic)
-		var currentType string
-		if strings.HasPrefix(line, "//") || strings.HasPrefix(line, "/*") {
-			currentType = "comment"
-		} else {
-			currentType = f.getStatementTypeFromText(line)
-		}
-
-		// Add empty line between different types of statements (but not inside blocks)
-		// Only add if the last line is not already empty
-		if f.shouldAddEmptyLine(lastStatementType, currentType) && indentLevel == 0 {
-			if len(formattedLines) == 0 || formattedLines[len(formattedLines)-1] != "" {
-				formattedLines = append(formattedLines, "")
-			}
-		}
-
-		// Handle single-line comments - preserve them as-is without processing
-		if strings.HasPrefix(line, "//") {
-			formattedLines = append(formattedLines, line)
-			lastStatementType = currentType
-			continue
-		}
-
-		// Handle multi-line comments - preserve them as-is without processing
-		if strings.Contains(line, "/*") && strings.Contains(line, "*/") {
-			// Single-line /* */ comment
-			formattedLines = append(formattedLines, line)
-			lastStatementType = currentType
-			continue
-		} else if strings.Contains(line, "/*") {
-			// Start of multi-line comment
-			inMultiLineComment = true
-			formattedLines = append(formattedLines, line)
-			lastStatementType = currentType
+			result = append(result, "")
 			continue
 		}
 
 		// Handle indentation for blocks
-		isClosingBrace := strings.HasSuffix(line, "}") && !strings.Contains(line, "{")
-		isElse := strings.Contains(line, "} else {")
-
-		if isClosingBrace && !isElse {
+		isClosingBrace := strings.HasPrefix(trimmed, "}")
+		if isClosingBrace {
 			indentLevel--
 		}
 
-		// Handle trailing comments on statements
-		var trailingComment string
-		if strings.Contains(line, "//") {
-			parts := strings.SplitN(line, "//", 2)
-			line = strings.TrimSpace(parts[0])
-			trailingComment = " // " + strings.TrimSpace(parts[1])
+		// Determine current statement type
+		currentType := f.getStatementType(trimmed)
+
+		// Add empty line between different types of statements
+		if f.shouldAddEmptyLineBetween(lastStatementType, currentType) {
+			if len(result) > 0 && result[len(result)-1] != "" {
+				result = append(result, "")
+			}
 		}
 
-		formatted := f.formatStatementText(line)
-
-		// Apply indentation (but not to top-level blocks and else statements)
-		if indentLevel > 0 && !strings.HasPrefix(formatted, "if") && !strings.HasPrefix(formatted, "gate") &&
-			!strings.HasSuffix(formatted, "}") && !strings.Contains(formatted, "} else {") {
-			formatted = strings.Repeat(" ", indentLevel*f.indentSize) + formatted
+		// Apply basic formatting
+		// For comments, preserve original line with indentation
+		lineToFormat := trimmed
+		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasSuffix(trimmed, "*/") {
+			lineToFormat = line
 		}
 
-		// Only add semicolon to valid-looking statements (but not control flow)
-		// Check the original line content before trailing comment extraction
-		trimmed := strings.TrimSpace(formatted)
-		if !strings.HasSuffix(formatted, ";") && formatted != "" && !strings.HasPrefix(formatted, "//") &&
-			f.looksLikeQASMStatement(strings.TrimSpace(formatted)) &&
-			!strings.HasPrefix(trimmed, "if") && !strings.HasPrefix(trimmed, "gate") &&
-			!strings.HasSuffix(trimmed, "{") && !strings.HasSuffix(trimmed, "}") &&
-			!strings.Contains(trimmed, "} else {") {
-			formatted += ";"
-		}
-
-		// Add back the trailing comment after semicolon
-		if trailingComment != "" {
-			formatted += trailingComment
-		}
-
+		formatted := f.formatLineBasic(lineToFormat)
 		if formatted != "" {
-			formattedLines = append(formattedLines, formatted)
+			// Apply indentation only for non-comment lines
+			if indentLevel > 0 && !isClosingBrace &&
+				!strings.HasPrefix(trimmed, "//") && !strings.HasPrefix(trimmed, "/*") && !strings.HasSuffix(trimmed, "*/") {
+				formatted = strings.Repeat(" ", indentLevel*f.indentSize) + formatted
+			}
+
+			result = append(result, formatted)
 			lastStatementType = currentType
 		}
 
-		// Increase indent after opening braces (but not for else statements)
-		if strings.HasSuffix(line, "{") && !isElse {
+		// Increase indent after opening braces
+		if strings.HasSuffix(trimmed, "{") {
 			indentLevel++
 		}
 	}
 
-	result := strings.Join(formattedLines, "\n")
-
-	// Only add newline if there's actual content
-	if f.newline && len(formattedLines) > 0 && !strings.HasSuffix(result, "\n") {
-		result += "\n"
+	output := strings.Join(result, "\n")
+	if f.newline && len(result) > 0 && !strings.HasSuffix(output, "\n") {
+		output += "\n"
 	}
 
-	return result
+	return output
 }
 
-func (f *Formatter) looksLikeQASMStatement(text string) bool {
-	// Check if the text looks like a valid QASM statement
-	return regexp.MustCompile(`^(OPENQASM|include|qubit|bit|gate|measure|if|[a-zA-Z_][a-zA-Z0-9_]*\s+)`).MatchString(text)
+// formatLineBasic applies basic formatting to a line
+func (f *Formatter) formatLineBasic(line string) string {
+	// Handle comments - preserve as-is without adding semicolons
+	trimmed := strings.TrimSpace(line)
+	if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasSuffix(trimmed, "*/") {
+		return line
+	}
+
+	// Handle trailing comments: extract comment, format statement, then re-attach
+	var trailingComment string
+	if idx := strings.Index(line, "//"); idx != -1 {
+		trailingComment = strings.TrimSpace(line[idx:])
+		line = strings.TrimSpace(line[:idx])
+	}
+
+	// Apply basic operator spacing and formatting to non-comment part
+	if line != "" {
+		line = f.formatDeclaration(line)
+		line = f.formatMeasure(line)
+		line = f.formatOperators(line)
+		line = f.formatCommas(line)
+
+		// Ensure semicolon for statements (but not for control structures)
+		if !strings.HasSuffix(line, ";") && !strings.HasSuffix(line, "{") && !strings.HasSuffix(line, "}") &&
+			!strings.HasPrefix(line, "if") && !strings.HasPrefix(line, "gate") && line != "" {
+			line += ";"
+		}
+	}
+
+	// Re-attach trailing comment
+	if trailingComment != "" {
+		if line != "" {
+			line += " " + trailingComment
+		} else {
+			line = trailingComment
+		}
+	}
+
+	return line
 }
 
-func (f *Formatter) getStatementTypeFromText(text string) string {
-	text = strings.TrimSpace(text)
+// formatDeclaration applies formatting to type declarations
+func (f *Formatter) formatDeclaration(line string) string {
+	// Handle array declarations: bit[2]c -> bit[2] c
+	re := regexp.MustCompile(`([a-zA-Z]+\[[^\]]+\])([a-zA-Z_][a-zA-Z0-9_]*)`)
+	line = re.ReplaceAllString(line, "$1 $2")
 
-	if strings.HasPrefix(text, "OPENQASM") {
+	// Handle simple declarations: bitc -> bit c
+	re = regexp.MustCompile(`^(bit|int|float|qubit)([a-zA-Z_][a-zA-Z0-9_]*)`)
+	line = re.ReplaceAllString(line, "$1 $2")
+
+	return line
+}
+
+// formatMeasure applies formatting to measurement statements
+func (f *Formatter) formatMeasure(line string) string {
+	// Add space after measure keyword: measureq -> measure q
+	re := regexp.MustCompile(`^measure([a-zA-Z_][a-zA-Z0-9_\[\]]*)`)
+	line = re.ReplaceAllString(line, "measure $1")
+
+	return line
+}
+
+// formatCommas adds proper spacing after commas
+func (f *Formatter) formatCommas(line string) string {
+	// Add space after comma: q[0],q[1] -> q[0], q[1]
+	re := regexp.MustCompile(`,\s*`)
+	line = re.ReplaceAllString(line, ", ")
+
+	return line
+}
+
+// getStatementType determines the type of a statement
+func (f *Formatter) getStatementType(line string) string {
+	line = strings.TrimSpace(line)
+
+	if strings.HasPrefix(line, "OPENQASM") {
 		return "version"
 	}
-	if strings.HasPrefix(text, "include") {
+	if strings.HasPrefix(line, "include") {
 		return "include"
 	}
-	if strings.HasPrefix(text, "qubit") {
-		return "quantum_declaration"
+	if strings.Contains(line, "qubit") || strings.Contains(line, "bit") || strings.Contains(line, "int") {
+		return "declaration"
 	}
-	if strings.HasPrefix(text, "bit") {
-		return "classical_declaration"
-	}
-	if strings.HasPrefix(text, "measure") {
-		return "measurement"
-	}
-	if strings.HasPrefix(text, "gate ") {
+	if strings.HasPrefix(line, "gate") {
 		return "gate_definition"
 	}
-	if strings.HasPrefix(text, "if") {
-		return "if_statement"
-	}
-	if strings.TrimSpace(text) == "}" {
+	if strings.HasPrefix(line, "}") {
+		// Distinguish between } else { and plain }
+		if strings.Contains(line, "else") {
+			return "else_block"
+		}
 		return "block_end"
 	}
+	if strings.Contains(line, "measure") {
+		return "measurement"
+	}
+	if strings.HasPrefix(line, "//") || strings.HasPrefix(line, "/*") {
+		return "comment"
+	}
 
-	// Check if it's a gate call (not starting with known keywords)
-	if regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*(\([^)]*\))?\s+[a-zA-Z_]`).MatchString(text) {
-		return "gate_call"
+	// Check if it's a gate call
+	gates := []string{"h", "x", "y", "z", "cx", "cnot", "rx", "ry", "rz", "s", "t"}
+	for _, gate := range gates {
+		if strings.HasPrefix(line, gate+" ") || strings.HasPrefix(line, gate+";") {
+			return "gate_call"
+		}
 	}
 
 	return "other"
 }
 
-func (f *Formatter) formatStatementText(text string) string {
-	// Apply basic formatting rules
-	text = f.formatDeclarationText(text)
-	text = f.formatGateCallText(text)
-	text = f.formatMeasureText(text)
-	text = f.formatIncludeStatementText(text)
-	text = f.formatAssignmentText(text)
-	return text
+// shouldAddEmptyLineBetween determines if an empty line should be added between statement types
+func (f *Formatter) shouldAddEmptyLineBetween(lastType, currentType string) bool {
+	if lastType == "" {
+		return false
+	}
+
+	// Add empty line after version statements (but not before comments)
+	if lastType == "version" && currentType != "include" && currentType != "version" && currentType != "comment" {
+		return true
+	}
+
+	// Add empty line after include statements
+	if lastType == "include" && currentType != "include" && currentType != "version" {
+		return true
+	}
+
+	// Add empty line after gate definitions (block_end), but not after } else {
+	if lastType == "block_end" && (currentType == "gate_call" || currentType == "measurement" || currentType == "declaration") {
+		return true
+	}
+
+	// Add empty line between declaration blocks and gate definitions (but not single declarations and gate calls)
+	if lastType == "declaration" && currentType == "gate_definition" {
+		return true
+	}
+
+	return false
 }
 
-func (f *Formatter) formatIncludeStatementText(text string) string {
-	// Handle include statements like 'include"stdgates.qasm"' -> 'include "stdgates.qasm";'
-	re := regexp.MustCompile(`include\s*("[^"]*")`) // Changed to use \" for string literal
-	if re.MatchString(text) {
-		matches := re.FindStringSubmatch(text)
-		if len(matches) > 1 {
-			return "include " + matches[1]
-		}
+// formatOperators applies basic operator formatting
+func (f *Formatter) formatOperators(line string) string {
+	// Skip if it's a comment line
+	if strings.HasPrefix(strings.TrimSpace(line), "//") || strings.HasPrefix(strings.TrimSpace(line), "/*") {
+		return line
 	}
-	return text
+
+	// Apply operator spacing (order matters - longer operators first)
+	// Handle -> specifically first
+	line = regexp.MustCompile(`\s*->\s*`).ReplaceAllString(line, " -> ")
+
+	// Handle == specifically to prevent interference with =
+	line = regexp.MustCompile(`\s*==\s*`).ReplaceAllString(line, " == ")
+
+	// Handle other comparison operators
+	operators := []struct{ old, new string }{
+		{"!=", " != "},
+		{"<=", " <= "},
+		{">=", " >= "},
+		{"<", " < "},
+	}
+
+	for _, op := range operators {
+		pattern := regexp.MustCompile(`\s*` + regexp.QuoteMeta(op.old) + `\s*`)
+		line = pattern.ReplaceAllString(line, op.new)
+	}
+
+	// Handle = but not when it's part of == (negative lookbehind/lookahead)
+	line = regexp.MustCompile(`([^=])\s*=\s*([^=])`).ReplaceAllString(line, "$1 = $2")
+
+	// Handle > but not when it's part of ->
+	line = regexp.MustCompile(`([^-])\s*>\s*`).ReplaceAllString(line, "$1 > ")
+
+	return line
 }

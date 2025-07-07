@@ -222,7 +222,7 @@ gate maingate q, r {
 			tmpFile.Close()
 
 			// Create checker
-			checker := &InvalidInstructionInGateChecker{}
+			checker := NewInvalidInstructionInGateChecker()
 
 			// Create context
 			context := &CheckContext{

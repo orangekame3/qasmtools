@@ -101,7 +101,7 @@ if (true) {
 			tmpFile.Close()
 
 			// Create checker
-			checker := &UndefinedIdentifierChecker{}
+			checker := NewUndefinedIdentifierChecker()
 
 			// Create context
 			context := &CheckContext{

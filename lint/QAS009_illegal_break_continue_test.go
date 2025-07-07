@@ -201,7 +201,7 @@ for i in [0:1:5] {
 			tmpFile.Close()
 
 			// Create checker
-			checker := &IllegalBreakContinueChecker{}
+			checker := NewIllegalBreakContinueChecker()
 
 			// Create context
 			context := &CheckContext{

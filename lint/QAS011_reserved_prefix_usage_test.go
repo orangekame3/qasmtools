@@ -196,7 +196,7 @@ qubit validQubit;  // Valid declaration`,
 			tmpFile.Close()
 
 			// Create checker
-			checker := &ReservedPrefixUsageChecker{}
+			checker := NewReservedPrefixUsageChecker()
 
 			// Create context
 			context := &CheckContext{

@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -9,44 +8,42 @@ import (
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// GateRegisterSizeMismatchChecker checks for register size mismatches in gate calls (QAS006)
-type GateRegisterSizeMismatchChecker struct{}
-
-func (c *GateRegisterSizeMismatchChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// GateRegisterSizeMismatchChecker is the new implementation using BaseChecker framework
+type GateRegisterSizeMismatchChecker struct {
+	*BaseChecker
+	registerSizes map[string]int
+	gateParams    map[string]gateDefinition
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *GateRegisterSizeMismatchChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewGateRegisterSizeMismatchChecker creates a new GateRegisterSizeMismatchChecker
+func NewGateRegisterSizeMismatchChecker() *GateRegisterSizeMismatchChecker {
+	return &GateRegisterSizeMismatchChecker{
+		BaseChecker: NewBaseChecker("QAS006"),
+	}
 }
 
 // CheckFile performs file-level gate register size mismatch analysis
 func (c *GateRegisterSizeMismatchChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content using BaseChecker method
+	content, err := c.getContent(context)
 	if err != nil {
 		return violations
 	}
 
-	text := string(content)
-	lines := strings.Split(text, "\n")
+	lines := strings.Split(content, "\n")
 
-	// First pass: collect all register declarations and their sizes
-	registerSizes := c.findRegisterDeclarations(lines)
+	// First pass: collect all register declarations using shared utilities
+	c.registerSizes = c.findRegisterDeclarations(lines)
 
-	// Second pass: collect all gate definitions and their parameter counts
-	gateParams := c.findGateDefinitions(lines)
+	// Second pass: collect all gate definitions
+	c.gateParams = c.findGateDefinitions(lines)
 
 	// Third pass: find gate calls and check register size consistency
 	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
@@ -55,18 +52,13 @@ func (c *GateRegisterSizeMismatchChecker) CheckFile(context *CheckContext) []*Vi
 
 		for _, call := range gateCalls {
 			// Check register size consistency for this gate call
-			if violation := c.checkRegisterSizes(call, registerSizes, gateParams, context.File, i+1); violation != nil {
+			if violation := c.checkRegisterSizes(call, context.File, i+1); violation != nil {
 				violations = append(violations, violation)
 			}
 		}
 	}
 
 	return violations
-}
-
-type registerInfo struct {
-	name string
-	size int // -1 for single registers (no array)
 }
 
 type gateCall struct {
@@ -80,22 +72,21 @@ type gateDefinition struct {
 	paramCount int
 }
 
-// findRegisterDeclarations finds all register declarations and their sizes
+// findRegisterDeclarations finds all register declarations using shared patterns
 func (c *GateRegisterSizeMismatchChecker) findRegisterDeclarations(lines []string) map[string]int {
 	registerSizes := make(map[string]int)
 
-	// Patterns for register declarations
+	// Use shared patterns for register declarations
 	patterns := []*regexp.Regexp{
-		// qubit[size] name; or qubit name;
-		regexp.MustCompile(`^\s*qubit(?:\[(\d+)\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
-		// bit[size] name; or bit name;
-		regexp.MustCompile(`^\s*bit(?:\[(\d+)\])?\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;`),
+		QubitDeclarationPattern,      // qubit name;
+		ArrayQubitDeclarationPattern, // qubit[size] name;
+		BitDeclarationPattern,        // bit name;
+		ArrayBitDeclarationPattern,   // bit[size] name;
 	}
 
 	for _, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
@@ -128,9 +119,8 @@ func (c *GateRegisterSizeMismatchChecker) findGateDefinitions(lines []string) ma
 	gatePattern := regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\([^)]*\))?\s+([^{]+)\{`)
 
 	for _, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
@@ -166,8 +156,8 @@ func (c *GateRegisterSizeMismatchChecker) findGateDefinitions(lines []string) ma
 func (c *GateRegisterSizeMismatchChecker) findGateCalls(line string) []gateCall {
 	var calls []gateCall
 
-	// Remove comments from the line
-	codeOnly := c.removeComments(line)
+	// Remove comments using shared utility
+	codeOnly := RemoveComments(line)
 
 	// Pattern for gate calls: gatename(...) register1, register2, ...; (parameterized)
 	// or gatename register1, register2, ...; (non-parameterized)
@@ -187,8 +177,8 @@ func (c *GateRegisterSizeMismatchChecker) findGateCalls(line string) []gateCall 
 				gateName := match[1]
 				registerList := strings.TrimSpace(match[2])
 
-				// Skip certain keywords that are not gate calls
-				if c.isKeyword(gateName) {
+				// Skip keywords using shared utility
+				if IsKeyword(gateName) {
 					continue
 				}
 
@@ -220,8 +210,6 @@ func (c *GateRegisterSizeMismatchChecker) parseRegisterList(registerList string)
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if part != "" {
-			// Keep the original register string (with indices if present)
-			// We'll extract the base name later when needed
 			registers = append(registers, part)
 		}
 	}
@@ -229,53 +217,13 @@ func (c *GateRegisterSizeMismatchChecker) parseRegisterList(registerList string)
 	return registers
 }
 
-// extractRegisterName extracts the base register name from register[index] format
-func (c *GateRegisterSizeMismatchChecker) extractRegisterName(register string) string {
-	// Pattern to match register[index] or just register
-	pattern := regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_]*)(?:\[[^\]]*\])?`)
-	matches := pattern.FindStringSubmatch(register)
-	if len(matches) >= 2 {
-		return matches[1]
-	}
-	return ""
-}
-
-// isKeyword checks if a name is a reserved keyword or statement type
-func (c *GateRegisterSizeMismatchChecker) isKeyword(name string) bool {
-	keywords := map[string]bool{
-		"OPENQASM": true,
-		"include":  true,
-		"qubit":    true,
-		"bit":      true,
-		"int":      true,
-		"uint":     true,
-		"float":    true,
-		"angle":    true,
-		"complex":  true,
-		"bool":     true,
-		"const":    true,
-		"def":      true,
-		"gate":     true,
-		"circuit":  true,
-		"measure":  true,
-		"reset":    true,
-		"barrier":  true,
-		"if":       true,
-		"else":     true,
-		"for":      true,
-		"while":    true,
-		"break":    true,
-		"continue": true,
-		"return":   true,
-		"input":    true,
-		"output":   true,
-	}
-
-	return keywords[name]
+// hasIndexAccess checks if a register string contains index access
+func (c *GateRegisterSizeMismatchChecker) hasIndexAccess(register string) bool {
+	return strings.Contains(register, "[") && strings.Contains(register, "]")
 }
 
 // checkRegisterSizes checks if registers in a gate call have consistent sizes
-func (c *GateRegisterSizeMismatchChecker) checkRegisterSizes(call gateCall, registerSizes map[string]int, gateParams map[string]gateDefinition, file string, line int) *Violation {
+func (c *GateRegisterSizeMismatchChecker) checkRegisterSizes(call gateCall, file string, line int) *Violation {
 	if len(call.registers) < 2 {
 		return nil // Single register calls don't need size checking
 	}
@@ -289,14 +237,12 @@ func (c *GateRegisterSizeMismatchChecker) checkRegisterSizes(call gateCall, regi
 	}
 
 	var sizes []int
-	var sizeNames []string
 
 	// Get sizes for all registers in the call
 	for _, registerName := range call.registers {
-		baseRegisterName := c.extractRegisterName(registerName)
-		if size, exists := registerSizes[baseRegisterName]; exists {
+		baseRegisterName := ExtractRegisterName(registerName) // Use shared utility
+		if size, exists := c.registerSizes[baseRegisterName]; exists {
 			sizes = append(sizes, size)
-			sizeNames = append(sizeNames, baseRegisterName)
 		}
 	}
 
@@ -315,30 +261,25 @@ func (c *GateRegisterSizeMismatchChecker) checkRegisterSizes(call gateCall, regi
 		}
 
 		if hasMismatch {
-			return &Violation{
-				Rule:     nil, // Will be set by the runner
-				File:     file,
-				Line:     line,
-				Column:   call.column,
-				NodeName: call.gateName,
-				Message:  "Register lengths passed to gate '" + call.gateName + "' do not match.",
-				Severity: SeverityError,
-			}
+			return c.NewViolationBuilder().
+				WithMessage("Register lengths passed to gate '"+call.gateName+"' do not match.").
+				WithFile(file).
+				WithPosition(line, call.column).
+				WithNodeName(call.gateName).
+				AsError().
+				Build()
 		}
 	}
 
 	return nil
 }
 
-// hasIndexAccess checks if a register string contains index access
-func (c *GateRegisterSizeMismatchChecker) hasIndexAccess(register string) bool {
-	return strings.Contains(register, "[") && strings.Contains(register, "]")
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *GateRegisterSizeMismatchChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
 }
 
-// removeComments removes comments from a line
-func (c *GateRegisterSizeMismatchChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// CheckProgram implements ProgramChecker interface
+func (c *GateRegisterSizeMismatchChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

@@ -1,39 +1,35 @@
 package lint
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// GateParameterIndexingChecker checks for prohibited index access on gate parameters (QAS007)
-type GateParameterIndexingChecker struct{}
-
-func (c *GateParameterIndexingChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	// This method is required by RuleChecker but not used for program-level analysis
-	return nil
+// GateParameterIndexingChecker is the new implementation using BaseChecker framework
+type GateParameterIndexingChecker struct {
+	*BaseChecker
 }
 
-// CheckProgram implements ProgramChecker interface for program-level analysis
-func (c *GateParameterIndexingChecker) CheckProgram(context *CheckContext) []*Violation {
-	// Use text-based analysis due to AST parsing issues
-	return c.CheckFile(context)
+// NewGateParameterIndexingChecker creates a new GateParameterIndexingChecker
+func NewGateParameterIndexingChecker() *GateParameterIndexingChecker {
+	return &GateParameterIndexingChecker{
+		BaseChecker: NewBaseChecker("QAS007"),
+	}
 }
 
 // CheckFile performs file-level gate parameter indexing analysis
 func (c *GateParameterIndexingChecker) CheckFile(context *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Read file content for text-based analysis
-	content, err := os.ReadFile(context.File)
+	// Get content using BaseChecker method
+	content, err := c.getContent(context)
 	if err != nil {
 		return violations
 	}
 
-	text := string(content)
-	lines := strings.Split(text, "\n")
+	lines := strings.Split(content, "\n")
 
 	// Find all gate definitions and check their bodies
 	gateDefinitions := c.findGateDefinitions(lines)
@@ -50,15 +46,13 @@ func (c *GateParameterIndexingChecker) CheckFile(context *CheckContext) []*Viola
 				for _, access := range indexAccesses {
 					// Check if the accessed register is a gate parameter
 					if c.isGateParameter(access.registerName, gateDef.parameters) {
-						violation := &Violation{
-							Rule:     nil, // Will be set by the runner
-							File:     context.File,
-							Line:     i + 1,
-							Column:   access.column,
-							NodeName: access.registerName,
-							Message:  "Cannot perform index access on gate argument '" + access.registerName + "'.",
-							Severity: SeverityError,
-						}
+						violation := c.NewViolationBuilder().
+							WithMessage("Cannot perform index access on gate argument '"+access.registerName+"'.").
+							WithFile(context.File).
+							WithPosition(i+1, access.column).
+							WithNodeName(access.registerName).
+							AsError().
+							Build()
 						violations = append(violations, violation)
 					}
 				}
@@ -90,9 +84,8 @@ func (c *GateParameterIndexingChecker) findGateDefinitions(lines []string) []gat
 	gateStartPattern := regexp.MustCompile(`^\s*gate\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\([^)]*\))?\s+([^{]+)\s*\{`)
 
 	for i, line := range lines {
-		// Skip comments and empty lines
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+		// Skip comments and empty lines using shared utility
+		if SkipCommentAndEmptyLine(line) {
 			continue
 		}
 
@@ -167,10 +160,8 @@ func (c *GateParameterIndexingChecker) findGateEnd(lines []string, startLine int
 	for i := startLine; i < len(lines); i++ {
 		line := lines[i]
 
-		// Remove comments
-		if idx := strings.Index(line, "//"); idx != -1 {
-			line = line[:idx]
-		}
+		// Remove comments using shared utility
+		line = RemoveComments(line)
 
 		// Count braces
 		for _, char := range line {
@@ -194,13 +185,12 @@ func (c *GateParameterIndexingChecker) findGateEnd(lines []string, startLine int
 func (c *GateParameterIndexingChecker) findIndexAccesses(line string) []indexAccess {
 	var accesses []indexAccess
 
-	// Remove comments from the line
-	codeOnly := c.removeComments(line)
+	// Remove comments using shared utility
+	codeOnly := RemoveComments(line)
 
-	// Pattern for index access: identifier[something]
-	indexPattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)\[([^\]]*)\]`)
-	matches := indexPattern.FindAllStringSubmatch(codeOnly, -1)
-	indices := indexPattern.FindAllStringIndex(codeOnly, -1)
+	// Use shared pattern for array access
+	matches := ArrayAccessPattern.FindAllStringSubmatch(codeOnly, -1)
+	indices := ArrayAccessPattern.FindAllStringIndex(codeOnly, -1)
 
 	for i, match := range matches {
 		if len(match) >= 3 {
@@ -229,10 +219,12 @@ func (c *GateParameterIndexingChecker) isGateParameter(registerName string, para
 	return false
 }
 
-// removeComments removes comments from a line
-func (c *GateParameterIndexingChecker) removeComments(line string) string {
-	if idx := strings.Index(line, "//"); idx != -1 {
-		return line[:idx]
-	}
-	return line
+// Check implements RuleChecker interface (required but delegates to CheckProgram)
+func (c *GateParameterIndexingChecker) Check(node parser.Node, context *CheckContext) []*Violation {
+	return nil
+}
+
+// CheckProgram implements ProgramChecker interface
+func (c *GateParameterIndexingChecker) CheckProgram(context *CheckContext) []*Violation {
+	return c.CheckFile(context)
 }

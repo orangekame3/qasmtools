@@ -135,7 +135,7 @@ measure q -> c;  // Should trigger violation`,
 			tmpFile.Close()
 
 			// Create checker
-			checker := &ConstantMeasuredBitChecker{}
+			checker := NewConstantMeasuredBitChecker()
 
 			// Create context
 			context := &CheckContext{

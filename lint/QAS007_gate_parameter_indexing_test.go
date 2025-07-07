@@ -168,7 +168,7 @@ gate complexgate a, b, c {
 			tmpFile.Close()
 
 			// Create checker
-			checker := &GateParameterIndexingChecker{}
+			checker := NewGateParameterIndexingChecker()
 
 			// Create context
 			context := &CheckContext{

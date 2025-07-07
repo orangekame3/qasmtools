@@ -170,7 +170,7 @@ bit my.bit;      // Invalid - contains dot`,
 			tmpFile.Close()
 
 			// Create checker
-			checker := &NamingConventionViolationChecker{}
+			checker := NewNamingConventionViolationChecker()
 
 			// Create context
 			context := &CheckContext{

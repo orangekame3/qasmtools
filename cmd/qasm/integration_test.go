@@ -28,14 +28,14 @@ func TestUnescapeIntegration(t *testing.T) {
 			name:           "stdin_normal",
 			input:          "OPENQASM 3.0;qubit q;h q;",
 			args:           []string{"fmt", "--stdin"},
-			expectedOutput: "OPENQASM 3.0;\nqubit q;\nh q;\n",
+			expectedOutput: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
 			expectError:    false,
 		},
 		{
 			name:           "stdin_unescape",
 			input:          `"OPENQASM 3.0;\nqubit q;\nh q;"`,
 			args:           []string{"fmt", "--stdin", "--unescape"},
-			expectedOutput: "OPENQASM 3.0;\nqubit q;\nh q;\n",
+			expectedOutput: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
 			expectError:    false,
 		},
 		{
@@ -96,14 +96,14 @@ func TestFileUnescapeIntegration(t *testing.T) {
 			name:           "file_normal",
 			fileContent:    "OPENQASM 3.0;qubit q;h q;",
 			useUnescape:    false,
-			expectedOutput: "OPENQASM 3.0;\nqubit q;\nh q;\n",
+			expectedOutput: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
 			expectError:    false,
 		},
 		{
 			name:           "file_escaped",
 			fileContent:    `"OPENQASM 3.0;\nqubit q;\nh q;"`,
 			useUnescape:    true,
-			expectedOutput: "OPENQASM 3.0;\nqubit q;\nh q;\n",
+			expectedOutput: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
 			expectError:    false,
 		},
 		{
