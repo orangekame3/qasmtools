@@ -36,8 +36,8 @@ measure q->c;`
 			if v.Line != 6 {
 				t.Errorf("Expected violation on line 6, got line %d", v.Line)
 			}
-			if v.Column != 10 {
-				t.Errorf("Expected violation at column 10, got column %d", v.Column)
+			if v.Column != 11 {
+				t.Errorf("Expected violation at column 11, got column %d", v.Column)
 			}
 			if v.Severity != SeverityError {
 				t.Errorf("Expected severity Error, got %s", v.Severity)

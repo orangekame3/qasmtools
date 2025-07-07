@@ -38,31 +38,39 @@ func (c *ReservedPrefixUsageChecker) CheckFile(context *CheckContext) []*Violati
 			continue
 		}
 
-		// Find identifier declarations using shared utility and check for reserved prefixes
-		identifiers := FindIdentifierDeclarations(line)
+		// Collect all unique identifiers from both sources
+		seenIdentifiers := make(map[string]bool)
+		var allIdentifiers []IdentifierDeclaration
 
+		// Find identifier declarations using shared utility
+		identifiers := FindIdentifierDeclarations(line)
 		for _, identifier := range identifiers {
-			if c.hasReservedPrefix(identifier.Name) {
-				violation := c.NewViolationBuilder().
-					WithMessage("Identifier '"+identifier.Name+"' uses reserved prefix '__'.").
-					WithFile(context.File).
-					WithPosition(i+1, identifier.Column).
-					WithNodeName(identifier.Name).
-					AsError().
-					Build()
-				violations = append(violations, violation)
+			if !seenIdentifiers[identifier.Name] {
+				seenIdentifiers[identifier.Name] = true
+				allIdentifiers = append(allIdentifiers, identifier)
 			}
 		}
 
 		// Also check for additional declaration patterns not covered by shared utility
 		additionalIdentifiers := c.findAdditionalDeclarations(line)
 		for _, identifier := range additionalIdentifiers {
-			if c.hasReservedPrefix(identifier.name) {
+			if !seenIdentifiers[identifier.name] {
+				seenIdentifiers[identifier.name] = true
+				allIdentifiers = append(allIdentifiers, IdentifierDeclaration{
+					Name:   identifier.name,
+					Column: identifier.column,
+				})
+			}
+		}
+
+		// Check all unique identifiers for reserved prefixes
+		for _, identifier := range allIdentifiers {
+			if c.hasReservedPrefix(identifier.Name) {
 				violation := c.NewViolationBuilder().
-					WithMessage("Identifier '"+identifier.name+"' uses reserved prefix '__'.").
+					WithMessage("Identifier '"+identifier.Name+"' uses reserved prefix '__'.").
 					WithFile(context.File).
-					WithPosition(i+1, identifier.column).
-					WithNodeName(identifier.name).
+					WithPosition(i+1, identifier.Column).
+					WithNodeName(identifier.Name).
 					AsError().
 					Build()
 				violations = append(violations, violation)

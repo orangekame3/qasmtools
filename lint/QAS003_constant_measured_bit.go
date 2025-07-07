@@ -91,9 +91,9 @@ func (c *ConstantMeasuredBitChecker) analyzeGateApplicationsInLine(line string, 
 	// Remove comments using shared utility
 	cleanLine := RemoveComments(line)
 
-	// Simplified approach: look for any gate applications
-	// Pattern for gates: any_gate_name qubits;
-	gatePattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]*\])?(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]*\])?)*)\s*;`)
+	// Pattern for gates: gate_name(optional_params) qubits;
+	// This handles both parameterized gates like rx(pi/2) q; and regular gates like h q;
+	gatePattern := regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)(?:\([^)]*\))?\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]*\])?(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]*\])?)*)\s*;`)
 	matches := gatePattern.FindAllStringSubmatch(cleanLine, -1)
 
 	for _, match := range matches {
