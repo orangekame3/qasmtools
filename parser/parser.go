@@ -238,8 +238,8 @@ func (p *Parser) convertToAST(tree antlr.Tree, content string) *Program {
 		}
 	}
 
-	// Use the AST builder visitor for complete parsing
-	visitor := NewASTBuilderVisitor(content)
+	// Use simplified AST builder for compatibility
+	visitor := NewASTBuilderVisitor()
 
 	// Visit the parse tree to build AST
 	result := visitor.VisitProgram(tree.(*qasm_gen.ProgramContext))

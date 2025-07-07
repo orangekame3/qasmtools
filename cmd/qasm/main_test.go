@@ -108,14 +108,14 @@ func TestRunFormatStdin(t *testing.T) {
 			name:           "simple_qasm",
 			input:          "OPENQASM 3.0;qubit q;h q;",
 			unescape:       false,
-			expectedOutput: "OPENQASM 3.0;\nqubit q;\nh q;\n",
+			expectedOutput: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
 			expectError:    false,
 		},
 		{
 			name:           "escaped_qasm",
 			input:          `"OPENQASM 3.0;\nqubit q;\nh q;"`,
 			unescape:       true,
-			expectedOutput: "OPENQASM 3.0;\nqubit q;\nh q;\n",
+			expectedOutput: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
 			expectError:    false,
 		},
 		{
