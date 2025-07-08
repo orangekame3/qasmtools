@@ -5,7 +5,7 @@ import (
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// CreateChecker creates appropriate checker based on rule ID 
+// CreateChecker creates appropriate checker based on rule ID
 // Most rules use AST-based implementation via CreateASTRule()
 // Only text-based rules that cannot use AST due to parser limitations are listed here
 func CreateChecker(rule *Rule) RuleChecker {

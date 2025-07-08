@@ -59,54 +59,29 @@ func FormatQASMWithConfig(content string, config *Config) (string, error) {
 }
 
 func (f *Formatter) Format(content string) (string, error) {
-	// First try to fix common malformed patterns before parsing
+	// Phase 1: Regex-based preprocessing (keep for malformed input)
 	preprocessed := f.preprocessMalformedQASM(content)
 
-	// Use the parser library with fallback for compatibility
+	// Phase 2: AST parsing
 	p := parser.NewParser()
 	result := p.ParseWithErrors(preprocessed)
 
 	if result.HasErrors() {
-		// If completely unparseable, use simple text-based formatting
+		// If completely unparseable, use text-based formatting
 		if result.Program == nil {
-			return f.formatWithSimpleFallback(preprocessed), nil
+			return f.formatWithTextFallback(preprocessed), nil
 		}
 	}
 
 	// Extract comments from the original content
 	f.comments = f.extractComments(preprocessed)
 
-	// Check if we have enough statements parsed or use fallback
-	hasComments := strings.Contains(preprocessed, "//") || strings.Contains(preprocessed, "/*")
-
-	// Count non-empty lines in input to detect parser issues
-	inputLines := strings.Split(strings.TrimSpace(preprocessed), "\n")
-	nonEmptyLines := 0
-	for _, line := range inputLines {
-		if strings.TrimSpace(line) != "" {
-			nonEmptyLines++
-		}
+	// Phase 3: Choose formatting strategy intelligently
+	if f.shouldUseASTFormatting(result, content) {
+		return f.formatWithAST(result.Program), nil
+	} else {
+		return f.formatWithTextFallback(preprocessed), nil
 	}
-
-	// Use fallback if we have fewer parsed statements than non-empty input lines
-	// This indicates the parser may have incorrectly combined statements
-	// BUT: Account for version statement not being counted in Program.Statements
-	expectedStatements := nonEmptyLines
-	if result.Program.Version != nil {
-		expectedStatements-- // Version is not counted in statements
-	}
-
-	// Check for incomplete parsing (lost initializers, parameters, etc.)
-	hasIncompleteParsingIndicators := f.hasIncompleteParsingIndicators(content, result.Program)
-
-	if hasComments || len(result.Program.Statements) == 0 ||
-		(len(result.Program.Statements) < expectedStatements && expectedStatements > 1) ||
-		hasIncompleteParsingIndicators {
-		return f.formatWithSimpleFallback(preprocessed), nil
-	}
-
-	// Use AST-based formatting for simple cases
-	return f.formatProgram(result.Program), nil
 }
 
 // extractComments extracts comments from the content and returns them
@@ -164,7 +139,7 @@ func (f *Formatter) hasIncompleteParsingIndicators(content string, program *pars
 			}
 		}
 	}
-	
+
 	// Check for gate parameters that might be lost
 	if strings.Contains(content, "(") && strings.Contains(content, ")") {
 		for _, stmt := range program.Statements {
@@ -176,7 +151,7 @@ func (f *Formatter) hasIncompleteParsingIndicators(content string, program *pars
 			}
 		}
 	}
-	
+
 	return false
 }
 
@@ -914,8 +889,8 @@ func (f *Formatter) formatAssignmentText(text string) string {
 	return re.ReplaceAllString(text, " = ")
 }
 
-// formatWithSimpleFallback provides basic text-based formatting
-func (f *Formatter) formatWithSimpleFallback(content string) string {
+// formatWithTextFallback provides enhanced text-based formatting with better regex patterns
+func (f *Formatter) formatWithTextFallback(content string) string {
 	// First normalize the content and split compound statements
 	content = f.splitCompoundStatements(content)
 	lines := strings.Split(content, "\n")
