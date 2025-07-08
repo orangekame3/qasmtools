@@ -87,7 +87,8 @@ func init() {
 			if !stdin && len(args) == 0 {
 				// Check if input is being piped
 				if !isatty.IsTerminal(os.Stdin.Fd()) {
-					return runHighlightStdin()
+					semantic, _ := cmd.Flags().GetBool("semantic")
+					return runHighlightStdin(semantic)
 				}
 				return fmt.Errorf("a file is required (or use --stdin flag)")
 			}
@@ -96,14 +97,17 @@ func init() {
 			}
 
 			if stdin {
-				return runHighlightStdin()
+				semantic, _ := cmd.Flags().GetBool("semantic")
+				return runHighlightStdin(semantic)
 			}
-			return runHighlight(args[0])
+			semantic, _ := cmd.Flags().GetBool("semantic")
+			return runHighlight(args[0], semantic)
 		},
 	}
 
 	// Add flags to highlight command
 	highlightCmd.Flags().Bool("stdin", false, "read input from stdin instead of files")
+	highlightCmd.Flags().Bool("semantic", false, "enable semantic highlighting with AST analysis")
 
 	// Add lint subcommand
 	lintCmd := &cobra.Command{
@@ -348,14 +352,23 @@ func checkFileWithConfig(filename string, config *formatter.Config) (bool, error
 	return inputContent == formatted, nil
 }
 
-func runHighlight(filename string) error {
+func runHighlight(filename string, semantic bool) error {
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %v", err)
 	}
 
-	h := highlight.New()
-	colored, err := h.Highlight(string(content))
+	var colored string
+	if semantic {
+		// Use AST-based semantic highlighting
+		h := highlight.NewASTHighlighter()
+		colored, err = h.HighlightWithAST(string(content))
+	} else {
+		// Use regular token-based highlighting
+		h := highlight.New()
+		colored, err = h.Highlight(string(content))
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to highlight: %v", err)
 	}
@@ -551,15 +564,24 @@ func outputJSON(violations []*lint.Violation) error {
 	return encoder.Encode(jsonViolations)
 }
 
-func runHighlightStdin() error {
+func runHighlightStdin(semantic bool) error {
 	// Read all input from stdin
 	input, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read from stdin: %w", err)
 	}
 
-	h := highlight.New()
-	colored, err := h.Highlight(string(input))
+	var colored string
+	if semantic {
+		// Use AST-based semantic highlighting
+		h := highlight.NewASTHighlighter()
+		colored, err = h.HighlightWithAST(string(input))
+	} else {
+		// Use regular token-based highlighting
+		h := highlight.New()
+		colored, err = h.Highlight(string(input))
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to highlight: %v", err)
 	}
