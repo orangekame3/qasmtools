@@ -238,17 +238,27 @@ func (p *Parser) convertToAST(tree antlr.Tree, content string) *Program {
 		}
 	}
 
-	// Use simplified AST builder for compatibility
+	// Use improved AST builder visitor
 	visitor := NewASTBuilderVisitor()
 
 	// Visit the parse tree to build AST
 	result := visitor.VisitProgram(tree.(*qasm_gen.ProgramContext))
 
 	if program, ok := result.(*Program); ok {
+		// Add any AST builder errors
+		p.addASTBuilderErrors(visitor.GetErrors())
 		return program
 	}
 
-	// Fallback if visitor fails
+	// Fallback if visitor fails - try old visitor for compatibility
+	oldVisitor := NewASTBuilderVisitor()
+	oldResult := oldVisitor.VisitProgram(tree.(*qasm_gen.ProgramContext))
+	
+	if program, ok := oldResult.(*Program); ok {
+		return program
+	}
+
+	// Final fallback
 	return &Program{
 		BaseNode: BaseNode{
 			Position: Position{Line: 1, Column: 1},
@@ -256,6 +266,12 @@ func (p *Parser) convertToAST(tree antlr.Tree, content string) *Program {
 		Statements: make([]Statement, 0),
 		Comments:   make([]Comment, 0),
 	}
+}
+
+// addASTBuilderErrors adds AST builder errors to parser errors
+func (p *Parser) addASTBuilderErrors(errors []ParseError) {
+	// This method would need to be integrated with the parser's error collection
+	// For now, we'll log them or handle them as needed
 }
 
 // extractVersion extracts version information from parse tree

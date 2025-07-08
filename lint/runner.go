@@ -6,14 +6,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/orangekame3/qasmtools/lint/ast"
 	"github.com/orangekame3/qasmtools/parser"
 )
 
 // Linter is the main linter engine
 type Linter struct {
-	rules    []*Rule
-	loader   *RuleLoader
-	checkers map[string]RuleChecker
+	rules     []*Rule
+	loader    *RuleLoader
+	checkers  map[string]RuleChecker
+	astRules  map[string]ast.ASTRule // AST-based rules for improved analysis
+	useAST    bool                   // Whether to prefer AST-based rules
 }
 
 // NewLinter creates a new linter instance
@@ -21,6 +24,18 @@ func NewLinter(rulesDir string) *Linter {
 	return &Linter{
 		loader:   NewRuleLoader(rulesDir),
 		checkers: make(map[string]RuleChecker),
+		astRules: make(map[string]ast.ASTRule),
+		useAST:   true, // Enable AST rules - parser is now working!
+	}
+}
+
+// NewLinterWithAST creates a new linter instance with AST preference control
+func NewLinterWithAST(rulesDir string, useAST bool) *Linter {
+	return &Linter{
+		loader:   NewRuleLoader(rulesDir),
+		checkers: make(map[string]RuleChecker),
+		astRules: make(map[string]ast.ASTRule),
+		useAST:   useAST,
 	}
 }
 
@@ -35,8 +50,14 @@ func (l *Linter) LoadRules() error {
 
 	// Create checkers for each rule
 	for _, rule := range rules {
+		// Create text-based checker
 		checker := CreateChecker(rule)
 		l.checkers[rule.ID] = checker
+
+		// Create AST-based rule if available
+		if astRule := CreateASTRule(rule.ID); astRule != nil {
+			l.astRules[rule.ID] = astRule
+		}
 	}
 
 	return nil
@@ -78,12 +99,28 @@ func (l *Linter) LintContent(content string, filename string) ([]*Violation, err
 			continue
 		}
 
-		checker := l.checkers[rule.ID]
-		if checker == nil {
-			continue
-		}
+		var violations []*Violation
 
-		violations := l.runRuleOnProgram(rule, checker, result.Program, context)
+		// Try AST-based rule first if available and enabled
+		if l.useAST {
+			if astRule, exists := l.astRules[rule.ID]; exists && astRule != nil {
+				astCtx := l.convertToASTContext(context)
+				astViolations := astRule.CheckAST(result.Program, astCtx)
+				violations = l.convertASTViolations(astViolations)
+			} else {
+				// Fall back to text-based checker
+				checker := l.checkers[rule.ID]
+				if checker != nil {
+					violations = l.runRuleOnProgram(rule, checker, result.Program, context)
+				}
+			}
+		} else {
+			// Use text-based checker
+			checker := l.checkers[rule.ID]
+			if checker != nil {
+				violations = l.runRuleOnProgram(rule, checker, result.Program, context)
+			}
+		}
 
 		// Set rule reference for each violation
 		for _, violation := range violations {
@@ -129,8 +166,32 @@ func (l *Linter) LintFile(filename string) ([]*Violation, error) {
 
 	// Run each rule against the AST
 	for _, rule := range l.rules {
-		checker := l.checkers[rule.ID]
-		violations := l.runRuleOnProgram(rule, checker, result.Program, context)
+		if !rule.Enabled {
+			continue
+		}
+
+		var violations []*Violation
+
+		// Try AST-based rule first if available and enabled
+		if l.useAST {
+			if astRule, exists := l.astRules[rule.ID]; exists && astRule != nil {
+				astCtx := l.convertToASTContext(context)
+				astViolations := astRule.CheckAST(result.Program, astCtx)
+				violations = l.convertASTViolations(astViolations)
+			} else {
+				// Fall back to text-based checker
+				checker := l.checkers[rule.ID]
+				if checker != nil {
+					violations = l.runRuleOnProgram(rule, checker, result.Program, context)
+				}
+			}
+		} else {
+			// Use text-based checker
+			checker := l.checkers[rule.ID]
+			if checker != nil {
+				violations = l.runRuleOnProgram(rule, checker, result.Program, context)
+			}
+		}
 
 		// Set rule reference for each violation
 		for _, violation := range violations {
@@ -271,4 +332,33 @@ func (l *Linter) LintDirectory(dir string) ([]*Violation, error) {
 	}
 
 	return l.LintFiles(files)
+}
+
+// convertToASTContext converts from lint.CheckContext to ast.CheckContext
+func (l *Linter) convertToASTContext(ctx *CheckContext) *ast.CheckContext {
+	return &ast.CheckContext{
+		File:     ctx.File,
+		Content:  ctx.Content,
+		Program:  ctx.Program,
+		UsageMap: ctx.UsageMap,
+	}
+}
+
+// convertASTViolations converts from ast.Violation to lint.Violation
+func (l *Linter) convertASTViolations(astViolations []*ast.Violation) []*Violation {
+	violations := make([]*Violation, len(astViolations))
+	for i, astViol := range astViolations {
+		violations[i] = &Violation{
+			Rule: &Rule{
+				ID: astViol.Rule.ID,
+			},
+			Message:  astViol.Message,
+			File:     astViol.File,
+			Line:     astViol.Line,
+			Column:   astViol.Column,
+			Severity: Severity(astViol.Severity), // Convert severity
+			NodeName: astViol.NodeName,
+		}
+	}
+	return violations
 }

@@ -1,36 +1,50 @@
 package lint
 
-import "github.com/orangekame3/qasmtools/parser"
+import (
+	"github.com/orangekame3/qasmtools/lint/ast"
+	"github.com/orangekame3/qasmtools/parser"
+)
 
-// CreateChecker creates appropriate checker based on rule ID using new BaseChecker framework
+// CreateChecker creates appropriate checker based on rule ID 
+// Most rules use AST-based implementation via CreateASTRule()
+// Only text-based rules that remain are listed here
 func CreateChecker(rule *Rule) RuleChecker {
 	switch rule.ID {
-	case "QAS001":
-		return NewUnusedQubitChecker()
-	case "QAS002":
-		return NewUndefinedIdentifierChecker()
-	case "QAS003":
-		return NewConstantMeasuredBitChecker()
-	case "QAS004":
-		return NewOutOfBoundsIndexChecker()
-	case "QAS005":
-		return NewNamingConventionViolationChecker()
-	case "QAS006":
-		return NewGateRegisterSizeMismatchChecker()
-	case "QAS007":
-		return NewGateParameterIndexingChecker()
-	case "QAS008":
-		return NewQubitDeclaredInLocalScopeChecker()
 	case "QAS009":
 		return NewIllegalBreakContinueChecker()
-	case "QAS010":
-		return NewInvalidInstructionInGateChecker()
-	case "QAS011":
-		return NewReservedPrefixUsageChecker()
-	case "QAS012":
-		return NewSnakeCaseRequiredChecker()
 	default:
 		return NewNoOpChecker()
+	}
+}
+
+// CreateASTRule creates AST-based rules for improved analysis
+func CreateASTRule(ruleID string) ast.ASTRule {
+	switch ruleID {
+	case "QAS001":
+		return ast.NewUnusedQubitRule()
+	case "QAS002":
+		return ast.NewUndefinedIdentifierRule()
+	case "QAS003":
+		return ast.NewConstantMeasuredBitRule()
+	case "QAS004":
+		return ast.NewOutOfBoundsIndexRule()
+	case "QAS005":
+		return ast.NewNamingConventionViolationRule()
+	case "QAS006":
+		return ast.NewQAS006GateRegisterSizeMismatchRule()
+	case "QAS007":
+		return ast.NewQAS007GateParameterIndexingRule()
+	case "QAS008":
+		return ast.NewQAS008QubitDeclaredInLocalScopeRule()
+	case "QAS010":
+		return ast.NewQAS010InvalidInstructionInGateRule()
+	case "QAS011":
+		return ast.NewQAS011ReservedPrefixUsageRule()
+	case "QAS012":
+		return ast.NewQAS012SnakeCaseRequiredRule()
+	// QAS009 is not supported as BreakStatement/ContinueStatement are not in current AST
+	default:
+		return nil
 	}
 }
 

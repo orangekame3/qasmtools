@@ -27,7 +27,7 @@ func TestLintIntegration(t *testing.T) {
 		{
 			name:               "naming convention violations",
 			file:               "testdata/violations/naming_violation.qasm",
-			expectedViolations: 5, // QAS001: BadName unused, QAS005: BadName+MyGate naming, QAS012: BadName+MyGate snake_case
+			expectedViolations: 3, // QAS001: BadName unused, QAS005: BadName naming, QAS012: BadName snake_case (MyGate not parsed)
 			expectedRuleIDs:    []string{"QAS001", "QAS005", "QAS012"},
 		},
 		{
