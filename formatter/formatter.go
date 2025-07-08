@@ -96,8 +96,12 @@ func (f *Formatter) Format(content string) (string, error) {
 		expectedStatements-- // Version is not counted in statements
 	}
 
+	// Check for incomplete parsing (lost initializers, parameters, etc.)
+	hasIncompleteParsingIndicators := f.hasIncompleteParsingIndicators(content, result.Program)
+
 	if hasComments || len(result.Program.Statements) == 0 ||
-		(len(result.Program.Statements) < expectedStatements && expectedStatements > 1) {
+		(len(result.Program.Statements) < expectedStatements && expectedStatements > 1) ||
+		hasIncompleteParsingIndicators {
 		return f.formatWithSimpleFallback(preprocessed), nil
 	}
 
@@ -144,6 +148,60 @@ func (f *Formatter) extractComments(content string) []parser.Comment {
 	}
 
 	return comments
+}
+
+// hasIncompleteParsingIndicators checks if the parsing has lost important elements
+func (f *Formatter) hasIncompleteParsingIndicators(content string, program *parser.Program) bool {
+	// Check for initializers that might be lost (= followed by values)
+	if strings.Contains(content, "=") && strings.Contains(content, ";") {
+		// Look for patterns like "= value;" that suggest initializers
+		for _, stmt := range program.Statements {
+			if classicalDecl, ok := stmt.(*parser.ClassicalDeclaration); ok {
+				// Check if input line for this declaration had an initializer
+				if f.inputLineHadInitializer(content, classicalDecl.Identifier) && classicalDecl.Initializer == nil {
+					return true
+				}
+			}
+		}
+	}
+	
+	// Check for gate parameters that might be lost
+	if strings.Contains(content, "(") && strings.Contains(content, ")") {
+		for _, stmt := range program.Statements {
+			if gateCall, ok := stmt.(*parser.GateCall); ok {
+				// Check if input had parameters but AST doesn't
+				if f.inputLineHadParameters(content, gateCall.Name) && len(gateCall.Parameters) == 0 {
+					return true
+				}
+			}
+		}
+	}
+	
+	return false
+}
+
+// inputLineHadInitializer checks if the input line for an identifier had an initializer
+func (f *Formatter) inputLineHadInitializer(content, identifier string) bool {
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, identifier) && strings.Contains(line, "=") {
+			// Simple heuristic: if line contains identifier and =, it likely had initializer
+			return true
+		}
+	}
+	return false
+}
+
+// inputLineHadParameters checks if the input line for a gate had parameters
+func (f *Formatter) inputLineHadParameters(content, gateName string) bool {
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, gateName) && strings.Contains(line, "(") && strings.Contains(line, ")") {
+			// Simple heuristic: if line contains gate name and parentheses, it likely had parameters
+			return true
+		}
+	}
+	return false
 }
 
 func (f *Formatter) formatProgram(program *parser.Program) string {
@@ -444,6 +502,11 @@ func (f *Formatter) indent(level int) string {
 
 // shouldAddEmptyLine determines if an empty line should be added between statement types
 func (f *Formatter) shouldAddEmptyLine(lastType, currentType string) bool {
+	// Add empty line after version only when followed by declarations, not includes
+	if lastType == "version" && currentType != "" && currentType != "include" {
+		return true
+	}
+
 	// Add empty line after includes
 	if lastType == "include" && currentType != "include" {
 		return true
