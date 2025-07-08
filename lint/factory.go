@@ -7,11 +7,10 @@ import (
 
 // CreateChecker creates appropriate checker based on rule ID 
 // Most rules use AST-based implementation via CreateASTRule()
-// Only text-based rules that remain are listed here
+// Only text-based rules that cannot use AST due to parser limitations are listed here
 func CreateChecker(rule *Rule) RuleChecker {
 	switch rule.ID {
-	case "QAS009":
-		return NewIllegalBreakContinueChecker()
+	// All rules now use AST-based implementation via CreateASTRule()
 	default:
 		return NewNoOpChecker()
 	}
@@ -40,9 +39,11 @@ func CreateASTRule(ruleID string) ast.ASTRule {
 		return ast.NewQAS010InvalidInstructionInGateRule()
 	case "QAS011":
 		return ast.NewQAS011ReservedPrefixUsageRule()
+	case "QAS009":
+		return ast.NewQAS009IllegalBreakContinueRule()
 	case "QAS012":
 		return ast.NewQAS012SnakeCaseRequiredRule()
-	// QAS009 is not supported as BreakStatement/ContinueStatement are not in current AST
+	// All 12 rules now have AST implementations
 	default:
 		return nil
 	}
