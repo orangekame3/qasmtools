@@ -24,7 +24,7 @@ func TestASTvsTextComparison(t *testing.T) {
 		{
 			name:        "QAS002_undefined_identifier",
 			code:        "OPENQASM 3.0;\nqubit q;\nh undefined_gate q;",
-			ruleID:      "QAS002", 
+			ruleID:      "QAS002",
 			description: "Should detect undefined identifier",
 		},
 		{
@@ -103,7 +103,7 @@ func TestASTvsTextComparison(t *testing.T) {
 			if len(astViolations) != len(textViolations) {
 				t.Logf("WARNING: AST and text rules produced different counts for %s", tc.ruleID)
 				t.Logf("  AST: %d violations, Text: %d violations", len(astViolations), len(textViolations))
-				
+
 				// This is not necessarily a failure - AST rules might be more accurate
 				// But we should understand why
 			}

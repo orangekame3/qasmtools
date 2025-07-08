@@ -253,7 +253,7 @@ func (p *Parser) convertToAST(tree antlr.Tree, content string) *Program {
 	// Fallback if visitor fails - try old visitor for compatibility
 	oldVisitor := NewASTBuilderVisitor()
 	oldResult := oldVisitor.VisitProgram(tree.(*qasm_gen.ProgramContext))
-	
+
 	if program, ok := oldResult.(*Program); ok {
 		return program
 	}

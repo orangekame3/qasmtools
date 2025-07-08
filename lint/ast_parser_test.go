@@ -19,7 +19,7 @@ measure q -> c;`
 	// Parse with new AST builder
 	p := parser.NewParser()
 	result := p.ParseWithErrors(code)
-	
+
 	t.Logf("Parse errors: %d", len(result.Errors))
 	for _, err := range result.Errors {
 		t.Logf("  Error: %s at line %d:%d", err.Message, err.Position.Line, err.Position.Column)
@@ -35,7 +35,7 @@ measure q -> c;`
 	// Check individual statements
 	for i, stmt := range result.Program.Statements {
 		t.Logf("Statement %d: %T -> %s", i, stmt, stmt.String())
-		
+
 		switch s := stmt.(type) {
 		case *parser.QuantumDeclaration:
 			t.Logf("  Quantum: type=%s, id=%s, size=%v", s.Type, s.Identifier, s.Size)
@@ -94,7 +94,7 @@ func TestASTBuilderWithSimpleCode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := parser.NewParser()
 			result := p.ParseWithErrors(tt.code)
-			
+
 			if result.HasErrors() {
 				t.Logf("Parse errors for %s:", tt.name)
 				for _, err := range result.Errors {

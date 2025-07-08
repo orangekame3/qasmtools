@@ -12,11 +12,11 @@ import (
 
 // Linter is the main linter engine
 type Linter struct {
-	rules     []*Rule
-	loader    *RuleLoader
-	checkers  map[string]RuleChecker
-	astRules  map[string]ast.ASTRule // AST-based rules for improved analysis
-	useAST    bool                   // Whether to prefer AST-based rules
+	rules    []*Rule
+	loader   *RuleLoader
+	checkers map[string]RuleChecker
+	astRules map[string]ast.ASTRule // AST-based rules for improved analysis
+	useAST   bool                   // Whether to prefer AST-based rules
 }
 
 // NewLinter creates a new linter instance

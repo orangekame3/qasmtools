@@ -144,32 +144,32 @@ func (v *ASTBuilderVisitor) visitStatement(ctx qasm_gen.IStatementContext) State
 	// We'll use createBaseNode for position information
 
 	// Use proper ANTLR context methods instead of text parsing
-	
+
 	// Check for quantum declaration statement
 	if quantumDeclCtx := ctx.QuantumDeclarationStatement(); quantumDeclCtx != nil {
 		return v.visitQuantumDeclarationStatement(quantumDeclCtx)
 	}
-	
-	// Check for classical declaration statement  
+
+	// Check for classical declaration statement
 	if classicalDeclCtx := ctx.ClassicalDeclarationStatement(); classicalDeclCtx != nil {
 		return v.visitClassicalDeclarationStatement(classicalDeclCtx)
 	}
-	
+
 	// Check for include statement
 	if includeCtx := ctx.IncludeStatement(); includeCtx != nil {
 		return v.visitIncludeStatement(includeCtx)
 	}
-	
+
 	// Check for gate call statement
 	if gateCallCtx := ctx.GateCallStatement(); gateCallCtx != nil {
 		return v.visitGateCallStatement(gateCallCtx)
 	}
-	
+
 	// Check for measurement assignment statement (measure -> classical)
 	if measureCtx := ctx.MeasureArrowAssignmentStatement(); measureCtx != nil {
 		return v.visitMeasureArrowAssignmentStatement(measureCtx)
 	}
-	
+
 	// Check for expression statement (other expressions)
 	if exprCtx := ctx.ExpressionStatement(); exprCtx != nil {
 		return v.visitExpressionStatement(exprCtx)
@@ -200,7 +200,7 @@ func (v *ASTBuilderVisitor) visitQuantumDeclarationStatement(ctx qasm_gen.IQuant
 	// Get the qubit type information
 	var size Expression
 	var declType = "qubit"
-	
+
 	if qubitType := ctx.QubitType(); qubitType != nil {
 		// Get designator (array size) if present
 		if designator := qubitType.Designator(); designator != nil {
@@ -235,7 +235,7 @@ func (v *ASTBuilderVisitor) visitDesignator(ctx qasm_gen.IDesignatorContext) Exp
 			return &IntegerLiteral{Value: val}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -405,7 +405,7 @@ func (v *ASTBuilderVisitor) visitGateOperandList(ctx qasm_gen.IGateOperandListCo
 			}
 		}
 	}
-	
+
 	return operands
 }
 
@@ -444,7 +444,7 @@ func (v *ASTBuilderVisitor) visitMeasureExpression(ctx qasm_gen.IMeasureExpressi
 		qubitText := strings.TrimSpace(text[7:]) // Remove "measure"
 		return v.parseQubitExpression(qubitText)
 	}
-	
+
 	return nil
 }
 
@@ -463,14 +463,14 @@ func (v *ASTBuilderVisitor) visitIndexedIdentifier(ctx qasm_gen.IIndexedIdentifi
 func (v *ASTBuilderVisitor) isGateCall(text string) bool {
 	// Common gates
 	commonGates := []string{"h", "x", "y", "z", "cx", "cnot", "s", "t", "rx", "ry", "rz", "u1", "u2", "u3"}
-	
+
 	for _, gate := range commonGates {
-		if strings.HasPrefix(strings.TrimSpace(text), gate+" ") || 
-		   strings.HasPrefix(strings.TrimSpace(text), gate+"\t") {
+		if strings.HasPrefix(strings.TrimSpace(text), gate+" ") ||
+			strings.HasPrefix(strings.TrimSpace(text), gate+"\t") {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -702,7 +702,7 @@ func (v *ASTBuilderVisitor) parseIncludeStatement(text string, lineNum int) Stat
 	// Extract the file path from include "path"
 	text = strings.TrimSpace(text)
 	text = strings.TrimSuffix(text, ";")
-	
+
 	if strings.HasPrefix(text, "include") {
 		pathPart := strings.TrimSpace(text[7:]) // Remove "include"
 		if len(pathPart) >= 2 && pathPart[0] == '"' && pathPart[len(pathPart)-1] == '"' {
@@ -713,7 +713,7 @@ func (v *ASTBuilderVisitor) parseIncludeStatement(text string, lineNum int) Stat
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -722,31 +722,31 @@ func (v *ASTBuilderVisitor) parseMeasurementStatement(text string, lineNum int) 
 	// Parse "measure qubit -> classical" or "measure qubit"
 	text = strings.TrimSpace(text)
 	text = strings.TrimSuffix(text, ";")
-	
+
 	if strings.HasPrefix(text, "measure") {
 		measurePart := strings.TrimSpace(text[7:]) // Remove "measure"
-		
+
 		measurement := &Measurement{
 			BaseNode: BaseNode{Position: Position{Line: lineNum, Column: 1}},
 		}
-		
+
 		// Check for -> notation
 		if strings.Contains(measurePart, "->") {
 			parts := strings.Split(measurePart, "->")
 			if len(parts) == 2 {
 				qubitPart := strings.TrimSpace(parts[0])
 				targetPart := strings.TrimSpace(parts[1])
-				
+
 				measurement.Qubit = v.parseQubitExpression(qubitPart)
 				measurement.Target = v.parseQubitExpression(targetPart)
 			}
 		} else {
 			measurement.Qubit = v.parseQubitExpression(measurePart)
 		}
-		
+
 		return measurement
 	}
-	
+
 	return nil
 }
 
@@ -754,46 +754,46 @@ func (v *ASTBuilderVisitor) parseMeasurementStatement(text string, lineNum int) 
 func (v *ASTBuilderVisitor) parseGateCall(text string, lineNum int) Statement {
 	text = strings.TrimSpace(text)
 	text = strings.TrimSuffix(text, ";")
-	
+
 	tokens := strings.Fields(text)
 	if len(tokens) < 2 {
 		return nil
 	}
-	
+
 	gateCall := &GateCall{
 		BaseNode:   BaseNode{Position: Position{Line: lineNum, Column: 1}},
 		Name:       tokens[0],
 		Parameters: make([]Expression, 0),
 		Qubits:     make([]Expression, 0),
 	}
-	
+
 	// Parse qubits (simple approach - split by comma and space)
 	qubitsPart := strings.Join(tokens[1:], " ")
 	qubits := strings.Split(qubitsPart, ",")
-	
+
 	for _, qubit := range qubits {
 		qubit = strings.TrimSpace(qubit)
 		if qubit != "" {
 			gateCall.Qubits = append(gateCall.Qubits, v.parseQubitExpression(qubit))
 		}
 	}
-	
+
 	return gateCall
 }
 
 // parseQubitExpression parses qubit expressions like q, q[0], etc.
 func (v *ASTBuilderVisitor) parseQubitExpression(text string) Expression {
 	text = strings.TrimSpace(text)
-	
+
 	// Check for array access q[index]
 	if strings.Contains(text, "[") && strings.Contains(text, "]") {
 		bracketStart := strings.Index(text, "[")
 		bracketEnd := strings.Index(text, "]")
-		
+
 		if bracketStart > 0 && bracketEnd > bracketStart {
 			name := text[:bracketStart]
 			indexStr := text[bracketStart+1 : bracketEnd]
-			
+
 			return &IndexedIdentifier{
 				BaseNode: BaseNode{Position: Position{Line: 1, Column: 1}},
 				Name:     name,
@@ -801,7 +801,7 @@ func (v *ASTBuilderVisitor) parseQubitExpression(text string) Expression {
 			}
 		}
 	}
-	
+
 	// Simple identifier
 	return &Identifier{
 		BaseNode: BaseNode{Position: Position{Line: 1, Column: 1}},
