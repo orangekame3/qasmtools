@@ -1,4 +1,4 @@
-package lint
+package ast
 
 import (
 	"regexp"
@@ -7,55 +7,53 @@ import (
 	"github.com/orangekame3/qasmtools/parser"
 )
 
-// IllegalBreakContinueChecker is the new implementation using BaseChecker framework
-type IllegalBreakContinueChecker struct {
-	*BaseChecker
+// QAS009IllegalBreakContinueRule implements QAS009 using text-based analysis within AST package
+// This rule uses text-based analysis since BreakStatement/ContinueStatement are not in current AST
+type QAS009IllegalBreakContinueRule struct {
+	*ASTRuleBase
 }
 
-// NewIllegalBreakContinueChecker creates a new IllegalBreakContinueChecker
-func NewIllegalBreakContinueChecker() *IllegalBreakContinueChecker {
-	return &IllegalBreakContinueChecker{
-		BaseChecker: NewBaseChecker("QAS009"),
+// NewQAS009IllegalBreakContinueRule creates a new QAS009 rule instance
+func NewQAS009IllegalBreakContinueRule() *QAS009IllegalBreakContinueRule {
+	return &QAS009IllegalBreakContinueRule{
+		ASTRuleBase: NewASTRuleBase("QAS009"),
 	}
 }
 
-// CheckFile performs file-level break/continue analysis
-func (c *IllegalBreakContinueChecker) CheckFile(context *CheckContext) []*Violation {
+// CheckAST performs text-based analysis within AST rule framework
+func (r *QAS009IllegalBreakContinueRule) CheckAST(program *parser.Program, ctx *CheckContext) []*Violation {
 	var violations []*Violation
 
-	// Get content using BaseChecker method
-	content, err := c.getContent(context)
-	if err != nil {
-		return violations
-	}
-
+	// Use text-based analysis on the content since break/continue are not in AST
+	content := ctx.Content
 	lines := strings.Split(content, "\n")
 
 	// Track loop nesting depth and find break/continue statements
 	loopDepth := 0
 
 	for i, line := range lines {
-		// Skip comments and empty lines using shared utility
-		if SkipCommentAndEmptyLine(line) {
+		// Skip comments and empty lines
+		if r.skipCommentAndEmptyLine(line) {
 			continue
 		}
 
-		// Remove comments using shared utility
-		codeOnly := RemoveComments(line)
+		// Remove comments
+		codeOnly := r.removeComments(line)
 
 		// Track loop nesting changes
-		loopDepth += c.countLoopChanges(codeOnly)
+		loopDepth += r.countLoopChanges(codeOnly)
 
 		// Find break/continue statements in this line
-		breakContinueStatements := c.findBreakContinueStatements(codeOnly)
+		breakContinueStatements := r.findBreakContinueStatements(codeOnly)
 
 		for _, stmt := range breakContinueStatements {
 			// Check if we're outside of any loop
 			if loopDepth <= 0 {
-				violation := c.NewViolationBuilder().
+				violation := r.NewViolationBuilder().
 					WithMessage("'"+stmt.keyword+"' cannot be used outside of a loop.").
-					WithFile(context.File).
-					WithPosition(i+1, stmt.column).
+					WithFile(ctx.File).
+					WithLine(i+1).
+					WithColumn(stmt.column).
 					WithNodeName(stmt.keyword).
 					AsError().
 					Build()
@@ -64,7 +62,7 @@ func (c *IllegalBreakContinueChecker) CheckFile(context *CheckContext) []*Violat
 		}
 
 		// Update loop depth after processing the line (for closing braces)
-		loopDepth += c.countLoopEndChanges(codeOnly)
+		loopDepth += r.countLoopEndChanges(codeOnly)
 	}
 
 	return violations
@@ -75,8 +73,23 @@ type breakContinueStatement struct {
 	column  int
 }
 
+// skipCommentAndEmptyLine checks if a line should be skipped
+func (r *QAS009IllegalBreakContinueRule) skipCommentAndEmptyLine(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	return trimmed == "" || strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*")
+}
+
+// removeComments removes comments from a line
+func (r *QAS009IllegalBreakContinueRule) removeComments(line string) string {
+	// Remove single-line comments
+	if idx := strings.Index(line, "//"); idx != -1 {
+		line = line[:idx]
+	}
+	return strings.TrimSpace(line)
+}
+
 // countLoopChanges counts the increase in loop depth for a line (opening loops)
-func (c *IllegalBreakContinueChecker) countLoopChanges(line string) int {
+func (r *QAS009IllegalBreakContinueRule) countLoopChanges(line string) int {
 	loopCount := 0
 
 	// Patterns for loop starts
@@ -96,15 +109,14 @@ func (c *IllegalBreakContinueChecker) countLoopChanges(line string) int {
 }
 
 // countLoopEndChanges counts the decrease in loop depth for a line (closing braces)
-func (c *IllegalBreakContinueChecker) countLoopEndChanges(line string) int {
+func (r *QAS009IllegalBreakContinueRule) countLoopEndChanges(line string) int {
 	// Count closing braces that end loops
-	// This is a simplified approach - we assume each closing brace ends one scope level
 	closeBraces := strings.Count(line, "}")
 	return -closeBraces
 }
 
 // findBreakContinueStatements finds all break/continue statements in a line
-func (c *IllegalBreakContinueChecker) findBreakContinueStatements(line string) []breakContinueStatement {
+func (r *QAS009IllegalBreakContinueRule) findBreakContinueStatements(line string) []breakContinueStatement {
 	var statements []breakContinueStatement
 
 	// Patterns for break and continue statements
@@ -133,14 +145,4 @@ func (c *IllegalBreakContinueChecker) findBreakContinueStatements(line string) [
 	}
 
 	return statements
-}
-
-// Check implements RuleChecker interface (required but delegates to CheckProgram)
-func (c *IllegalBreakContinueChecker) Check(node parser.Node, context *CheckContext) []*Violation {
-	return nil
-}
-
-// CheckProgram implements ProgramChecker interface
-func (c *IllegalBreakContinueChecker) CheckProgram(context *CheckContext) []*Violation {
-	return c.CheckFile(context)
 }
