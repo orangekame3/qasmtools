@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/orangekame3/qasmtools/cmd/qasm/commands"
+	"github.com/orangekame3/qasmtools/cmd/qasm/config"
 	"github.com/orangekame3/qasmtools/formatter"
 	"github.com/spf13/cobra"
 )
@@ -19,43 +21,39 @@ func TestGetConfigFromFlags(t *testing.T) {
 		{
 			name: "default_config",
 			flags: map[string]interface{}{
-				"write":    false,
-				"check":    false,
-				"indent":   uint(2),
-				"newline":  true,
-				"verbose":  false,
-				"diff":     false,
-				"unescape": false,
+				"write":   false,
+				"check":   false,
+				"indent":  uint(2),
+				"newline": true,
+				"verbose": false,
+				"diff":    false,
 			},
 			expected: &formatter.Config{
-				Write:    false,
-				Check:    false,
-				Indent:   2,
-				Newline:  true,
-				Verbose:  false,
-				Diff:     false,
-				Unescape: false,
+				Write:   false,
+				Check:   false,
+				Indent:  2,
+				Newline: true,
+				Verbose: false,
+				Diff:    false,
 			},
 		},
 		{
 			name: "custom_config",
 			flags: map[string]interface{}{
-				"write":    true,
-				"check":    false,
-				"indent":   uint(4),
-				"newline":  false,
-				"verbose":  true,
-				"diff":     false,
-				"unescape": true,
+				"write":   true,
+				"check":   false,
+				"indent":  uint(4),
+				"newline": false,
+				"verbose": true,
+				"diff":    false,
 			},
 			expected: &formatter.Config{
-				Write:    true,
-				Check:    false,
-				Indent:   4,
-				Newline:  false,
-				Verbose:  true,
-				Diff:     false,
-				Unescape: true,
+				Write:   true,
+				Check:   false,
+				Indent:  4,
+				Newline: false,
+				Verbose: true,
+				Diff:    false,
 			},
 		},
 	}
@@ -71,14 +69,13 @@ func TestGetConfigFromFlags(t *testing.T) {
 			cmd.Flags().Bool("newline", true, "")
 			cmd.Flags().Bool("verbose", false, "")
 			cmd.Flags().Bool("diff", false, "")
-			cmd.Flags().Bool("unescape", false, "")
 
 			// Set flag values
 			for key, value := range tt.flags {
 				cmd.Flags().Set(key, toString(value))
 			}
 
-			config, err := getConfigFromFlags(cmd)
+			config, err := config.GetConfigFromFlags(cmd)
 			if err != nil {
 				t.Fatalf("getConfigFromFlags() error = %v", err)
 			}
@@ -88,8 +85,7 @@ func TestGetConfigFromFlags(t *testing.T) {
 				config.Indent != tt.expected.Indent ||
 				config.Newline != tt.expected.Newline ||
 				config.Verbose != tt.expected.Verbose ||
-				config.Diff != tt.expected.Diff ||
-				config.Unescape != tt.expected.Unescape {
+				config.Diff != tt.expected.Diff {
 				t.Errorf("getConfigFromFlags() = %+v, want %+v", config, tt.expected)
 			}
 		})
@@ -100,36 +96,20 @@ func TestRunFormatStdin(t *testing.T) {
 	tests := []struct {
 		name           string
 		input          string
-		unescape       bool
 		expectedOutput string
 		expectError    bool
 	}{
 		{
 			name:           "simple_qasm",
 			input:          "OPENQASM 3.0;qubit q;h q;",
-			unescape:       false,
 			expectedOutput: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
 			expectError:    false,
 		},
 		{
-			name:           "escaped_qasm",
-			input:          `"OPENQASM 3.0;\nqubit q;\nh q;"`,
-			unescape:       true,
-			expectedOutput: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
-			expectError:    false,
-		},
-		{
-			name:           "complex_escaped_qasm",
-			input:          `"OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[2] q;\nh q[0];"`,
-			unescape:       true,
+			name:           "formatted_qasm",
+			input:          "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[2] q;\nh q[0];",
 			expectedOutput: "OPENQASM 3.0;\ninclude \"stdgates.inc\";\n\nqubit[2] q;\nh q[0];\n",
 			expectError:    false,
-		},
-		{
-			name:        "invalid_escape",
-			input:       `"OPENQASM 3.0;\nqubit q;`,
-			unescape:    true,
-			expectError: true,
 		},
 	}
 
@@ -159,19 +139,14 @@ func TestRunFormatStdin(t *testing.T) {
 			cmd.Flags().Bool("newline", true, "")
 			cmd.Flags().Bool("verbose", false, "")
 			cmd.Flags().Bool("diff", false, "")
-			cmd.Flags().Bool("unescape", tt.unescape, "")
 
-			if tt.unescape {
-				cmd.Flags().Set("unescape", "true")
-			}
-
-			config, err := getConfigFromFlags(cmd)
+			config, err := config.GetConfigFromFlags(cmd)
 			if err != nil {
 				t.Fatalf("getConfigFromFlags() error = %v", err)
 			}
 
 			// Run the function
-			err = runFormatStdin(cmd, config)
+			err = commands.RunFormatStdin(cmd, config)
 
 			// Close stdout and read output
 			wOut.Close()
@@ -204,36 +179,26 @@ func TestFormatFileWithConfig(t *testing.T) {
 	tests := []struct {
 		name        string
 		fileContent string
-		unescape    bool
 		expectedMod bool
 		expectError bool
 	}{
 		{
 			name:        "simple_formatted",
 			fileContent: "OPENQASM 3.0;\nqubit q;\nh q;",
-			unescape:    false,
 			expectedMod: true, // May be modified due to formatting differences
 			expectError: false,
 		},
 		{
 			name:        "needs_formatting",
 			fileContent: "OPENQASM 3.0;qubit q;h q;",
-			unescape:    false,
 			expectedMod: true,
 			expectError: false,
 		},
 		{
-			name:        "escaped_content",
-			fileContent: `"OPENQASM 3.0;\nqubit q;\nh q;"`,
-			unescape:    true,
-			expectedMod: true,
+			name:        "already_formatted",
+			fileContent: "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
+			expectedMod: true, // Even "properly formatted" may have minor differences
 			expectError: false,
-		},
-		{
-			name:        "invalid_escaped_content",
-			fileContent: `"OPENQASM 3.0;\nqubit q;`,
-			unescape:    true,
-			expectError: true,
 		},
 	}
 
@@ -255,7 +220,7 @@ func TestFormatFileWithConfig(t *testing.T) {
 			// Create config
 			config := &formatter.Config{
 				Write:    false, // Don't modify the file, just check output
-				Unescape: tt.unescape,
+				Unescape: false,
 			}
 
 			// Capture stdout
@@ -264,7 +229,7 @@ func TestFormatFileWithConfig(t *testing.T) {
 			os.Stdout = w
 
 			// Run the function
-			modified, err := formatFileWithConfig(tmpFile.Name(), config)
+			modified, err := commands.FormatFileWithConfig(tmpFile.Name(), config)
 
 			// Close stdout and read output
 			w.Close()
@@ -297,36 +262,26 @@ func TestCheckFileWithConfig(t *testing.T) {
 	tests := []struct {
 		name          string
 		fileContent   string
-		unescape      bool
 		expectedCheck bool
 		expectError   bool
 	}{
 		{
 			name:          "simple_formatted",
 			fileContent:   "OPENQASM 3.0;\nqubit q;\nh q;",
-			unescape:      false,
 			expectedCheck: false, // May not match exactly due to formatting differences
 			expectError:   false,
 		},
 		{
 			name:          "needs_formatting",
 			fileContent:   "OPENQASM 3.0;qubit q;h q;",
-			unescape:      false,
 			expectedCheck: false,
 			expectError:   false,
 		},
 		{
-			name:          "escaped_content_test",
-			fileContent:   `"OPENQASM 3.0;\nqubit q;\nh q;"`,
-			unescape:      true,
-			expectedCheck: false, // Unescaped content may need formatting
+			name:          "already_formatted",
+			fileContent:   "OPENQASM 3.0;\n\nqubit q;\nh q;\n",
+			expectedCheck: false, // Even "properly formatted" may have minor differences
 			expectError:   false,
-		},
-		{
-			name:        "invalid_escaped_content",
-			fileContent: `"OPENQASM 3.0;\nqubit q;`,
-			unescape:    true,
-			expectError: true,
 		},
 	}
 
@@ -347,11 +302,11 @@ func TestCheckFileWithConfig(t *testing.T) {
 
 			// Create config
 			config := &formatter.Config{
-				Unescape: tt.unescape,
+				Unescape: false,
 			}
 
 			// Run the function
-			isFormatted, err := checkFileWithConfig(tmpFile.Name(), config)
+			isFormatted, err := commands.CheckFileWithConfig(tmpFile.Name(), config)
 
 			if tt.expectError {
 				if err == nil {

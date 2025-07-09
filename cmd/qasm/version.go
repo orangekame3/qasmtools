@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"runtime"
+)
+
 // Version information for the QASM CLI tool
 var (
 	// Version is the current version of the qasm CLI
@@ -14,8 +19,6 @@ var (
 
 // GetVersion returns the formatted version string
 func GetVersion() string {
-	if BuildDate != "unknown" && GitCommit != "unknown" {
-		return Version + " (built " + BuildDate + ", commit " + GitCommit + ")"
-	}
-	return Version
+	return fmt.Sprintf("%s (commit: %s, built: %s, %s/%s)",
+		Version, GitCommit, BuildDate, runtime.GOOS, runtime.GOARCH)
 }
