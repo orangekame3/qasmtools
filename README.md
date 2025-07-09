@@ -15,7 +15,7 @@
 
 * **QASM 3.0 Parsing**: Parses OpenQASM 3.0 files into an Abstract Syntax Tree (AST).
 * **QASM 3.0 Formatting**: Formats QASM 3.0 files to adhere to a consistent style with support for standard input, JSON-style escaped strings, and automatic pipe detection.
-* **QASM 3.0 Linting**: Checks QASM files for style and semantic issues using configurable YAML-based rules with documentation URLs for each violation, colored output, and JSON format support.
+* **QASM 3.0 Linting**: Advanced AST-based analysis for style and semantic issues with configurable YAML-based rules, parallel processing, performance optimization, documentation URLs for each violation, and JSON format support.
 * **QASM 3.0 Highlighting**: Provides syntax highlighting for QASM files in the terminal with color-coded output for keywords, numbers, strings, and operators.
 * **Pipeline Support**: All commands support stdin/stdout piping for seamless integration in command-line workflows.
 * **Web Playground**: Interactive browser-based formatter with WebAssembly backend and unescape support.
@@ -219,7 +219,7 @@ To check QASM files for style and semantic issues:
 qasm lint [files...]
 ```
 
-Options:
+#### Core Options:
 
 - `--rules`: Directory containing custom rule files (default: use embedded rules)
 - `-d, --disable`: Disable specific rules (e.g., QAS001,QAS002)
@@ -227,20 +227,31 @@ Options:
 - `--format`: Output format (text, json)
 - `-q, --quiet`: Suppress info and warning messages
 
-Examples:
+#### Advanced Options:
+
+- `--use-ast`: Use AST-based analysis (default: true, faster and more accurate)
+- `--parallel`: Enable parallel processing for multiple files (default: true)
+- `--workers`: Number of worker threads for parallel processing (default: 4)
+- `--performance`: Show performance statistics
+- `--no-color`: Disable colored output
+
+#### Examples:
 
 ```bash
-# Lint a single file
+# Lint a single file with AST-based analysis
 qasm lint input.qasm
 
-# Lint multiple files
-qasm lint *.qasm
+# Lint multiple files with parallel processing
+qasm lint *.qasm --parallel --workers 8
 
 # Disable specific rules
 qasm lint --disable=QAS001,QAS003 input.qasm
 
-# Enable only specific rules
-qasm lint --enable-only=QAS002 input.qasm
+# Enable only specific rules with performance stats
+qasm lint --enable-only=QAS002 input.qasm --performance
+
+# Use text-based fallback analysis
+qasm lint input.qasm --use-ast=false
 
 # Use custom rules directory
 qasm lint --rules=custom/rules input.qasm

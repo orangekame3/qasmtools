@@ -222,7 +222,7 @@ tasks:
   install:
     desc: Install the binary to $GOPATH/bin
     cmds:
-      - go install -ldflags "-X github.com/orangekame3/qasmtools/cmd.Version={{.VERSION}}" ./cmd/qasm
+      - go install -ldflags "-X 'main.Version={{.VERSION}}' -X 'main.GitCommit={{.COMMIT}}' -X 'main.BuildDate={{.BUILD_DATE}}'" ./cmd/qasm
 
   # Testing tasks
   test:
