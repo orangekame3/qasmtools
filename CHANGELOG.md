@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.15](https://github.com/orangekame3/qasmtools/compare/v0.2.14...v0.2.15) - 2025-07-09
+- Add commands for formatting, highlighting, linting, and parsing QASM files by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/95
+
 ## [v0.2.14](https://github.com/orangekame3/qasmtools/compare/v0.2.13...v0.2.14) - 2025-07-09
 - Fix lint issues in codebase by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/79
 - Enhance WASM integration with improved linting and error handling by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/81
