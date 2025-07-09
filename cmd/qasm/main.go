@@ -27,5 +27,6 @@ func init() {
 		commands.NewFormatCommand(),
 		commands.NewHighlightCommand(),
 		commands.NewLintCommand(),
+		commands.NewParseCommand(),
 	)
 }
