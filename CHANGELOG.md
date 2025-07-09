@@ -1,5 +1,22 @@
 # Changelog
 
+## [v0.2.14](https://github.com/orangekame3/qasmtools/compare/v0.2.13...v0.2.14) - 2025-07-09
+- Fix lint issues in codebase by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/79
+- Enhance WASM integration with improved linting and error handling by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/81
+- Fix WASM path for different environments by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/82
+- Update default QASM example and enhance layout for Playground component by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/83
+- Fix layout in playground component by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/84
+- Enhance Playground with linting examples and update category for samples by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/85
+- Enhance functionality and performance improvements by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/86
+- Refactor AST parsing and enhance language server features by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/87
+- Implement AST-based linting rules for QASM by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/88
+- AST-based implementation for QAS009 illegal break/continue rule by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/89
+- Refactor formatter for improved AST handling and malformed input processing by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/90
+- Implement AST-based semantic highlighting with tests by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/91
+- Refactor QASM CLI for improved versioning and linting performance by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/92
+- Add Parse command to QASM CLI initialization by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/93
+- Update README with AST parsing and benchmarking commands by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/94
+
 ## [v0.2.13](https://github.com/orangekame3/qasmtools/compare/v0.2.12...v0.2.13) - 2025-07-01
 - updaet lsp by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/77
 
