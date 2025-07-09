@@ -159,7 +159,7 @@ To build `qasmtools` from source, ensure you have Go installed (version 1.16 or 
 
 ## Usage
 
-The `qasm` executable provides three main commands: `fmt` for formatting, `lint` for linting, and `highlight` for syntax highlighting of QASM files.
+The `qasm` executable provides five main commands: `fmt` for formatting, `lint` for linting, `highlight` for syntax highlighting, `parse` for AST generation, and `benchmark` for performance measurement of QASM files.
 
 ### Formatting QASM Files
 
@@ -391,6 +391,189 @@ The highlight command provides colorized output with:
 - **Numbers** in cyan  
 - **Strings** in green
 - **Operators** in white
+
+### AST Parsing
+
+To parse QASM files and generate Abstract Syntax Trees (AST):
+
+```bash
+qasm parse [file]
+```
+
+Options:
+- `--format`: Output format (json, tree, summary)
+- `--runs`: Number of parsing runs for performance measurement (default: 1)
+- `--warmup`: Number of warmup runs before measurement (default: 0)
+- `--stdin`: Read input from stdin
+- `--performance`: Show detailed performance statistics
+
+Examples:
+
+```bash
+# Parse and display AST as tree
+qasm parse input.qasm --format=tree
+
+# Parse with JSON output
+qasm parse input.qasm --format=json
+
+# Parse with performance measurement
+qasm parse input.qasm --runs=10 --warmup=3 --performance
+
+# Parse from stdin
+cat input.qasm | qasm parse --stdin
+
+# Parse with summary information
+qasm parse input.qasm --format=summary
+```
+
+### Performance Benchmarking
+
+To run comprehensive parser benchmarks against QASM files:
+
+```bash
+qasm benchmark [directory]
+```
+
+#### Options:
+- `--runs`: Number of parsing runs per file (default: 10)
+- `--warmup`: Number of warmup runs before benchmarking (default: 3)
+- `--detailed`: Show detailed results for each file
+- `--output`: Output format (text, json, csv)
+- `--filter`: File pattern to match (default: "*.qasm")
+- `--recursive`: Search subdirectories recursively (default: true)
+- `--ignore-errors`: Continue benchmarking even if some files fail
+- `--suite-name`: Name of the benchmark suite (default: "qasmtools")
+
+#### Examples:
+
+```bash
+# Basic benchmark of current directory
+qasm benchmark
+
+# Benchmark specific directory with detailed output
+qasm benchmark ./testdata --detailed
+
+# Benchmark with custom parameters
+qasm benchmark --runs=20 --warmup=5 --output=json
+
+# Benchmark with CSV output for analysis
+qasm benchmark --output=csv --filter="*.qasm" > results.csv
+
+# Benchmark ignoring failed files
+qasm benchmark --ignore-errors --recursive=false
+
+# Custom benchmark suite
+qasm benchmark --suite-name="my-project" --detailed
+```
+
+#### Output Formats:
+
+**Text Output (default):**
+```
+🔍 Found 15 QASM files to benchmark
+⚙️  Configuration: 10 runs per file, 3 warmup runs
+📊 Starting benchmark suite...
+
+📄 [1/15] bell_state.qasm ✅ 245.7µs (3 statements)
+📄 [2/15] grover.qasm ✅ 1.2ms (45 statements)
+...
+
+📊 Benchmark Results Summary
+==========================================
+Suite: qasmtools v1.0.0
+Timestamp: 2024-01-15 14:30:25
+==========================================
+
+📁 Files: 15 total, 15 successful, 0 failed
+✅ Success Rate: 100.0%
+📊 Total Bytes: 12,456
+📝 Total Statements: 234
+
+⏱️  Timing Statistics:
+   Total Time: 15.2ms
+   Average Time: 1.01ms
+   Median Time: 890µs
+   Min Time: 125µs
+   Max Time: 3.4ms
+   Std Deviation: 445µs
+
+🚀 Throughput: 1,234,567 bytes/sec (average)
+```
+
+**JSON Output:**
+```json
+{
+  "name": "qasmtools",
+  "version": "1.0.0",
+  "timestamp": "2024-01-15T14:30:25Z",
+  "results": [
+    {
+      "filename": "bell_state.qasm",
+      "file_size": 234,
+      "statements": 3,
+      "parse_time": 245700,
+      "success": true,
+      "throughput": 952847.3
+    }
+  ],
+  "summary": {
+    "total_files": 15,
+    "successful_files": 15,
+    "failed_files": 0,
+    "success_rate": 100.0,
+    "total_time": 15200000,
+    "average_time": 1013333,
+    "median_time": 890000,
+    "min_time": 125000,
+    "max_time": 3400000,
+    "std_deviation": 445000,
+    "total_statements": 234,
+    "total_bytes": 12456,
+    "avg_throughput": 1234567.89
+  }
+}
+```
+
+**CSV Output:**
+```csv
+filename,file_size,statements,parse_time_ns,success,throughput,error
+bell_state.qasm,234,3,245700,true,952847.30,""
+grover.qasm,1456,45,1200000,true,1213333.33,""
+...
+```
+
+#### Academic Benchmarking
+
+The benchmark command provides academic-level statistics suitable for research and performance analysis:
+
+- **Multiple runs** with configurable warmup periods
+- **Statistical analysis** including mean, median, standard deviation
+- **Throughput measurements** in bytes/second
+- **Success rate tracking** for parser reliability assessment
+- **Detailed timing breakdown** for performance profiling
+- **Multiple output formats** for further analysis
+
+#### Integration with Research
+
+This benchmarking system is designed to support academic research and can be used to:
+
+- Compare parser performance across different QASM implementations
+- Analyze scaling behavior with circuit complexity
+- Measure parser reliability across diverse quantum algorithms
+- Generate performance baselines for optimization work
+- Support reproducible research with consistent measurement methodology
+
+Example usage in research context:
+```bash
+# Benchmark quantum algorithm implementations
+qasm benchmark ./quantum_algorithms --output=csv --runs=50 --warmup=10
+
+# Generate JSON for automated analysis
+qasm benchmark --output=json --suite-name="qft-benchmark" > qft_results.json
+
+# Detailed analysis of specific circuit types
+qasm benchmark ./error_correction --detailed --filter="*_syndrome.qasm"
+```
 
 ## VSCode Extension
 
