@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.17](https://github.com/orangekame3/qasmtools/compare/v0.2.16...v0.2.17) - 2025-07-28
+- Clarify QASM command short description by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/99
+
 ## [v0.2.16](https://github.com/orangekame3/qasmtools/compare/v0.2.15...v0.2.16) - 2025-07-28
 - Add version check using vercheck package by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/97
 
