@@ -8,7 +8,7 @@ import (
 // Version information for the QASM CLI tool
 var (
 	// Version is the current version of the qasm CLI
-	Version = "0.2.16"
+	Version = "0.2.17"
 
 	// BuildDate is the date when the binary was built
 	BuildDate = "unknown"
