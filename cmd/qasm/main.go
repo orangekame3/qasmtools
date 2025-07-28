@@ -25,7 +25,7 @@ func main() {
 
 var rootCmd = &cobra.Command{
 	Use:   "qasm",
-	Short: "QASM tools",
+	Short: "QASM CLI tools",
 	Long:  `A collection of tools for working with QASM files.`,
 }
 
