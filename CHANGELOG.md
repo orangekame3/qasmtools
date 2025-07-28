@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.16](https://github.com/orangekame3/qasmtools/compare/v0.2.15...v0.2.16) - 2025-07-28
+- Add version check using vercheck package by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/97
+
 ## [v0.2.15](https://github.com/orangekame3/qasmtools/compare/v0.2.14...v0.2.15) - 2025-07-09
 - Add commands for formatting, highlighting, linting, and parsing QASM files by @orangekame3 in https://github.com/orangekame3/qasmtools/pull/95
 
