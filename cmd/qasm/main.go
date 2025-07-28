@@ -6,10 +6,18 @@ import (
 
 	"github.com/charmbracelet/fang"
 	"github.com/orangekame3/qasmtools/cmd/qasm/commands"
+	"github.com/orangekame3/vercheck"
 	"github.com/spf13/cobra"
 )
 
 func main() {
+	// Check for newer versions
+	vercheck.Check(vercheck.Options{
+		CurrentVersion: Version,
+		RepoOwner:      "orangekame3",
+		RepoName:       "qasmtools",
+	})
+
 	if err := fang.Execute(context.Background(), rootCmd, fang.WithVersion(GetVersion())); err != nil {
 		os.Exit(1)
 	}
